@@ -1,9 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Préstamo {{ loan.code }} · Cartera{% endblock %}
 {% block content %}
-{% set total_capital_paid = loan.principal - loan.outstanding_balance if loan.principal > loan.outstanding_balance else 0 %}
-{% set pct_paid = (total_capital_paid / loan.principal * 100)|round(1) if loan.principal > 0 else 0 %}
-
 <header class="page-head" style="margin-bottom: 20px;">
   <div>
     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 4px;">

@@ -81,4 +81,13 @@ def create():
 @permission_required("loans.view")
 def detail(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    return render_template("loans/detail.html", loan=loan)
+    principal_val = float(loan.principal)
+    balance_val = float(loan.outstanding_balance)
+    total_capital_paid = max(0.0, principal_val - balance_val)
+    pct_paid = round((total_capital_paid / principal_val * 100), 1) if principal_val > 0 else 0.0
+    return render_template(
+        "loans/detail.html",
+        loan=loan,
+        total_capital_paid=total_capital_paid,
+        pct_paid=pct_paid,
+    )
