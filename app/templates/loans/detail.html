@@ -1,66 +1,152 @@
 {% extends "base.html" %}
 {% block title %}Préstamo {{ loan.code }} · Cartera{% endblock %}
 {% block content %}
-<header class="page-head">
+{% set total_capital_paid = loan.principal - loan.outstanding_balance if loan.principal > loan.outstanding_balance else 0 %}
+{% set pct_paid = (total_capital_paid / loan.principal * 100)|round(1) if loan.principal > 0 else 0 %}
+
+<header class="page-head" style="margin-bottom: 20px;">
   <div>
-    <h1>Préstamo {{ loan.code }}</h1>
-    <p class="muted">{{ loan.client.full_name }} · Creado {{ loan.created_at|d }}</p>
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 4px;">
+      <h1>Préstamo {{ loan.code }}</h1>
+      <span class="badge" style="background: {% if loan.status == 'pagado' %}#dcfce7; color: #15803d;{% elif loan.status == 'mora' %}#fee2e2; color: #b91c1c;{% else %}#eff6ff; color: #1d4ed8;{% endif %}; font-weight: 700;">
+        {{ loan.status|upper }}
+      </span>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; font-size: 0.88rem;">
+      <a href="{{ url_for('clients.detail', client_id=loan.client.id) }}" style="font-weight: 700; color: var(--text);">
+        👤 {{ loan.client.full_name }}
+      </a>
+      <span class="muted">CC: {{ loan.client.identification_number }}</span>
+      {% if loan.client.phone %}
+      <a href="https://wa.me/57{{ loan.client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" style="color: #10b981; font-weight: 600; text-decoration: none;">💬 WhatsApp</a>
+      {% endif %}
+      <span class="muted">· Creado: {{ loan.created_at|d }}</span>
+    </div>
   </div>
-  {% if current_user.has_permission('payments.create') %}
-  <a class="btn btn-primary" href="{{ url_for('payments.create') }}?loan_id={{ loan.id }}">+ Registrar pago</a>
-  {% endif %}
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <a class="btn" href="{{ url_for('loans.list_loans') }}">← Volver</a>
+    {% if current_user.has_permission('payments.create') and loan.status != 'pagado' %}
+    <a class="btn btn-primary" href="{{ url_for('payments.create') }}?loan_id={{ loan.id }}">+ Registrar Pago</a>
+    {% endif %}
+  </div>
 </header>
 
-<div class="grid grid-4">
-  <div class="card mini"><strong>{{ loan.principal|money }}</strong><span>Valor principal</span></div>
-  <div class="card mini"><strong>{{ (loan.annual_rate * 100)|round(2) }}%</strong><span>Interés</span></div>
-  <div class="card mini"><strong>{{ loan.installments_count }}</strong><span>Cuotas</span></div>
-  <div class="card mini"><strong>{{ loan.outstanding_balance|money }}</strong><span>Saldo pendiente</span></div>
+{# Métricas KPI del Préstamo #}
+<div class="grid grid-4" style="margin-bottom: 24px;">
+  <div class="card stat">
+    <span class="stat-label">Capital Desembolsado</span>
+    <span class="stat-value">{{ loan.principal|money }}</span>
+    <small class="muted">Monto original del crédito</small>
+  </div>
+  <div class="card stat">
+    <span class="stat-label">Tasa de Interés</span>
+    <span class="stat-value" style="color: #2563eb;">{{ (loan.annual_rate * 100)|round(2) }}%</span>
+    <small class="muted">Frecuencia: {{ loan.frequency_days }} días</small>
+  </div>
+  <div class="card stat stat-success">
+    <span class="stat-label">Capital Amortizado</span>
+    <span class="stat-value">{{ total_capital_paid|money }}</span>
+    <small class="muted">{{ pct_paid }}% amortizado</small>
+  </div>
+  <div class="card stat {% if loan.outstanding_balance > 0 and loan.status == 'mora' %}stat-danger{% endif %}">
+    <span class="stat-label">Saldo Capital Pendiente</span>
+    <span class="stat-value" style="color: {% if loan.outstanding_balance > 0 %}#b91c1c{% else %}#10b981{% endif %};">{{ loan.outstanding_balance|money }}</span>
+    <small class="muted">{{ loan.installments_count }} cuotas en total</small>
+  </div>
 </div>
 
-<section class="card">
-  <h2>Obligaciones (cuotas)</h2>
+{# Barra de Progreso de Amortización #}
+<div class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+    <strong style="font-size: 0.88rem; text-transform: uppercase; color: var(--text-soft);">Progreso de Recuperación del Préstamo</strong>
+    <span style="font-weight: 700; color: #2563eb;">{{ pct_paid }}%</span>
+  </div>
+  <div style="background: #e2e8f0; border-radius: 999px; height: 10px; overflow: hidden;">
+    <div style="background: linear-gradient(90deg, #2563eb, #10b981); height: 100%; width: {{ pct_paid }}%; border-radius: 999px; transition: width 0.4s ease;"></div>
+  </div>
+</div>
+
+{# Tabla de Plan de Pagos / Amortización #}
+<section class="card" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+    <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Plan de Pagos y Amortización</h2>
+    <span class="badge badge-info">{{ loan.obligations|length }} cuotas</span>
+  </div>
   <table>
     <thead>
-      <tr><th>#</th><th>Vence</th><th>Valor cuota</th><th>Capital</th><th>Interés</th><th>Saldo pendiente</th><th>Días mora</th><th>Estado</th></tr>
+      <tr style="background: var(--bg);">
+        <th>Cuota</th>
+        <th>Fecha Vence</th>
+        <th style="text-align: right;">Valor Cuota</th>
+        <th style="text-align: right;">Capital</th>
+        <th style="text-align: right;">Interés</th>
+        <th style="text-align: right;">Saldo Pendiente</th>
+        <th style="text-align: center;">Días Mora</th>
+        <th style="text-align: center;">Estado</th>
+      </tr>
     </thead>
     <tbody>
       {% for o in loan.obligations %}
       <tr>
-        <td>{{ o.number }}</td>
+        <td><strong>#{{ o.number }}</strong></td>
         <td>{{ o.due_date|d }}</td>
-        <td>{{ o.scheduled_value|money }}</td>
-        <td>{{ o.capital|money }}</td>
-        <td>{{ o.interest|money }}</td>
-        <td>{{ o.pending_balance|money }}</td>
-        <td>{{ o.days_late if o.days_late else '—' }}</td>
-        <td><span class="badge {{ 'badge-success' if o.status == 'pagada' else 'badge-danger' if o.status == 'vencida' or o.days_late > 0 else 'badge-warning' if o.status == 'parcial' else '' }}">{{ o.status }}</span></td>
+        <td style="text-align: right;"><strong>{{ o.scheduled_value|money }}</strong></td>
+        <td style="text-align: right; color: var(--text-soft);">{{ o.capital|money }}</td>
+        <td style="text-align: right; color: var(--text-soft);">{{ o.interest|money }}</td>
+        <td style="text-align: right;"><strong style="color: {% if o.pending_balance > 0 %}#2563eb{% else %}#10b981{% endif %};">{{ o.pending_balance|money }}</strong></td>
+        <td style="text-align: center;">
+          {% if o.days_late and o.days_late > 0 %}
+          <span class="badge badge-danger">{{ o.days_late }} días</span>
+          {% else %}
+          <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td style="text-align: center;">
+          <span class="badge {{ 'badge-success' if o.status == 'pagada' else 'badge-danger' if o.status == 'vencida' or o.days_late > 0 else 'badge-warning' if o.status == 'parcial' else 'badge-info' }}">
+            {{ o.status|upper }}
+          </span>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </section>
 
+{# Historial de Pagos Aplicados #}
 <section class="card">
-  <h2>Pagos del préstamo</h2>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+    <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Historial de Pagos y Recibos Oficiales</h2>
+    <span class="badge badge-info">{{ loan.payments|length }} pago(s)</span>
+  </div>
   {% if loan.payments %}
   <table>
-    <thead><tr><th>Código</th><th>Fecha</th><th>Concepto</th><th>Valor</th><th>Estado</th><th></th></tr></thead>
+    <thead>
+      <tr style="background: var(--bg);">
+        <th>Código</th>
+        <th>Fecha de Pago</th>
+        <th>Concepto</th>
+        <th style="text-align: right;">Monto Recibido</th>
+        <th style="text-align: center;">Estado</th>
+        <th style="text-align: center;">Acción</th>
+      </tr>
+    </thead>
     <tbody>
       {% for p in loan.payments %}
-      <tr>
-        <td>{{ p.code }}</td>
+      <tr class="clickable-row" onclick="window.location='{{ url_for('payments.receipt', payment_id=p.id) }}';" style="cursor: pointer;">
+        <td><strong>{{ p.code }}</strong></td>
         <td>{{ p.payment_date|d }}</td>
         <td>{{ p.concept }}</td>
-        <td>{{ p.amount|money }}</td>
-        <td><span class="badge {{ 'badge-success' if p.status == 'aplicado' else 'badge-danger' }}">{{ p.status }}</span></td>
-        <td><a class="btn btn-sm" href="{{ url_for('payments.receipt', payment_id=p.id) }}">Recibo</a></td>
+        <td style="text-align: right;"><strong style="color: #10b981;">{{ p.amount|money }}</strong></td>
+        <td style="text-align: center;"><span class="badge {{ 'badge-success' if p.status == 'aplicado' else 'badge-danger' }}">{{ p.status|upper }}</span></td>
+        <td style="text-align: center;"><a class="btn btn-sm btn-primary" href="{{ url_for('payments.receipt', payment_id=p.id) }}" onclick="event.stopPropagation();">Ver Recibo Oficial →</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p class="muted">Sin pagos registrados.</p>
+  <div style="text-align: center; padding: 24px 0; color: var(--muted);">
+    <p style="margin: 0;">Aún no se han registrado abonos o pagos para este préstamo.</p>
+  </div>
   {% endif %}
 </section>
 {% endblock %}

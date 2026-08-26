@@ -1,33 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Historial de cobranza · Cartera{% endblock %}
+{% block title %}Historial de Cobranza · Cartera{% endblock %}
 {% block content %}
-<header class="page-head">
+<header class="page-head" style="margin-bottom: 20px;">
   <div>
-    <h1>Historial de gestiones</h1>
-    <p class="muted">Registro de actividades de seguimiento de cobranza</p>
+    <h1>Historial de Gestiones de Cobranza</h1>
+    <p class="muted">Trazabilidad completa de llamadas, visitas, acuerdos y mensajes de seguimiento</p>
   </div>
-  <a class="btn" href="{{ url_for('collections.list_collections') }}">← Volver</a>
+  <a class="btn" href="{{ url_for('collections.list_collections') }}">← Volver a Cobranza</a>
 </header>
 
-<div class="card">
+<div class="card" style="padding: 20px;">
   <table>
     <thead>
-      <tr><th>Fecha</th><th>Cliente</th><th>Préstamo</th><th>Cuota</th><th>Acción</th><th>Próxima fecha</th><th>Usuario</th><th>Notas</th></tr>
+      <tr style="background: var(--bg);">
+        <th>Fecha y Hora</th>
+        <th>Cliente</th>
+        <th>Préstamo</th>
+        <th>Cuota</th>
+        <th>Acción Realizada</th>
+        <th>Próximo Seguimiento</th>
+        <th>Gestor</th>
+        <th>Notas de la Gestión</th>
+      </tr>
     </thead>
     <tbody>
       {% for r in records %}
       <tr>
-        <td>{{ r.created_at|d }}</td>
-        <td>{{ r.client.full_name }}</td>
-        <td>{{ r.loan.code if r.loan else '—' }}</td>
+        <td><strong>{{ r.created_at|d }}</strong></td>
+        <td>
+          <a href="{{ url_for('clients.detail', client_id=r.client.id) }}" style="font-weight: 700; color: var(--text);">
+            {{ r.client.full_name }}
+          </a>
+        </td>
+        <td><span class="badge">{{ r.loan.code if r.loan else '—' }}</span></td>
         <td>{{ '#' ~ r.obligation.number if r.obligation else '—' }}</td>
-        <td>{{ r.action }}</td>
-        <td>{{ r.next_date|d }}</td>
-        <td>{{ r.user.username if r.user else '—' }}</td>
-        <td>{{ r.notes }}</td>
+        <td>
+          <span class="badge" style="background: {% if 'WhatsApp' in r.action %}#ecfdf5; color: #059669;{% elif 'Llamada' in r.action %}#eff6ff; color: #1d4ed8;{% elif 'Acuerdo' in r.action %}#fef3c7; color: #d97706;{% else %}#f1f5f9; color: #334155;{% endif %}; font-weight: 600;">
+            {{ r.action }}
+          </span>
+        </td>
+        <td>{{ r.next_date|d if r.next_date else '—' }}</td>
+        <td><span class="badge" style="background: #f1f5f9; color: #475569;">{{ r.user.username if r.user else '—' }}</span></td>
+        <td style="color: var(--text-soft); font-size: 0.88rem; max-width: 280px;">{{ r.notes or 'Sin observaciones adicionales.' }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="8" class="muted center">Sin gestiones registradas.</td></tr>
+      <tr><td colspan="8" class="muted center" style="padding: 30px; text-align: center;">No hay registros históricos de cobranza aún.</td></tr>
       {% endfor %}
     </tbody>
   </table>
