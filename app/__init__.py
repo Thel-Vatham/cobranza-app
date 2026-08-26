@@ -97,11 +97,32 @@ def create_app(config_object=Config):
     with app.app_context():
         db.create_all()
         _ensure_columns()
+        _deduplicate_references()
         from .seed import seed_if_empty, seed_parameters
         seed_if_empty()
         seed_parameters()
+        _deduplicate_references()
 
     return app
+
+
+def _deduplicate_references():
+    """Elimina referencias duplicadas para un mismo cliente automáticamente."""
+    try:
+        from .models import Reference
+        seen = set()
+        to_delete = []
+        for ref in Reference.query.order_by(Reference.id.asc()).all():
+            key = (ref.client_id, ref.full_name.strip().upper(), (ref.identification_number or "").strip(), (ref.relationship or "").strip())
+            if key in seen:
+                to_delete.append(ref.id)
+            else:
+                seen.add(key)
+        if to_delete:
+            Reference.query.filter(Reference.id.in_(to_delete)).delete(synchronize_session=False)
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 def _ensure_columns():
