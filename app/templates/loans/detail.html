@@ -13,7 +13,7 @@
 
 <div class="grid grid-4">
   <div class="card mini"><strong>{{ loan.principal|money }}</strong><span>Valor principal</span></div>
-  <div class="card mini"><strong>{{ (loan.annual_rate * 100)|round(2) }}%</strong><span>Interés anual</span></div>
+  <div class="card mini"><strong>{{ (loan.annual_rate * 100)|round(2) }}%</strong><span>Interés</span></div>
   <div class="card mini"><strong>{{ loan.installments_count }}</strong><span>Cuotas</span></div>
   <div class="card mini"><strong>{{ loan.outstanding_balance|money }}</strong><span>Saldo pendiente</span></div>
 </div>
