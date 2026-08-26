@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>{{ 'Editar cliente' if client else 'Nuevo cliente' }}</h1>
+    <p class="muted">Datos personales, contacto y referencias</p>
+  </div>
+  <a class="btn" href="{{ url_for('clients.list_clients') }}">← Volver</a>
+</header>
+
+<form class="card form" method="post" enctype="multipart/form-data">
+  <h2>Datos básicos</h2>
+  <div class="grid grid-3">
+    <label>Nombres *
+      <input type="text" name="first_name" id="first_name" required value="{{ client.first_name if client else '' }}">
+    </label>
+    <label>Apellidos *
+      <input type="text" name="last_name" id="last_name" required value="{{ client.last_name if client else '' }}">
+    </label>
+    <label>Tipo de identificación
+      <select name="identification_type" id="identification_type">
+        {% for t in ['CC','TI','CE','NIT','Pasaporte','Otro'] %}
+        <option value="{{ t }}" {% if client and client.identification_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Número de identificación *
+      <input type="text" name="identification_number" id="identification_number" required value="{{ client.identification_number if client else '' }}">
+    </label>
+    <label>País
+      <input type="text" name="country" id="country" value="{{ client.country if client else 'Colombia' }}">
+    </label>
+    <label>Teléfono
+      <input type="text" name="phone" id="phone" value="{{ client.phone if client else '' }}">
+    </label>
+    <label>Email
+      <input type="email" name="email" id="email" value="{{ client.email if client else '' }}">
+    </label>
+    <label class="span-2">Dirección
+      <input type="text" name="address" id="address" value="{{ client.address if client else '' }}">
+    </label>
+  </div>
+
+  <h2>Documentos</h2>
+  <div class="grid grid-2">
+    <div class="upload-box">
+      <label>Documento de identidad (imagen o PDF)
+        <input type="file" name="id_document" id="id_document" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif">
+      </label>
+      <p class="hint">Al subirlo se intenta autocompletar nombre, identificación, teléfono, dirección y email.</p>
+      <div id="ocr-status" class="ocr-status" hidden></div>
+    </div>
+    <div class="upload-box">
+      <label>Foto de la fachada de la casa
+        <input type="file" name="address_photo" accept=".png,.jpg,.jpeg,.webp,.gif">
+      </label>
+      <p class="hint">Si el documento contiene la dirección, se sugiere en el campo Dirección.</p>
+    </div>
+  </div>
+
+  <h2>Referencias y codeudores</h2>
+  <div id="references">
+    {% if client and client.references %}
+      {% for r in client.references %}
+      <div class="ref-row grid grid-5">
+        <input type="text" name="ref_name" placeholder="Nombre completo" value="{{ r.full_name }}">
+        <select name="ref_relationship">
+          {% for rel in ['Referencia','Codeudor','Familiar','Laboral','Personal'] %}
+          <option value="{{ rel }}" {% if r.relationship == rel %}selected{% endif %}>{{ rel }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="ref_identification" placeholder="Identificación" value="{{ r.identification_number or '' }}">
+        <input type="text" name="ref_phone" placeholder="Teléfono" value="{{ r.phone or '' }}">
+        <input type="text" name="ref_address" placeholder="Dirección" value="{{ r.address or '' }}">
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="ref-row grid grid-5">
+      <input type="text" name="ref_name" placeholder="Nombre completo">
+      <select name="ref_relationship">
+        {% for rel in ['Referencia','Codeudor','Familiar','Laboral','Personal'] %}
+        <option value="{{ rel }}">{{ rel }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="ref_identification" placeholder="Identificación">
+      <input type="text" name="ref_phone" placeholder="Teléfono">
+      <input type="text" name="ref_address" placeholder="Dirección">
+    </div>
+    {% endif %}
+  </div>
+  <button type="button" class="btn btn-sm" onclick="addReference()">+ Agregar referencia</button>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <a class="btn" href="{{ url_for('clients.list_clients') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+function addReference() {
+  const row = document.createElement('div');
+  row.className = 'ref-row grid grid-5';
+  row.innerHTML = `
+    <input type="text" name="ref_name" placeholder="Nombre completo">
+    <select name="ref_relationship">
+      ${['Referencia','Codeudor','Familiar','Laboral','Personal'].map(r => `<option>${r}</option>`).join('')}
+    </select>
+    <input type="text" name="ref_identification" placeholder="Identificación">
+    <input type="text" name="ref_phone" placeholder="Teléfono">
+    <input type="text" name="ref_address" placeholder="Dirección">
+  `;
+  document.getElementById('references').appendChild(row);
+}
+
+// Autocompletado desde el documento de identidad
+document.getElementById('id_document').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  const status = document.getElementById('ocr-status');
+  status.hidden = false;
+
+  const MAX_MB = 15; // igual a MAX_CONTENT_LENGTH del servidor
+  if (file.size > MAX_MB * 1024 * 1024) {
+    status.textContent = `El archivo supera los ${MAX_MB} MB. Reduzca la resolución o comprímalo.`;
+    status.className = 'ocr-status ocr-error';
+    this.value = '';
+    return;
+  }
+
+  status.textContent = 'Analizando documento…';
+  status.className = 'ocr-status';
+
+  const data = new FormData();
+  data.append('file', file);
+
+  fetch("{{ url_for('clients.ocr') }}", { method: 'POST', body: data })
+    .then(r => r.json().catch(() => ({ ok: false, message: `El servidor respondió con estado ${r.status}.` })))
+    .then(res => {
+      if (!res.ok) {
+        status.textContent = res.message || 'No se pudo analizar el documento.';
+        status.className = 'ocr-status ocr-error';
+        return;
+      }
+      const f = res.fields || {};
+      const setIfEmpty = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val && !el.value) el.value = val;
+      };
+      setIfEmpty('first_name', f.first_name);
+      setIfEmpty('last_name', f.last_name);
+      setIfEmpty('identification_number', f.identification_number);
+      setIfEmpty('phone', f.phone);
+      setIfEmpty('address', f.address);
+      setIfEmpty('email', f.email);
+
+      const filled = Object.values(f).filter(Boolean).length;
+      status.textContent = filled
+        ? 'Se autocompletaron los campos encontrados. Revíselos antes de guardar.'
+        : 'No se detectaron campos. Complete la información manualmente.';
+      status.className = 'ocr-status ocr-ok';
+    })
+    .catch(() => {
+      status.textContent = 'Error de conexión al analizar el documento. Verifique que el servidor siga en ejecución.';
+      status.className = 'ocr-status ocr-error';
+    });
+});
+</script>
+{% endblock %}

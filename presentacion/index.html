@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartera · Gestión de Cartera y Cobranza</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f9fb;
+    --surface: #ffffff;
+    --ink: #0f172a;
+    --muted: #5b6b81;
+    --line: #e6ebf1;
+    --green: #10b981;
+    --green-dark: #059669;
+    --teal: #14b8a6;
+    --grad: linear-gradient(135deg, #10b981 0%, #14b8a6 55%, #0ea5e9 130%);
+    --grad-dark: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+    --radius: 18px;
+    --shadow: 0 20px 45px -22px rgba(15, 23, 42, .25);
+    --shadow-sm: 0 8px 24px -14px rgba(15, 23, 42, .18);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: 'Sora', 'Inter', sans-serif; line-height: 1.15; letter-spacing: -0.02em; }
+  a { text-decoration: none; color: inherit; }
+  .wrap { width: min(1140px, 92%); margin: 0 auto; }
+  section { padding: 92px 0; }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: fixed; inset: 0 0 auto 0; z-index: 100;
+    background: rgba(255,255,255,.78);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: 'Sora'; font-weight: 800; font-size: 1.18rem; }
+  .brand .logo {
+    width: 34px; height: 34px; border-radius: 10px; background: var(--grad);
+    display: grid; place-items: center; color: #fff; box-shadow: 0 8px 18px -8px rgba(16,185,129,.7);
+  }
+  .nav-links { display: flex; gap: 26px; align-items: center; list-style: none; }
+  .nav-links a { font-weight: 500; font-size: .92rem; color: var(--muted); transition: color .2s; }
+  .nav-links a:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px;
+    border-radius: 12px; font-weight: 600; font-size: .92rem; cursor: pointer;
+    transition: transform .18s, box-shadow .18s, background .18s; border: none;
+  }
+  .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 14px 30px -14px rgba(16,185,129,.8); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 38px -14px rgba(16,185,129,.9); }
+  .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: #cbd5e1; background: #fff; }
+  .btn-dark { background: var(--ink); color: #fff; }
+  .menu-toggle { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 168px 0 100px; background:
+    radial-gradient(1000px 600px at 85% -10%, rgba(20,184,166,.16), transparent 60%),
+    radial-gradient(800px 500px at -10% 10%, rgba(16,185,129,.14), transparent 55%),
+    var(--bg);
+    position: relative; overflow: hidden;
+  }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px;
+    border-radius: 999px; background: #ecfdf5; color: var(--green-dark);
+    font-size: .8rem; font-weight: 600; margin-bottom: 20px;
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .hero h1 { font-size: clamp(2.3rem, 5vw, 3.6rem); font-weight: 800; }
+  .hero h1 .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p.lead { color: var(--muted); font-size: 1.1rem; margin: 20px 0 30px; max-width: 520px; }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+  .stats { display: flex; gap: 34px; margin-top: 44px; flex-wrap: wrap; }
+  .stat .num { font-family: 'Sora'; font-size: 1.9rem; font-weight: 800; color: var(--ink); }
+  .stat .lbl { color: var(--muted); font-size: .85rem; }
+
+  /* Dashboard mock */
+  .mock {
+    background: #fff; border: 1px solid var(--line); border-radius: 22px;
+    box-shadow: var(--shadow); padding: 20px; position: relative;
+  }
+  .mock-bar { display: flex; align-items: center; gap: 6px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .mock-bar span { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; }
+  .mock-bar span:nth-child(1){ background:#fca5a5; } .mock-bar span:nth-child(2){ background:#fcd34d; } .mock-bar span:nth-child(3){ background:#86efac; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+  .kpi { border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .kpi .k { color: var(--muted); font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .v { font-family: 'Sora'; font-weight: 700; font-size: 1.25rem; margin-top: 4px; }
+  .kpi .v.green { color: var(--green-dark); }
+  .kpi .v.red { color: #e11d48; }
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 130px; padding: 10px 0; }
+  .chart .col { flex: 1; border-radius: 8px 8px 0 0; background: linear-gradient(180deg, #34d399, #0d9488); }
+  .chart .col.muted { background: #e2e8f0; }
+  .float-tag {
+    position: absolute; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow-sm); padding: 10px 14px; font-size: .8rem; font-weight: 600;
+  }
+  .float-tag.t1 { top: -18px; right: 22px; color: var(--green-dark); }
+  .float-tag.t2 { bottom: -18px; left: 24px; color: var(--ink); }
+
+  /* ---------- Sections ---------- */
+  .sec-head { max-width: 640px; margin: 0 auto 56px; text-align: center; }
+  .sec-head h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 800; }
+  .sec-head p { color: var(--muted); margin-top: 14px; }
+  .tag { color: var(--green-dark); font-weight: 600; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; }
+
+  .cards { display: grid; gap: 22px; }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 26px; box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+  .icon {
+    width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center;
+    margin-bottom: 16px; background: #ecfdf5; color: var(--green-dark); font-size: 1.3rem;
+  }
+  .card h3 { font-size: 1.08rem; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: .92rem; }
+
+  /* Problem section */
+  .problem { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .problem .icon { background: #fff1f2; color: #e11d48; }
+
+  /* Financial highlight */
+  .finance { background: linear-gradient(180deg, #0f172a 0%, #111c2e 100%); color: #fff; }
+  .finance .sec-head h2 { color: #fff; }
+  .finance .sec-head p { color: #94a3b8; }
+  .finance .tag { color: #34d399; }
+  .formula {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+    border-radius: var(--radius); padding: 22px; text-align: center; margin-bottom: 26px;
+    font-family: 'Sora'; font-size: 1.05rem;
+  }
+  .formula code { color: #5eead4; }
+  .table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .table th { text-align: left; color: #94a3b8; font-weight: 500; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.12); }
+  .table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.07); color: #e2e8f0; }
+  .table td.mono, .table th.mono { font-family: 'Sora'; }
+
+  /* Score bands */
+  .bands { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 30px; }
+  .band { text-align: center; padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
+  .band .s { font-family: 'Sora'; font-weight: 800; font-size: 1.4rem; }
+  .band .b { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+  .band.g { background: #ecfdf5; border-color: #a7f3d0; } .band.g .s { color: var(--green-dark); }
+  .band.b { background: #eff6ff; border-color: #bfdbfe; } .band.b .s { color: #2563eb; }
+  .band.r { background: #fffbeb; border-color: #fde68a; } .band.r .s { color: #d97706; }
+  .band.d { background: #fff1f2; border-color: #fecdd3; } .band.d .s { color: #e11d48; }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step { display: flex; gap: 18px; align-items: flex-start; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .step:last-child { border-bottom: none; }
+  .step .n {
+    counter-increment: step; flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px;
+    background: var(--grad); color: #fff; display: grid; place-items: center; font-weight: 700; font-family: 'Sora';
+  }
+  .step h4 { margin-bottom: 4px; }
+  .step p { color: var(--muted); font-size: .92rem; }
+
+  /* CTA */
+  .cta { text-align: center; }
+  .cta-box {
+    background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%); color: #fff;
+    border-radius: 26px; padding: 60px 40px; box-shadow: var(--shadow);
+  }
+  .cta-box h2 { font-size: clamp(1.8rem, 3.5vw, 2.5rem); }
+  .cta-box p { color: #a7f3d0; margin: 16px 0 30px; }
+  .creds { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 26px; }
+  .cred { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 10px; padding: 8px 16px; font-size: .85rem; font-family: 'Sora'; }
+
+  footer { background: #0f172a; color: #64748b; padding: 40px 0; text-align: center; font-size: .85rem; }
+  footer .wrap { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  footer .credit { font-size: .72rem; color: #475569; letter-spacing: .04em; margin-top: 4px; }
+  footer .credit span { color: #64748b; font-weight: 600; }
+
+  /* Reveal */
+  .reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .cols-3, .cols-2, .cols-4 { grid-template-columns: 1fr 1fr; }
+    .bands { grid-template-columns: 1fr 1fr; }
+    .nav-links { display: none; position: absolute; top: 68px; left: 0; right: 0; background: #fff; flex-direction: column; padding: 18px; border-bottom: 1px solid var(--line); }
+    .nav-links.open { display: flex; }
+    .menu-toggle { display: block; }
+    .kpis { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 560px) {
+    .cols-3, .cols-2, .cols-4 { grid-template-columns: 1fr; }
+    .bands { grid-template-columns: 1fr; }
+    .stats { gap: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="wrap nav-inner">
+    <div class="brand"><span class="logo">◎</span> Cartera</div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#solucion">Solución</a></li>
+      <li><a href="#modulos">Módulos</a></li>
+      <li><a href="#vistas">Vistas del sistema</a></li>
+      <li><a href="#score">Score</a></li>
+      <li><a href="#ocr">OCR</a></li>
+      <li><a href="#seguridad">Seguridad</a></li>
+    </ul>
+    <button class="menu-toggle" id="menuToggle">☰</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> Plataforma de cartera y cobranza</span>
+      <h1>Control total de tu cartera de <span class="grad">microcréditos</span></h1>
+      <p class="lead">Automatiza el cálculo de cuotas, la aplicación de pagos, la gestión de cobranza y el análisis de riesgo de tus clientes — todo en un solo lugar, con trazabilidad completa.</p>
+      <div class="hero-actions">
+        <a href="#vistas" class="btn btn-ghost">Explorar módulos</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="num" data-count="100">0</div><div class="lbl">Score de riesgo 0–100</div></div>
+        <div class="stat"><div class="num" data-count="19">0</div><div class="lbl">Permisos configurables</div></div>
+        <div class="stat"><div class="num" data-count="24">0</div><div class="lbl">Operación 24/7</div></div>
+      </div>
+    </div>
+    <div class="mock reveal">
+      <div class="mock-bar"><span></span><span></span><span></span></div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">Cartera total</div><div class="v">$18.4M</div></div>
+        <div class="kpi"><div class="k">Vigente</div><div class="v green">$15.1M</div></div>
+        <div class="kpi"><div class="k">Vencida</div><div class="v red">$3.3M</div></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">Recaudo 30d</div><div class="v green">$2.1M</div></div>
+        <div class="kpi"><div class="k">Cuotas vencidas</div><div class="v red">47</div></div>
+        <div class="kpi"><div class="k">Clientes</div><div class="v">312</div></div>
+      </div>
+      <div class="chart">
+        <div class="col" style="height:38%"></div>
+        <div class="col" style="height:55%"></div>
+        <div class="col" style="height:44%"></div>
+        <div class="col" style="height:68%"></div>
+        <div class="col" style="height:58%"></div>
+        <div class="col" style="height:82%"></div>
+        <div class="col" style="height:74%"></div>
+        <div class="col" style="height:95%"></div>
+      </div>
+      <div class="float-tag t1">↑ Recaudo en crecimiento</div>
+      <div class="float-tag t2">Score de clientes: 84/100</div>
+    </div>
+  </div>
+</header>
+
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">El problema</div>
+      <h2>Gestionar cobranza a mano es lento y riesgoso</h2>
+      <p>Errores de cálculo, pagos mal aplicados y falta de visibilidad sobre la mora se traducen en dinero perdido.</p>
+    </div>
+    <div class="cards cols-3">
+      <div class="card reveal"><div class="icon">📉</div><h3>Mora invisible</h3><p>Sin alertas claras de cuotas vencidas, los clientes caen en mora sin que nadie actúe a tiempo.</p></div>
+      <div class="card reveal"><div class="icon">🧮</div><h3>Cálculos manuales</h3><p>Amortizaciones en Excel propensas a errores de redondeo e inconsistencias entre analistas.</p></div>
+      <div class="card reveal"><div class="icon">🗂️</div><h3>Documentos dispersos</h3><p>Cédulas, contratos y comprobantes sin orden ni relación con el cliente, difíciles de auditar.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUCION -->
+<section id="solucion">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">La solución</div>
+      <h2>Una plataforma integral para tu negocio</h2>
+      <p>Desde el origen del préstamo hasta el cobro final, con reglas financieras determinísticas y trazabilidad total.</p>
+    </div>
+    <div class="cards cols-3">
+      <div class="card reveal"><div class="icon">⚙️</div><h3>Motor financiero</h3><p>Amortización francesa y alemana con redondeo exacto a céntimos. Aplicación de pagos interés-primero, capital-después.</p></div>
+      <div class="card reveal"><div class="icon">🎯</div><h3>Score de comportamiento</h3><p>Evalúa puntualidad, cumplimiento y mora para clasificar clientes en bandas de riesgo 0–100.</p></div>
+      <div class="card reveal"><div class="icon">🔐</div><h3>Seguridad y roles</h3><p>Usuarios, roles y 19 permisos granulares. Auditoría de cada acción y documentos protegidos.</p></div>
+      <div class="card reveal"><div class="icon">🧾</div><h3>OCR inteligente</h3><p>Extrae datos de cédulas y documentos (PDF e imagen) para autocompletar clientes en segundos.</p></div>
+      <div class="card reveal"><div class="icon">📊</div><h3>Reportes en vivo</h3><p>Indicadores de cartera, recaudo, mora y distribución por estado, siempre actualizados.</p></div>
+      <div class="card reveal"><div class="icon">📞</div><h3>Gestión de cobranza</h3><p>Registra llamadas, visitas y acuerdos, con agenda de próximas gestiones.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- MODULOS -->
+<section id="modulos" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">Módulos</div>
+      <h2>Todo lo que necesitas, integrado</h2>
+    </div>
+    <div class="cards cols-4">
+      <div class="card reveal"><div class="icon">👥</div><h3>Clientes</h3><p>Ficha completa, referencias, codeudores y score.</p></div>
+      <div class="card reveal"><div class="icon">💸</div><h3>Préstamos</h3><p>Creación con cuotas generadas automáticamente.</p></div>
+      <div class="card reveal"><div class="icon">💰</div><h3>Pagos</h3><p>Aplicación transaccional y recibo imprimible.</p></div>
+      <div class="card reveal"><div class="icon">📞</div><h3>Cobranza</h3><p>Vencidos, gestiones y agenda de seguimiento.</p></div>
+      <div class="card reveal"><div class="icon">📄</div><h3>Documentos</h3><p>Carga segura, OCR y nomenclatura trazable.</p></div>
+      <div class="card reveal"><div class="icon">📈</div><h3>Reportes</h3><p>Cartera y score de comportamiento.</p></div>
+      <div class="card reveal"><div class="icon">🛡️</div><h3>Administración</h3><p>Usuarios, roles, parámetros y auditoría.</p></div>
+      <div class="card reveal"><div class="icon">🏠</div><h3>Panel</h3><p>Indicadores clave de un vistazo.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- VISTAS DETALLADAS -->
+<section id="vistas" class="finance">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">Vistas del Sistema</div>
+      <h2>Todo bajo control, pantalla por pantalla</h2>
+      <p>Conoce en detalle cada una de las interfaces de gestión que facilitan tu operación diaria.</p>
+    </div>
+    <div class="cards cols-2" style="margin-top:34px;">
+      <div class="card reveal" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);">
+        <h3 style="color:#fff">1. Panel Principal (Dashboard)</h3>
+        <p style="color:#94a3b8">El centro de control. Visualiza de un vistazo la cartera total, el recaudo de los últimos 30 días, estadísticas de mora y gráficos interactivos que te muestran la salud financiera de tu negocio en tiempo real.</p>
+      </div>
+      <div class="card reveal" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);">
+        <h3 style="color:#fff">2. Gestión de Clientes</h3>
+        <p style="color:#94a3b8">Crea y edita el perfil completo de cada cliente. Aquí podrás revisar su score de comportamiento (0-100), añadir referencias, historial de préstamos vinculados y todos sus datos de contacto centralizados.</p>
+      </div>
+      <div class="card reveal" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);">
+        <h3 style="color:#fff">3. Préstamos y Simulador</h3>
+        <p style="color:#94a3b8">Elige entre múltiples sistemas de amortización (Francés, Alemán), configura la periodicidad (Quincenal, Mensual) y genera al instante la tabla de obligaciones (cuotas) de cada nuevo préstamo.</p>
+      </div>
+      <div class="card reveal" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);">
+        <h3 style="color:#fff">4. Recaudos (Pagos)</h3>
+        <p style="color:#94a3b8">Registra abonos fácilmente. El sistema distribuye inteligentemente el dinero ingresado: primero cubre intereses atrasados, luego capital, asegurando que las cuentas siempre cuadren al centavo.</p>
+      </div>
+      <div class="card reveal" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);">
+        <h3 style="color:#fff">5. Administración y Configuración</h3>
+        <p style="color:#94a3b8">Ajusta los parámetros financieros sin tocar el código. Configura reglas de negocio, administra usuarios y consulta la bitácora de auditoría detallada de todos los movimientos críticos del sistema.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCORE -->
+<section id="score">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">Score de comportamiento</div>
+      <h2>Clasifica el riesgo de cada cliente</h2>
+      <p>Un puntaje 0–100 basado en su historial real de pagos.</p>
+    </div>
+    <div class="grid cols-2" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;">
+      <div class="reveal">
+        <div class="formula" style="background:#fff;border:1px solid var(--line);color:var(--ink);text-align:left;padding:26px;">
+          <strong>Score</strong> = 100 × (0.45·Puntualidad + 0.35·Cumplimiento + 0.20·Mora)
+          <br><br>
+          <span style="font-size:.85rem;color:var(--muted)">Puntualidad = pagadas a tiempo / total<br>Cumplimiento = pagadas / total<br>Mora = penalización por días y cantidad vencida</span>
+        </div>
+      </div>
+      <div class="bands reveal">
+        <div class="band g"><div class="s">80+</div><div class="b">Excelente</div></div>
+        <div class="band b"><div class="s">60–79</div><div class="b">Bueno</div></div>
+        <div class="band r"><div class="s">40–59</div><div class="b">Regular</div></div>
+        <div class="band d"><div class="s">&lt;40</div><div class="b">Riesgo alto</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OCR -->
+<section id="ocr" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">OCR inteligente</div>
+      <h2>Sube la cédula y el cliente se autocompleta</h2>
+      <p>Lee documentos PDF e imágenes para extraer nombre, identificación, teléfono, dirección y email.</p>
+    </div>
+    <div class="cards cols-3">
+      <div class="card reveal"><div class="icon">🖼️</div><h3>Imágenes y PDF</h3><p>Fotos de celular, cédulas escaneadas y PDFs con o sin texto incrustado.</p></div>
+      <div class="card reveal"><div class="icon">✨</div><h3>Preprocesado</h3><p>Rotación automática, redimensionado y realce de contraste para máxima precisión.</p></div>
+      <div class="card reveal"><div class="icon">🧩</div><h3>Campos sugeridos</h3><p>Extrae y sugiere los campos en el formulario; tú confirmas antes de guardar.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SEGURIDAD -->
+<section id="seguridad">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">Seguridad</div>
+      <h2>Control de acceso y trazabilidad</h2>
+    </div>
+    <div class="cards cols-3">
+      <div class="card reveal"><div class="icon">🔑</div><h3>Permisos específicos</h3><p>Control exacto de qué puede hacer cada empleado. En lugar de accesos generales, puedes definir reglas precisas como: "Solo ver clientes" o "Registrar pagos pero no borrarlos".</p></div>
+      <div class="card reveal"><div class="icon">🧾</div><h3>Auditoría completa</h3><p>Cada acción (login, pago, anulación, documento) queda registrada con usuario y fecha.</p></div>
+      <div class="card reveal"><div class="icon">🗄️</div><h3>Documentos trazables</h3><p>Nomenclatura interna por cliente y tipo, con nombre original conservado.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMO FUNCIONA -->
+<section id="demo" style="background:#fff;border-top:1px solid var(--line);">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="tag">Cómo funciona</div>
+      <h2>De la cédula al cobro, en 4 pasos</h2>
+    </div>
+    <div class="steps reveal">
+      <div class="step"><div class="n">1</div><div><h4>Crea el cliente</h4><p>Sube su cédula y el OCR autocompleta los datos. Agrega referencias y codeudores.</p></div></div>
+      <div class="step"><div class="n">2</div><div><h4>Origina el préstamo</h4><p>Define monto, tasa, plazo y frecuencia. Las cuotas se calculan automáticamente.</p></div></div>
+      <div class="step"><div class="n">3</div><div><h4>Registra los pagos</h4><p>El pago se aplica a interés y capital de forma automática; emite el recibo al instante.</p></div></div>
+      <div class="step"><div class="n">4</div><div><h4>Gestiona la mora</h4><p>El panel te muestra vencidos y agenda de cobranza. Todo queda auditado.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="wrap reveal">
+    <div class="cta-box">
+      <h2>¿Listo para tomar el control de tu cartera?</h2>
+      <p>Descubre cómo nuestra plataforma optimiza tu operación desde el primer día.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><span class="logo">◎</span> Cartera</div>
+    <div>Sistema de Gestión de Cartera y Cobranza · Demostración</div>
+    <div class="credit">Desarrollado por <span>AVRORA TECH</span></div>
+  </div>
+</footer>
+
+<script>
+  // Menú móvil
+  const toggle = document.getElementById('menuToggle');
+  const links = document.getElementById('navLinks');
+  toggle.addEventListener('click', () => links.classList.toggle('open'));
+
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Contadores animados
+  const counters = document.querySelectorAll('[data-count]');
+  const cio = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target; const target = +el.dataset.count; let cur = 0;
+      const step = Math.max(1, Math.ceil(target / 40));
+      const tick = () => { cur += step; if (cur >= target) { el.textContent = target; } else { el.textContent = cur; requestAnimationFrame(tick); } };
+      tick(); cio.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(el => cio.observe(el));
+</script>
+</body>
+</html>

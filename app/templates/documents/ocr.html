@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}OCR · {{ document.original_name }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Resultado OCR</h1>
+    <p class="muted">{{ document.original_name }} · {{ document.doc_type }}</p>
+  </div>
+  <a class="btn" href="{{ url_for('documents.list_documents') }}">← Volver</a>
+</header>
+
+<div class="card">
+  <form method="post" class="form">
+    <label>Texto extraído (editable para validación)
+      <textarea name="extracted_text" rows="12">{{ result.extracted_text }}</textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Confirmar / Guardar</button>
+      <a class="btn" href="{{ url_for('documents.download', document_id=document.id) }}">Descargar original</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if user else 'Nuevo' }} usuario · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>{{ 'Editar usuario' if user else 'Nuevo usuario' }}</h1>
+    <p class="muted">Credenciales y asignación de rol</p>
+  </div>
+  <a class="btn" href="{{ url_for('admin.users') }}">← Volver</a>
+</header>
+
+<form class="card form" method="post">
+  <div class="grid grid-3">
+    <label>Nombre de usuario *
+      <input type="text" name="username" required value="{{ user.username if user else '' }}">
+    </label>
+    <label>Nombre completo
+      <input type="text" name="full_name" value="{{ user.full_name if user else '' }}">
+    </label>
+    <label>Email
+      <input type="email" name="email" value="{{ user.email if user else '' }}">
+    </label>
+    <label>Rol *
+      <select name="role_id" required>
+        <option value="">Seleccione…</option>
+        {% for r in roles %}
+        <option value="{{ r.id }}" {% if user and user.role_id == r.id %}selected{% endif %}>{{ r.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Contraseña {{ '' if user else '*' }}
+      <input type="password" name="password" {{ '' if user else 'required' }} placeholder="{{ 'Dejar vacío para no cambiar' if user else '' }}">
+    </label>
+    <label class="check-label">
+      <input type="checkbox" name="active" {% if not user or user.active %}checked{% endif %}> Usuario activo
+    </label>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <a class="btn" href="{{ url_for('admin.users') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

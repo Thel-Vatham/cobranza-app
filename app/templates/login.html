@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión · Cartera{% endblock %}
+{% from "_icons.html" import logo %}{% block auth %}
+<div class="login-wrap">
+  <form class="login-card" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="brand login-brand">
+      {{ logo(42) }}
+      <div>
+        <strong>Cartera</strong>
+        <small>Gestión de Cartera y Cobranza</small>
+      </div>
+    </div>
+    <h1>Iniciar sesión</h1>
+    <label>Usuario
+      <input type="text" name="username" required autofocus placeholder="admin">
+    </label>
+    <label>Contraseña
+      <input type="password" name="password" required placeholder="••••••••">
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    <p class="hint" style="margin-top: 15px; font-size: 0.85rem; line-height: 1.4;">
+      <strong>Credenciales de prueba:</strong><br>
+      • <code>admin</code> / <code>09300</code> (Acceso Total)<br>
+      • <code>user_0</code> / <code>09300</code> (Solo Gestión)
+    </p>
+  </form>
+</div>
+{% endblock %}

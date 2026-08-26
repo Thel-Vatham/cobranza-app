@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Cartera y analítica · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Cartera y analítica</h1>
+    <p class="muted">Indicadores financieros y operativos</p>
+  </div>
+</header>
+
+<div class="grid grid-4">
+  <div class="card stat"><span class="stat-label">Cartera total</span><span class="stat-value">{{ indicators.total|money }}</span></div>
+  <div class="card stat"><span class="stat-label">Cartera vigente</span><span class="stat-value">{{ indicators.active|money }}</span></div>
+  <div class="card stat stat-danger"><span class="stat-label">Cartera vencida</span><span class="stat-value">{{ indicators.overdue|money }}</span></div>
+  <div class="card stat stat-success"><span class="stat-label">Total recaudado</span><span class="stat-value">{{ indicators.collected|money }}</span></div>
+</div>
+
+<div class="grid grid-4 secondary">
+  <div class="card mini"><strong>{{ indicators.loans_active }}</strong><span>Préstamos activos</span></div>
+  <div class="card mini"><strong>{{ indicators.obligations_overdue }}</strong><span>Obligaciones vencidas</span></div>
+  <div class="card mini"><strong>{{ indicators.avg_days_late }}</strong><span>Promedio días de mora</span></div>
+  <div class="card mini"><strong>{{ distribution|length }}</strong><span>Estados de cartera</span></div>
+</div>
+
+<section class="card">
+  <h2>Distribución de cartera por estado</h2>
+  <table>
+    <thead><tr><th>Estado</th><th>Saldo pendiente</th></tr></thead>
+    <tbody>
+      {% for state, value in distribution.items() %}
+      <tr>
+        <td><span class="badge {{ 'badge-success' if state == 'pagado' else 'badge-danger' if state == 'mora' else '' }}">{{ state }}</span></td>
+        <td>{{ value|money }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Detalle de préstamos</h2>
+  <table>
+    <thead><tr><th>Código</th><th>Cliente</th><th>Saldo</th><th>Estado</th></tr></thead>
+    <tbody>
+      {% for l in loans %}
+      <tr>
+        <td>{{ l.code }}</td>
+        <td>{{ l.client.full_name }}</td>
+        <td>{{ l.outstanding_balance|money }}</td>
+        <td><span class="badge {{ 'badge-success' if l.status == 'pagado' else 'badge-danger' if l.status == 'mora' else '' }}">{{ l.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

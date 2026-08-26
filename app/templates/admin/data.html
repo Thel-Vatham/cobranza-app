@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Datos · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Gestión y Mantenimiento de Datos</h1>
+    <p class="muted">Herramientas para exportación de copias de seguridad y purga de base de datos</p>
+  </div>
+</header>
+
+<div class="data-mgmt-grid">
+
+  <!-- Exportar -->
+  <div class="card data-card">
+    <div class="data-card-icon export-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </div>
+    <div class="data-card-body">
+      <h2>Exportar Base de Datos</h2>
+      <p class="muted">Descarga un archivo comprimido <code>.ZIP</code> con los datos operativos en formato CSV (codificación UTF-8 BOM compatible con Excel):</p>
+      <ul class="export-list">
+        <li><span class="badge">CSV</span> <strong>clientes.csv</strong> &mdash; {{ stats.clients }} registros</li>
+        <li><span class="badge">CSV</span> <strong>prestamos.csv</strong> &mdash; {{ stats.loans }} registros</li>
+        <li><span class="badge">CSV</span> <strong>pagos.csv</strong> &mdash; {{ stats.payments }} registros</li>
+        <li><span class="badge">CSV</span> <strong>obligaciones.csv</strong></li>
+      </ul>
+      <a class="btn btn-primary" href="{{ url_for('admin.export_csv') }}" id="btn-export">
+        📥 Descargar Copia en ZIP
+      </a>
+    </div>
+  </div>
+
+  <!-- Eliminar base actual -->
+  <div class="card data-card danger-card">
+    <div class="data-card-icon danger-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6"/><path d="M14 11v6"/>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+    </div>
+    <div class="data-card-body">
+      <h2 style="color: #ef4444;">Eliminar Base Actual</h2>
+      <p class="muted">Elimina permanentemente <strong>todos los clientes, préstamos, pagos, amortizaciones y documentos</strong>. Los usuarios del sistema, roles y parámetros se conservan.</p>
+      <p class="danger-note">⚠️ Esta acción es <strong>completamente irreversible</strong>. Descarga una copia de seguridad antes de continuar.</p>
+      <button class="btn btn-danger" id="btn-open-delete-modal" type="button">⚠️ Eliminar base actual...</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal de Doble Confirmación Paso 1 y Paso 2 -->
+<div id="delete-modal" class="modal-backdrop" style="display:none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 9999; place-items: center;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-box" style="background: var(--surface); max-width: 520px; width: 90%; border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);">
+
+    <!-- Paso 1: Advertencia -->
+    <div id="step-1">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <span style="font-size: 32px;">🛑</span>
+        <div>
+          <h2 id="modal-title" style="margin: 0; color: #ef4444; font-size: 1.25rem;">Paso 1 de 2: Confirmar advertencia</h2>
+          <p class="muted" style="margin: 2px 0 0 0; font-size: 0.85rem;">Eliminación total de registros operativos</p>
+        </div>
+      </div>
+      <p style="font-size: 0.92rem; line-height: 1.5; color: var(--text-soft);">
+        Está a punto de vaciar la base de datos operativa. Esta acción borrará todas las transacciones, recibos, clientes y documentos subidos.
+      </p>
+      <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 12px; border-radius: var(--radius-sm); margin: 16px 0;">
+        <label style="display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 0.88rem; color: #991b1b;">
+          <input type="checkbox" id="check-step-1" style="margin-top: 3px;">
+          <span>Entiendo que los datos se borrarán definitivamente y que he descargado una copia de respaldo si la requería.</span>
+        </label>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn" id="btn-cancel-modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-goto-step-2" disabled>Continuar al paso final →</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: Palabra de Seguridad -->
+    <div id="step-2" style="display: none;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <span style="font-size: 32px;">⚠️</span>
+        <div>
+          <h2 style="margin: 0; color: #ef4444; font-size: 1.25rem;">Paso 2 de 2: Verificación de seguridad</h2>
+          <p class="muted" style="margin: 2px 0 0 0; font-size: 0.85rem;">Escriba la palabra de confirmación</p>
+        </div>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-soft);">Para ejecutar el borrado, escriba exactamente <code style="font-size: 1.1rem; color: #ef4444; font-weight: 800;">ELIMINAR</code> en el campo:</p>
+      <form method="post" action="{{ url_for('admin.delete_data') }}" id="delete-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" id="confirm-input" name="confirm" placeholder="ELIMINAR"
+               autocomplete="off" class="confirm-input" spellcheck="false" style="width: 100%; padding: 10px 14px; font-size: 1.05rem; font-weight: 700; border-radius: var(--radius-sm); border: 2px solid #ef4444; margin-bottom: 20px; text-transform: uppercase;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn" id="btn-back-to-step-1">← Volver</button>
+          <button type="submit" class="btn btn-danger" id="btn-confirm-delete" disabled style="font-weight: 800; background: #dc2626;">🔥 Eliminar base actual definitivamente</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var openBtn     = document.getElementById('btn-open-delete-modal');
+  var modal       = document.getElementById('delete-modal');
+  var cancelBtn   = document.getElementById('btn-cancel-modal');
+  var checkStep1  = document.getElementById('check-step-1');
+  var gotoStep2   = document.getElementById('btn-goto-step-2');
+  var backStep1   = document.getElementById('btn-back-to-step-1');
+  var step1       = document.getElementById('step-1');
+  var step2       = document.getElementById('step-2');
+  var input       = document.getElementById('confirm-input');
+  var submitBtn   = document.getElementById('btn-confirm-delete');
+
+  function openModal() {
+    modal.style.display = 'grid';
+    step1.style.display = 'block';
+    step2.style.display = 'none';
+    checkStep1.checked = false;
+    gotoStep2.disabled = true;
+    input.value = '';
+    submitBtn.disabled = true;
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  openBtn.addEventListener('click', openModal);
+  cancelBtn.addEventListener('click', closeModal);
+
+  checkStep1.addEventListener('change', function() {
+    gotoStep2.disabled = !checkStep1.checked;
+  });
+
+  gotoStep2.addEventListener('click', function() {
+    step1.style.display = 'none';
+    step2.style.display = 'block';
+    input.value = '';
+    submitBtn.disabled = true;
+    input.focus();
+  });
+
+  backStep1.addEventListener('click', function() {
+    step2.style.display = 'none';
+    step1.style.display = 'block';
+  });
+
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+  input.addEventListener('input', function () {
+    var val = input.value.trim().toUpperCase();
+    submitBtn.disabled = (val !== 'ELIMINAR' && val !== 'BORRAR');
+  });
+
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+})();
+</script>
+{% endblock %}

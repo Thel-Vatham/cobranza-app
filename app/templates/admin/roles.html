@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Roles y permisos · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Roles y permisos</h1>
+    <p class="muted">Asignación de permisos por rol (Administrador tiene acceso total)</p>
+  </div>
+</header>
+
+{% for role in roles %}
+<section class="card">
+  <div class="role-head">
+    <h2>{{ role.name }}</h2>
+    <span class="muted">{{ role.description }}</span>
+    <span class="badge">{{ role.users|length }} usuario(s)</span>
+  </div>
+  {% if role.name != 'Administrador' %}
+  <form method="post" action="{{ url_for('admin.role_update', role_id=role.id) }}">
+    <div class="perm-grid">
+      {% for p in permissions %}
+      <label class="perm-item">
+        <input type="checkbox" name="permissions" value="{{ p.id }}" {% if p in role.permissions %}checked{% endif %}>
+        <span>{{ p.name }}</span>
+        <small>{{ p.code }}</small>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary">Guardar permisos</button>
+    </div>
+  </form>
+  {% else %}
+  <p class="muted">El rol Administrador tiene acceso total a todos los módulos.</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

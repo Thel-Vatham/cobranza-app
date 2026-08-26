@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "_icons.html" import logo %}{% block title %}Recibo {{ payment.code }} · Cartera{% endblock %}
+{% block content %}
+<div class="receipt-toolbar no-print">
+  <a class="btn" href="javascript:history.back()">Volver</a>
+  <button class="btn btn-primary" onclick="window.print()">Imprimir / PDF</button>
+</div>
+
+<div class="receipt">
+  <div class="receipt-head">
+    <div class="brand">
+      {{ logo(40) }}
+      <div>
+        <strong>Cartera</strong>
+        <small>Gestión de Cartera y Cobranza</small>
+      </div>
+    </div>
+    <div class="receipt-meta">
+      <h2>RECIBO DE PAGO</h2>
+      <p>No. <strong>{{ payment.code }}</strong></p>
+      <p>Fecha: {{ payment.payment_date|d }}</p>
+    </div>
+  </div>
+
+  <div class="receipt-body">
+    <div class="receipt-row"><span>Cliente</span><strong>{{ payment.client.full_name }}</strong></div>
+    <div class="receipt-row"><span>Identificación</span><strong>{{ payment.client.identification_type }} {{ payment.client.identification_number }}</strong></div>
+    <div class="receipt-row"><span>Préstamo</span><strong>{{ payment.loan.code }}</strong></div>
+    <div class="receipt-row"><span>Concepto</span><strong>{{ payment.concept }}</strong></div>
+    <div class="receipt-row"><span>Recibo externo</span><strong>{{ payment.receipt_number or '—' }}</strong></div>
+    <div class="receipt-row"><span>Operador</span><strong>{{ payment.registered_user.full_name if payment.registered_user else '—' }}</strong></div>
+
+    <h3>Detalle de aplicación</h3>
+    <table class="receipt-table">
+      <thead><tr><th>Cuota</th><th>Capital aplicado</th><th>Interés aplicado</th><th>Total</th></tr></thead>
+      <tbody>
+        {% for a in payment.applications %}
+        <tr>
+          <td>#{{ a.obligation.number }}</td>
+          <td>{{ a.capital_applied|money }}</td>
+          <td>{{ a.interest_applied|money }}</td>
+          <td>{{ (a.capital_applied + a.interest_applied)|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="receipt-total">
+      <span>VALOR RECIBIDO</span>
+      <strong>{{ payment.amount|money }}</strong>
+    </div>
+  </div>
+
+  <div class="receipt-foot">
+    <p>Este documento es un comprobante generado por Cartera.</p>
+    <p>Estado: <span class="badge {{ 'badge-success' if payment.status == 'aplicado' else 'badge-danger' }}">{{ payment.status }}</span></p>
+  </div>
+</div>
+
+<div class="card no-print">
+  <h2>Comprobantes del pago</h2>
+  {% if documents %}
+  <table>
+    <thead><tr><th>Archivo</th><th>Tipo</th><th>Tamaño</th><th>Cargado</th><th></th></tr></thead>
+    <tbody>
+      {% for d in documents %}
+      <tr>
+        <td>{{ d.original_name }}</td>
+        <td><span class="badge">{{ d.doc_type }}</span></td>
+        <td>{{ (d.size / 1024)|round(1) }} KB</td>
+        <td>{{ d.uploaded_at|d }}</td>
+        <td><a class="btn btn-sm" href="{{ url_for('documents.download', document_id=d.id) }}">Descargar</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Sin comprobantes adjuntos.</p>
+  {% endif %}
+
+  {% if current_user.has_permission('payments.create') and payment.status == 'aplicado' %}
+  <form class="inline-upload" method="post" action="{{ url_for('payments.attach_comprobante', payment_id=payment.id) }}" enctype="multipart/form-data">
+    <input type="file" name="comprobante" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.txt,.csv" required>
+    <button class="btn btn-sm" type="submit">Adjuntar comprobante</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

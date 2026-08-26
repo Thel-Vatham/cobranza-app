@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Usuarios · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Usuarios internos</h1>
+    <p class="muted">Administración de cuentas de acceso</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('admin.user_create') }}">+ Nuevo usuario</a>
+</header>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <div class="table-wrap" style="box-shadow: none; border: none; border-radius: 0;">
+    <table>
+      <thead>
+        <tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Creado</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><strong>{{ u.username }}</strong></td>
+          <td>{{ u.full_name or '—' }}</td>
+          <td>{{ u.email or '—' }}</td>
+          <td>{{ u.role.name if u.role else '—' }}</td>
+          <td><span class="badge {{ 'badge-success' if u.active else 'badge-danger' }}">{{ 'Activo' if u.active else 'Inactivo' }}</span></td>
+          <td>{{ u.created_at|d }}</td>
+          <td><a class="btn btn-sm" href="{{ url_for('admin.user_edit', user_id=u.id) }}">Editar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

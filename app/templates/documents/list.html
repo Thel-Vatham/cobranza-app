@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Documentos y Expedientes · Cartera{% endblock %}
+{% block content %}
+<header class="page-head" style="margin-bottom: 20px;">
+  <div>
+    <h1>Expedientes y Documentación</h1>
+    <p class="muted">Gestión de cédulas, fotos de fachadas, pagarés y contratos organizados por cliente</p>
+  </div>
+  {% if current_user.has_permission('documents.upload') %}
+  <a class="btn btn-primary" href="{{ url_for('documents.upload') }}">+ Subir Documento General</a>
+  {% endif %}
+</header>
+
+{# Barra de Búsqueda y Filtros #}
+<div class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+  <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; gap: 12px; align-items: center; flex: 1; min-width: 280px;">
+      <input type="text" id="doc-search" placeholder="Buscar por cliente, código, cédula o archivo…" style="flex: 1; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 14px;">
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="btn btn-sm type-filter active" data-type="all" style="font-weight: 600;">Todos los tipos</button>
+      <button type="button" class="btn btn-sm type-filter" data-type="identificacion">Cédulas</button>
+      <button type="button" class="btn btn-sm type-filter" data-type="fachada">Fachadas</button>
+      <button type="button" class="btn btn-sm type-filter" data-type="pagaré">Pagarés</button>
+      <button type="button" class="btn btn-sm type-filter" data-type="comprobante">Comprobantes</button>
+      <span class="badge badge-info" id="doc-total-badge" style="margin-left: 8px;">{{ total_docs }} archivos</span>
+    </div>
+  </div>
+</div>
+
+{# Secciones agrupadas por Cliente #}
+<div id="clients-container" style="display: flex; flex-direction: column; gap: 24px;">
+  {% for item in clients_with_docs %}
+  {% set c = item.client %}
+  {% set docs = item.documents %}
+  <section class="card client-doc-card" data-client-name="{{ c.full_name|lower }}" data-client-code="{{ c.code|lower }}" data-client-id="{{ c.identification_number }}" style="padding: 22px;">
+    
+    {# Header del Cliente #}
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div class="avatar" style="width: 44px; height: 44px; font-size: 16px; background: linear-gradient(135deg, #2563eb, #3b82f6);">
+          {{ c.first_name[:1] }}{{ c.last_name[:1] }}
+        </div>
+        <div>
+          <h2 style="margin: 0; font-size: 1.15rem; font-weight: 700;">
+            <a href="{{ url_for('clients.detail', client_id=c.id) }}" style="color: var(--text);">{{ c.full_name }}</a>
+          </h2>
+          <div style="display: flex; gap: 8px; align-items: center; margin-top: 3px; font-size: 0.85rem;">
+            <span class="badge badge-info">{{ c.code }}</span>
+            <span class="muted">CC: {{ c.identification_number }}</span>
+            <span class="muted">📍 {{ c.city or 'Colombia' }}</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 600;">{{ docs|length }} documento(s)</span>
+        <a class="btn btn-sm" href="{{ url_for('clients.detail', client_id=c.id) }}">Ver Ficha Cliente →</a>
+      </div>
+    </div>
+
+    {# Grid de Documentos del Cliente #}
+    {% if docs %}
+    <div class="grid grid-3 doc-items-grid" style="gap: 14px;">
+      {% for d in docs %}
+      <div class="doc-item-box" data-doc-type="{{ d.doc_type }}" style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span class="badge" style="font-weight: 700; font-size: 0.75rem; background: {% if d.doc_type == 'fachada' %}#ecfdf5; color: #059669;{% elif d.doc_type == 'identificacion' %}#eff6ff; color: #1d4ed8;{% elif d.doc_type == 'pagaré' %}#fffbeb; color: #b45309;{% else %}#f1f5f9; color: #334155;{% endif %}">
+              {% if d.doc_type == 'fachada' %}🏠 FACHADA{% elif d.doc_type == 'identificacion' %}🪪 CÉDULA{% elif d.doc_type == 'pagaré' %}📝 PAGARÉ{% else %}{{ d.doc_type|upper }}{% endif %}
+            </span>
+            <small class="muted" style="font-size: 0.75rem;">{{ d.extension|upper }} · {{ (d.size / 1024)|round(1) }} KB</small>
+          </div>
+          <strong class="doc-title" style="display: block; font-size: 0.88rem; line-height: 1.35; margin-bottom: 6px; word-break: break-all;">{{ d.original_name }}</strong>
+          <small class="muted" style="display: block; font-size: 0.78rem;">Fecha: {{ d.uploaded_at|d }}</small>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 12px; pt: 8px; border-top: 1px dashed var(--border); padding-top: 10px;">
+          <a class="btn btn-sm" href="{{ url_for('documents.download', document_id=d.id) }}" style="flex: 1; text-align: center; font-size: 0.8rem;">Descargar</a>
+          <a class="btn btn-sm" href="{{ url_for('documents.ocr', document_id=d.id) }}" style="font-size: 0.8rem;">OCR</a>
+          {% if current_user.has_permission('documents.upload') %}
+          <form method="post" action="{{ url_for('documents.delete', document_id=d.id) }}" onsubmit="return confirm('¿Eliminar este archivo?');" style="margin: 0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-danger" type="submit" style="padding: 4px 8px;" title="Eliminar documento">🗑️</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 20px 0; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius-sm);">
+      <p style="margin: 0; font-size: 0.9rem;">Sin documentos adjuntos para este cliente.</p>
+    </div>
+    {% endif %}
+
+  </section>
+  {% endfor %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('doc-search');
+  const typeBtns = Array.from(document.querySelectorAll('.type-filter'));
+  const clientCards = Array.from(document.querySelectorAll('.client-doc-card'));
+  let currentType = 'all';
+
+  function filterDocs() {
+    const q = (searchInput?.value || '').toLowerCase().trim();
+
+    clientCards.forEach(card => {
+      const clientName = card.dataset.clientName || '';
+      const clientCode = card.dataset.clientCode || '';
+      const clientId = card.dataset.clientId || '';
+      const docItems = Array.from(card.querySelectorAll('.doc-item-box'));
+
+      let visibleDocsInCard = 0;
+
+      docItems.forEach(doc => {
+        const docType = doc.dataset.docType || '';
+        const docText = (doc.textContent || '').toLowerCase();
+        const matchesType = currentType === 'all' || docType === currentType;
+        const matchesQuery = !q || clientName.includes(q) || clientCode.includes(q) || clientId.includes(q) || docText.includes(q);
+
+        if (matchesType && matchesQuery) {
+          doc.style.display = 'flex';
+          visibleDocsInCard++;
+        } else {
+          doc.style.display = 'none';
+        }
+      });
+
+      // Mostrar u ocultar la tarjeta del cliente según si tiene documentos que coinciden o coincide por nombre
+      const matchesClientDirect = !q || clientName.includes(q) || clientCode.includes(q) || clientId.includes(q);
+      if ((visibleDocsInCard > 0) || (currentType === 'all' && matchesClientDirect)) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  typeBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      typeBtns.forEach(b => b.classList.remove('active', 'btn-primary'));
+      btn.classList.add('active', 'btn-primary');
+      currentType = btn.dataset.type;
+      filterDocs();
+    });
+  });
+
+  searchInput?.addEventListener('input', filterDocs);
+});
+</script>
+{% endblock %}

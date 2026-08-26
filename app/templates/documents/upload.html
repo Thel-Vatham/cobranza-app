@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Subir documento · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Subir documento</h1>
+    <p class="muted">Formatos permitidos: imagen, PDF, Office, texto</p>
+  </div>
+  <a class="btn" href="{{ url_for('documents.list_documents') }}">← Volver</a>
+</header>
+
+<form class="card form" method="post" enctype="multipart/form-data">
+  <div class="grid grid-2">
+    <label>Tipo de entidad *
+      <select name="entity_type" required>
+        <option value="cliente">Cliente</option>
+        <option value="prestamo">Préstamo</option>
+        <option value="pago">Pago</option>
+      </select>
+    </label>
+    <label>ID de entidad *
+      <input type="number" name="entity_id" required placeholder="ID del cliente/préstamo/pago">
+    </label>
+    <label>Tipo de documento
+      <select name="doc_type">
+        {% for t in doc_types %}
+        <option value="{{ t }}">{{ t|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Archivo *
+      <input type="file" name="file" required>
+    </label>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Subir</button>
+    <a class="btn" href="{{ url_for('documents.list_documents') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

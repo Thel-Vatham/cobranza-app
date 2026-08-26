@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Database and uploaded files
+*.db
+*.sqlite
+*.sqlite3
+app/cartera.db
+app/uploads/*
+!app/uploads/.gitkeep
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Vercel & Cache
+.vercel/
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+Cobranza.rar

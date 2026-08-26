@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Error {{ code }} · Cartera{% endblock %}
+{% block content %}
+<div class="card center" style="max-width:480px; margin:60px auto;">
+  <h1 style="font-size:48px; margin:0;">{{ code }}</h1>
+  <p class="muted">{{ message }}</p>
+  <a class="btn btn-primary" href="{{ url_for('dashboard.index') }}">Ir al panel principal</a>
+</div>
+{% endblock %}

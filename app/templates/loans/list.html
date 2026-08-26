@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Préstamos · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Préstamos y Créditos</h1>
+    <p class="muted">Listado consolidado de créditos otorgados y planes de amortización</p>
+  </div>
+  {% if current_user.has_permission('loans.create') %}
+  <a class="btn btn-primary" href="{{ url_for('loans.create') }}">+ Nuevo Préstamo</a>
+  {% endif %}
+</header>
+
+<div class="card" style="padding: 16px 20px; margin-bottom: 20px;">
+  <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; gap: 12px; align-items: center; flex: 1; min-width: 280px;">
+      <input type="text" id="loan-search" placeholder="Buscar por código, cliente, identificación, valor o estado…" style="flex: 1; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 14px;">
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="btn btn-sm status-filter active" data-status="all" style="font-weight: 600;">Todos</button>
+      <button type="button" class="btn btn-sm status-filter" data-status="activo">Activos</button>
+      <button type="button" class="btn btn-sm status-filter" data-status="mora" style="color: #ef4444;">En Mora</button>
+      <button type="button" class="btn btn-sm status-filter" data-status="pagado" style="color: #10b981;">Pagados</button>
+      <span class="badge badge-info" id="loan-count" style="margin-left: 8px;">{{ loans|length }} préstamos</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <table id="loans-table">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Cliente</th>
+        <th>Fecha Inicio</th>
+        <th>Capital Inicial</th>
+        <th>Interés Anual</th>
+        <th>Frecuencia</th>
+        <th>Cuotas</th>
+        <th>Saldo Pendiente</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="loans-tbody">
+      {% for l in loans %}
+      <tr class="clickable-row loan-row" data-status="{{ l.status }}" onclick="window.location='{{ url_for('loans.detail', loan_id=l.id) }}';" style="cursor: pointer;">
+        <td><strong>{{ l.code }}</strong></td>
+        <td>{{ l.client.full_name }}</td>
+        <td>{{ l.start_date|d }}</td>
+        <td><strong>{{ l.principal|money }}</strong></td>
+        <td>{{ (l.annual_rate * 100)|round(1) }}%</td>
+        <td><span class="badge">{{ 'Quincenal' if l.frequency_days == 15 else 'Mensual' if l.frequency_days == 30 else (l.frequency_days ~ ' días') }}</span></td>
+        <td>{{ l.installments_count }}</td>
+        <td><strong style="color: {% if l.outstanding_balance > 0 %}#2563eb{% else %}#10b981{% endif %};">{{ l.outstanding_balance|money }}</strong></td>
+        <td>
+          <span class="badge {% if l.status == 'pagado' %}badge-success{% elif l.status == 'mora' %}badge-danger{% else %}badge-info{% endif %}">
+            {{ l.status|capitalize }}
+          </span>
+        </td>
+      </tr>
+      {% else %}
+      <tr id="empty-row"><td colspan="9" class="muted center" style="padding: 30px 0;">No hay préstamos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('loan-search');
+  const countBadge = document.getElementById('loan-count');
+  const rows = Array.from(document.querySelectorAll('.loan-row'));
+  const filterBtns = Array.from(document.querySelectorAll('.status-filter'));
+  let currentStatus = 'all';
+
+  function filterLoans() {
+    const q = (searchInput?.value || '').toLowerCase().trim();
+    let visible = 0;
+
+    rows.forEach(r => {
+      const text = r.textContent.toLowerCase();
+      const status = r.dataset.status || '';
+      const matchesSearch = !q || text.includes(q);
+      const matchesStatus = currentStatus === 'all' || status === currentStatus;
+
+      if (matchesSearch && matchesStatus) {
+        r.style.display = '';
+        visible++;
+      } else {
+        r.style.display = 'none';
+      }
+    });
+
+    if (countBadge) {
+      countBadge.textContent = `${visible} préstamo${visible !== 1 ? 's' : ''}`;
+    }
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      filterBtns.forEach(b => b.classList.remove('active', 'btn-primary'));
+      btn.classList.add('active', 'btn-primary');
+      currentStatus = btn.dataset.status;
+      filterLoans();
+    });
+  });
+
+  searchInput?.addEventListener('input', filterLoans);
+});
+</script>
+{% endblock %}

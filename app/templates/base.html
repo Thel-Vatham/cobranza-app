@@ -1,0 +1,124 @@
+{% from "_icons.html" import icon, logo %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Cartera · Gestión de Cartera y Cobranza{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  {% if current_user.is_authenticated %}
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <a class="brand-logo" href="{{ url_for('dashboard.index') }}">{{ logo(36) }}</a>
+        <div class="brand-text">
+          <strong>Cartera</strong>
+          <small>Gestión y Cobranza</small>
+        </div>
+        <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menú" aria-expanded="true">{{ icon('panel', 18) }}</button>
+      </div>
+      <nav class="nav">
+        {% if current_user.has_permission('dashboard.view') %}
+        <a href="{{ url_for('dashboard.index') }}" title="Panel principal" class="{% if request.endpoint == 'dashboard.index' %}active{% endif %}">{{ icon('dashboard', 18) }}<span class="nav-label">Panel principal</span></a>
+        {% endif %}
+
+        <div class="nav-section open">
+          <button class="nav-section-btn" type="button" aria-expanded="true">Gestión {{ icon('chevron', 14, 'chevron') }}</button>
+          <div class="nav-section-body">
+            {% if current_user.has_permission('clients.view') %}
+            <a href="{{ url_for('clients.list_clients') }}" title="Clientes" class="{% if request.blueprint == 'clients' %}active{% endif %}">{{ icon('users', 18) }}<span class="nav-label">Clientes</span></a>
+            {% endif %}
+            {% if current_user.has_permission('loans.view') %}
+            <a href="{{ url_for('loans.list_loans') }}" title="Préstamos" class="{% if request.blueprint == 'loans' %}active{% endif %}">{{ icon('briefcase', 18) }}<span class="nav-label">Préstamos</span></a>
+            {% endif %}
+            {% if current_user.has_permission('payments.view') %}
+            <a href="{{ url_for('payments.list_payments') }}" title="Pagos" class="{% if request.blueprint == 'payments' %}active{% endif %}">{{ icon('banknote', 18) }}<span class="nav-label">Pagos</span></a>
+            {% endif %}
+            {% if current_user.has_permission('collections.view') %}
+            <a href="{{ url_for('collections.list_collections') }}" title="Cobranza" class="{% if request.blueprint == 'collections' %}active{% endif %}">{{ icon('phone', 18) }}<span class="nav-label">Cobranza</span></a>
+            {% endif %}
+            {% if current_user.has_permission('documents.view') %}
+            <a href="{{ url_for('documents.list_documents') }}" title="Documentos" class="{% if request.blueprint == 'documents' %}active{% endif %}">{{ icon('folder', 18) }}<span class="nav-label">Documentos</span></a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if current_user.has_permission('reports.view') %}
+        <div class="nav-section open">
+          <button class="nav-section-btn" type="button" aria-expanded="true">Análisis {{ icon('chevron', 14, 'chevron') }}</button>
+          <div class="nav-section-body">
+            <a href="{{ url_for('reports.portfolio') }}" title="Cartera y analítica" class="{% if request.endpoint == 'reports.portfolio' %}active{% endif %}">{{ icon('chart', 18) }}<span class="nav-label">Cartera y analítica</span></a>
+            <a href="{{ url_for('reports.scoring') }}" title="Score de comportamiento" class="{% if request.endpoint == 'reports.scoring' %}active{% endif %}">{{ icon('gauge', 18) }}<span class="nav-label">Score de comportamiento</span></a>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if current_user.has_permission('admin.users') or current_user.has_permission('admin.roles') or current_user.has_permission('admin.parameters') or current_user.has_permission('admin.audit') %}
+        <div class="nav-section open">
+          <button class="nav-section-btn" type="button" aria-expanded="true">Administración {{ icon('chevron', 14, 'chevron') }}</button>
+          <div class="nav-section-body">
+            {% if current_user.has_permission('admin.users') %}
+            <a href="{{ url_for('admin.users') }}" title="Usuarios" class="{% if request.endpoint == 'admin.users' %}active{% endif %}">{{ icon('user', 18) }}<span class="nav-label">Usuarios</span></a>
+            {% endif %}
+            {% if current_user.has_permission('admin.roles') %}
+            <a href="{{ url_for('admin.roles') }}" title="Roles y permisos" class="{% if request.endpoint == 'admin.roles' %}active{% endif %}">{{ icon('shield', 18) }}<span class="nav-label">Roles y permisos</span></a>
+            {% endif %}
+            {% if current_user.has_permission('admin.parameters') %}
+            <a href="{{ url_for('admin.parameters') }}" title="Parámetros" class="{% if request.endpoint == 'admin.parameters' %}active{% endif %}">{{ icon('settings', 18) }}<span class="nav-label">Parámetros</span></a>
+            {% endif %}
+            {% if current_user.has_permission('admin.audit') %}
+            <a href="{{ url_for('admin.audit') }}" title="Auditoría" class="{% if request.endpoint == 'admin.audit' %}active{% endif %}">{{ icon('clipboard', 18) }}<span class="nav-label">Auditoría</span></a>
+            {% endif %}
+            {% if current_user.has_permission('admin.audit') %}
+            <a href="{{ url_for('admin.data_management') }}" title="Gestión de datos" class="{% if request.endpoint == 'admin.data_management' %}active{% endif %}">{{ icon('folder', 18) }}<span class="nav-label">Gestión de datos</span></a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <span class="avatar">{{ (current_user.full_name or current_user.username)[:1]|upper }}</span>
+          <div class="user-info">
+            <strong>{{ current_user.full_name or current_user.username }}</strong>
+            <small>{{ current_user.role.name if current_user.role else 'Sin rol' }}</small>
+          </div>
+        </div>
+        <a class="logout" href="{{ url_for('auth.logout') }}">{{ icon('logout', 16) }}<span class="logout-text">Cerrar sesión</span></a>
+      </div>
+    </aside>
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% else %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-stack auth-flash">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block auth %}{% endblock %}
+  {% endif %}
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

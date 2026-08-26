@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Registrar gestión · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Registrar gestión de cobranza</h1>
+    <p class="muted">{{ obligation.loan.client.full_name }} · Préstamo {{ obligation.loan.code }} · Cuota #{{ obligation.number }} (vence {{ obligation.due_date|d }})</p>
+  </div>
+  <div style="display: flex; gap: 8px; align-items: center;">
+    {% if obligation.loan.client.phone %}
+    <a class="btn" href="https://wa.me/57{{ obligation.loan.client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" style="background: #10b981; color: #fff; border-color: #10b981;">💬 Abrir WhatsApp</a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('collections.list_collections') }}">← Volver</a>
+  </div>
+</header>
+
+<form class="card form" method="post">
+  <div class="grid grid-2">
+    <label>Acción *
+      <select name="action" required>
+        {% for a in ['Llamada telefónica','Visita domiciliaria','Mensaje / WhatsApp','Acuerdo de pago','Notificación escrita','Otro'] %}
+        <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Próxima fecha de seguimiento
+      <input type="date" name="next_date">
+    </label>
+    <label class="span-2">Notas
+      <textarea name="notes" rows="4" placeholder="Detalle de la gestión realizada…"></textarea>
+    </label>
+  </div>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Guardar gestión</button>
+    <a class="btn" href="{{ url_for('collections.list_collections') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

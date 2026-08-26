@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Parámetros · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Parámetros del sistema</h1>
+    <p class="muted">Reglas financieras y de negocio parametrizables</p>
+  </div>
+</header>
+
+{% set groups = {} %}
+{% for p in params %}
+  {% set _ = groups.setdefault(p.category or 'generales', []).append(p) %}
+{% endfor %}
+
+<div class="layout-params" style="display: flex; gap: 24px; align-items: flex-start;">
+  <!-- Sidebar de pestañas -->
+  <div class="card" style="width: 260px; padding: 12px; position: sticky; top: 24px; flex-shrink: 0;">
+    <h3 style="margin: 8px 12px 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">Categorías</h3>
+    <div class="param-tabs" style="display: flex; flex-direction: column; gap: 4px;">
+      {% for category, label in categories.items() %}
+        {% if groups.get(category) %}
+        <button type="button" class="btn param-tab-btn {% if loop.first %}active{% endif %}" data-target="cat-{{ category }}" style="justify-content: flex-start; text-align: left; padding: 10px 14px; border: none; background: transparent; box-shadow: none;">
+          {{ label }}
+        </button>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Contenido de las pestañas -->
+  <div class="param-content" style="flex: 1; min-width: 0;">
+    <form method="post" id="paramsForm">
+      {% for category, label in categories.items() %}
+        {% if groups.get(category) %}
+        <section class="card form param-panel" id="cat-{{ category }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
+          <h2>{{ label }}</h2>
+          <div class="grid grid-2">
+            {% for p in groups[category] %}
+            <label>
+              <div style="display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px;">
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-soft);">{{ p.description or p.key }}</span>
+                <span style="font-family: monospace; font-size: 11.5px; color: var(--muted);">{{ p.key }}</span>
+              </div>
+              {% if p.kind == 'boolean' %}
+              <select name="param_{{ p.id }}">
+                <option value="true" {% if p.value in ['true','1','True'] %}selected{% endif %}>Activo</option>
+                <option value="false" {% if p.value in ['false','0','False'] %}selected{% endif %}>Inactivo</option>
+              </select>
+              {% elif p.kind == 'number' %}
+              <input type="number" step="any" name="param_{{ p.id }}" value="{{ p.value }}">
+              {% else %}
+              <input type="text" name="param_{{ p.id }}" value="{{ p.value }}">
+              {% endif %}
+            </label>
+            {% endfor %}
+          </div>
+          <div class="form-actions" style="border: none; padding-top: 0; margin-top: 24px; margin-bottom: 0;">
+            <button type="submit" class="btn btn-primary">Guardar todos los parámetros</button>
+          </div>
+        </section>
+        {% endif %}
+      {% endfor %}
+    </form>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btns = document.querySelectorAll('.param-tab-btn');
+    const panels = document.querySelectorAll('.param-panel');
+
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Remove active state
+        btns.forEach(b => {
+          b.classList.remove('active');
+          b.style.background = 'transparent';
+          b.style.color = 'inherit';
+        });
+        panels.forEach(p => p.style.display = 'none');
+        
+        // Set active state
+        btn.classList.add('active');
+        btn.style.background = 'var(--primary-soft)';
+        btn.style.color = 'var(--primary-dark)';
+        
+        const targetId = btn.getAttribute('data-target');
+        document.getElementById(targetId).style.display = 'block';
+      });
+    });
+    
+    // Set initial style for active tab
+    const initialActive = document.querySelector('.param-tab-btn.active');
+    if(initialActive) {
+      initialActive.style.background = 'var(--primary-soft)';
+      initialActive.style.color = 'var(--primary-dark)';
+    }
+  });
+</script>
+{% endblock %}
+

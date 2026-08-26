@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Score de Comportamiento · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Score de Comportamiento Crediticio</h1>
+    <p class="muted">Matriz de calificación de riesgo, puntualidad y cumplimiento por cliente (0 a 100)</p>
+  </div>
+</header>
+
+<div class="grid grid-3" style="margin-bottom: 24px;">
+  <div class="card stat" style="border-left: 4px solid #10b981;">
+    <span class="stat-label">Bajo Riesgo (Excelente: 80-100)</span>
+    <span class="stat-value" style="color: #10b981;">
+      {{ results|selectattr('score.score', 'ge', 80)|list|length }} clientes
+    </span>
+    <small class="muted">Clientes con alta puntualidad</small>
+  </div>
+  <div class="card stat" style="border-left: 4px solid #f59e0b;">
+    <span class="stat-label">Riesgo Medio (Regular: 50-79)</span>
+    <span class="stat-value" style="color: #d97706;">
+      {{ results|selectattr('score.score', 'ge', 50)|rejectattr('score.score', 'ge', 80)|list|length }} clientes
+    </span>
+    <small class="muted">Atrasos ocasionales moderados</small>
+  </div>
+  <div class="card stat stat-danger" style="border-left: 4px solid #ef4444;">
+    <span class="stat-label">Alto Riesgo (Crítico: < 50)</span>
+    <span class="stat-value" style="color: #ef4444;">
+      {{ results|selectattr('score.score', 'lt', 50)|list|length }} clientes
+    </span>
+    <small class="muted">Requieren seguimiento prioritario</small>
+  </div>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Score (0-100)</th>
+        <th>Nivel de Riesgo</th>
+        <th>Puntualidad</th>
+        <th>Cumplimiento</th>
+        <th>Máx. Días Mora</th>
+        <th>Cuotas Vencidas</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in results %}
+      {% set s = r.score.score %}
+      <tr class="clickable-row" onclick="window.location='{{ url_for('clients.detail', client_id=r.client.id) }}';" style="cursor: pointer;">
+        <td>
+          <strong>{{ r.client.full_name }}</strong>
+          <small class="muted" style="display: block;">{{ r.client.code }} · {{ r.client.city or 'Colombia' }}</small>
+        </td>
+        <td>
+          {% if s is not none %}
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; font-weight: 800; font-size: 1.1rem; color: #fff; background: {% if s >= 80 %}#10b981{% elif s >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+              {{ s }}
+            </span>
+          </div>
+          {% else %}
+          <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if s is not none %}
+          <span class="badge" style="font-weight: 700; padding: 6px 12px; font-size: 0.82rem; background: {% if s >= 80 %}rgba(16,185,129,0.15); color: #059669; border: 1px solid rgba(16,185,129,0.3);{% elif s >= 50 %}rgba(245,158,11,0.15); color: #d97706; border: 1px solid rgba(245,158,11,0.3);{% else %}rgba(239,68,68,0.15); color: #dc2626; border: 1px solid rgba(239,68,68,0.3);{% endif %}">
+            {{ r.score.band or 'Sin Clasificar' }}
+          </span>
+          {% else %}
+          <span class="muted">Sin histórico</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if s is not none %}
+          <div>
+            <strong style="color: {% if r.score.detail.puntualidad >= 80 %}#10b981{% elif r.score.detail.puntualidad >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; font-size: 0.95rem;">
+              {{ r.score.detail.puntualidad }}%
+            </strong>
+            <div style="width: 80px; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 4px;">
+              <div style="width: {{ r.score.detail.puntualidad }}%; height: 100%; background: {% if r.score.detail.puntualidad >= 80 %}#10b981{% elif r.score.detail.puntualidad >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+            </div>
+          </div>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if s is not none %}
+          <div>
+            <strong style="color: {% if r.score.detail.cumplimiento >= 80 %}#10b981{% elif r.score.detail.cumplimiento >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; font-size: 0.95rem;">
+              {{ r.score.detail.cumplimiento }}%
+            </strong>
+            <div style="width: 80px; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 4px;">
+              <div style="width: {{ r.score.detail.cumplimiento }}%; height: 100%; background: {% if r.score.detail.cumplimiento >= 80 %}#10b981{% elif r.score.detail.cumplimiento >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+            </div>
+          </div>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if s is not none %}
+          <strong style="color: {% if r.score.detail.max_dias_mora > 0 %}#ef4444{% else %}#10b981{% endif %}; font-size: 0.95rem;">
+            {{ r.score.detail.max_dias_mora }} días
+          </strong>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if s is not none %}
+          <strong style="color: {% if r.score.detail.obligaciones_vencidas > 0 %}#ef4444{% else %}#10b981{% endif %};">
+            {{ r.score.detail.obligaciones_vencidas }}
+          </strong>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          <a class="btn btn-sm" href="{{ url_for('clients.detail', client_id=r.client.id) }}">Ver Ficha →</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="muted center" style="padding: 30px 0;">No hay clientes registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

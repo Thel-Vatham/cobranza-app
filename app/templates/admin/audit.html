@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Auditoría · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Registro y Auditoría de Seguridad</h1>
+    <p class="muted">Trazabilidad detallada de operaciones críticas y accesos al sistema</p>
+  </div>
+  <span class="badge badge-info" id="audit-count">{{ records|length }} eventos registrados</span>
+</header>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <div class="table-wrap" style="box-shadow: none; border: none; border-radius: 0;">
+    <table id="audit-table">
+      <thead>
+        <tr style="background: var(--bg);">
+          <th style="min-width: 140px;">
+            <span style="display: block; margin-bottom: 6px;">Fecha / Hora</span>
+            <input type="text" class="audit-col-filter" data-col="0" placeholder="Filtrar fecha…" style="width: 100%; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border);">
+          </th>
+          <th style="min-width: 120px;">
+            <span style="display: block; margin-bottom: 6px;">Usuario</span>
+            <input type="text" class="audit-col-filter" data-col="1" placeholder="Filtrar usuario…" style="width: 100%; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border);">
+          </th>
+          <th style="min-width: 140px;">
+            <span style="display: block; margin-bottom: 6px;">Acción</span>
+            <input type="text" class="audit-col-filter" data-col="2" placeholder="Filtrar acción…" style="width: 100%; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border);">
+          </th>
+          <th style="min-width: 120px;">
+            <span style="display: block; margin-bottom: 6px;">Entidad</span>
+            <input type="text" class="audit-col-filter" data-col="3" placeholder="Filtrar entidad…" style="width: 100%; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border);">
+          </th>
+          <th style="min-width: 100px;">
+            <span style="display: block; margin-bottom: 6px;">ID Ref.</span>
+            <input type="text" class="audit-col-filter" data-col="4" placeholder="Filtrar ID…" style="width: 100%; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border);">
+          </th>
+          <th style="min-width: 200px;">
+            <span style="display: block; margin-bottom: 6px;">Detalle de la Operación</span>
+            <input type="text" class="audit-col-filter" data-col="5" placeholder="Filtrar detalle…" style="width: 100%; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border);">
+          </th>
+        </tr>
+      </thead>
+      <tbody id="audit-tbody">
+        {% for r in records %}
+        <tr class="audit-row">
+          <td><small style="font-weight: 600;">{{ r.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</small></td>
+          <td><strong>{{ r.user.username if r.user else 'Sistema' }}</strong></td>
+          <td><span class="badge badge-info">{{ r.action }}</span></td>
+          <td><strong>{{ r.entity or '—' }}</strong></td>
+          <td><code>{{ r.entity_id or '—' }}</code></td>
+          <td style="font-size: 12.5px; color: var(--text-soft);">{{ r.details or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="muted center" style="padding: 30px 0;">Sin registros de auditoría.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const inputs = Array.from(document.querySelectorAll('.audit-col-filter'));
+  const rows = Array.from(document.querySelectorAll('.audit-row'));
+  const countBadge = document.getElementById('audit-count');
+
+  function applyFilters() {
+    const filters = inputs.map(input => ({
+      col: parseInt(input.dataset.col, 10),
+      val: input.value.toLowerCase().trim()
+    })).filter(f => f.val.length > 0);
+
+    let visible = 0;
+    rows.forEach(r => {
+      const cells = Array.from(r.children);
+      const matchesAll = filters.every(f => {
+        const cellText = (cells[f.col]?.textContent || '').toLowerCase();
+        return cellText.includes(f.val);
+      });
+
+      if (matchesAll) {
+        r.style.display = '';
+        visible++;
+      } else {
+        r.style.display = 'none';
+      }
+    });
+
+    if (countBadge) {
+      countBadge.textContent = `${visible} evento${visible !== 1 ? 's' : ''} encontrado${visible !== 1 ? 's' : ''}`;
+    }
+  }
+
+  inputs.forEach(input => {
+    input.addEventListener('input', applyFilters);
+  });
+});
+</script>
+{% endblock %}

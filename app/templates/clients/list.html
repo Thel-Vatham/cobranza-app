@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Clientes · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Clientes / Deudores</h1>
+    <p class="muted">Registro y consulta de clientes, referencias y codeudores</p>
+  </div>
+  {% if current_user.has_permission('clients.create') %}
+  <a class="btn btn-primary" href="{{ url_for('clients.create') }}">+ Nuevo cliente</a>
+  {% endif %}
+</header>
+
+<div class="search-bar">
+  <input id="client-search" type="text" placeholder="Buscar por nombre o identificación…" autocomplete="off">
+  <span class="search-count" id="search-count"></span>
+</div>
+
+<div class="card">
+  <table id="clients-table">
+    <thead>
+      <tr><th>Código</th><th>Nombre</th><th>Identificación</th><th>Teléfono</th><th>País</th><th>Préstamos</th></tr>
+    </thead>
+    <tbody>
+      {% for c in clients %}
+      <tr class="client-row" data-href="{{ url_for('clients.detail', client_id=c.id) }}"
+          data-name="{{ c.full_name|lower }}" data-cc="{{ c.identification_number|lower }}" data-code="{{ c.code|lower }}">
+        <td><strong>{{ c.code }}</strong></td>
+        <td>{{ c.full_name }}</td>
+        <td>{{ c.identification_type }} {{ c.identification_number }}</td>
+        <td>{{ c.phone or '—' }}</td>
+        <td>{{ c.country }}</td>
+        <td>{{ c.loans|length }}</td>
+      </tr>
+      {% else %}
+      <tr id="no-clients-row"><td colspan="6" class="muted center">No hay clientes. Cree el primero.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p id="no-results-msg" class="muted center" style="display:none;padding:1.5rem 0;">No se encontraron clientes para esa búsqueda.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('client-search');
+  var rows  = document.querySelectorAll('.client-row');
+  var noMsg = document.getElementById('no-results-msg');
+  var count = document.getElementById('search-count');
+  var total = rows.length;
+  var timer;
+
+  function updateCount(visible) {
+    if (input.value.trim() === '') { count.textContent = ''; return; }
+    count.textContent = visible + ' de ' + total;
+  }
+
+  function filter() {
+    var q = input.value.trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (row) {
+      var match = !q ||
+        row.dataset.name.includes(q) ||
+        row.dataset.cc.includes(q) ||
+        row.dataset.code.includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    noMsg.style.display = (q && visible === 0) ? 'block' : 'none';
+    updateCount(visible);
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    timer = setTimeout(filter, 200);
+  });
+
+  // Filas clickeables
+  rows.forEach(function (row) {
+    row.addEventListener('click', function () {
+      window.location.href = row.dataset.href;
+    });
+  });
+})();
+</script>
+{% endblock %}

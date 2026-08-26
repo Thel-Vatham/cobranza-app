@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Panel principal · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Panel principal</h1>
+    <p class="muted">{{ today|d }} · Resumen operativo de la cartera</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('clients.create') }}">+ Nuevo cliente</a>
+</header>
+
+<div class="grid grid-4">
+  <div class="card stat">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="stat-label">Saldo Cartera Total</span>
+      <span class="badge" title="Capital inicial colocado: {{ indicators.capital_desembolsado|money }}">Base: {{ indicators.capital_desembolsado|money }}</span>
+    </div>
+    <span class="stat-value">{{ indicators.cartera_total|money }}</span>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Capital activo pendiente de cobro</small>
+  </div>
+  <div class="card stat">
+    <span class="stat-label">Cartera Vigente (Al día)</span>
+    <span class="stat-value" style="color: #10b981;">{{ indicators.cartera_vigente|money }}</span>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Sin cuotas vencidas</small>
+  </div>
+  <div class="card stat stat-danger">
+    <span class="stat-label">Cartera Vencida (En mora)</span>
+    <span class="stat-value">{{ indicators.cartera_vencida|money }}</span>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">{{ indicators.obligaciones_vencidas }} cuota(s) en mora</small>
+  </div>
+  <div class="card stat stat-success">
+    <span class="stat-label">Recaudo últimos 30 días</span>
+    <span class="stat-value">{{ indicators.recaudo_30d|money }}</span>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Cobros efectivamente aplicados</small>
+  </div>
+</div>
+
+<div class="grid grid-4 secondary">
+  <div class="card mini">
+    <strong>{{ indicators.clientes }}</strong>
+    <span>Clientes activos</span>
+  </div>
+  <div class="card mini">
+    <strong>{{ indicators.prestamos_activos }}</strong>
+    <span>Préstamos en curso</span>
+  </div>
+  <div class="card mini">
+    <strong style="color: {% if indicators.obligaciones_vencidas > 0 %}#ef4444{% else %}#10b981{% endif %};">{{ indicators.obligaciones_vencidas }}</strong>
+    <span>Cuotas en mora</span>
+  </div>
+  <div class="card mini">
+    <strong>{{ collections_today }}</strong>
+    <span>Gestiones de cobro hoy</span>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  {# Próximos Vencimientos #}
+  <section class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <h2 style="margin: 0;">Próximos Vencimientos ({{ horizon_days }} días)</h2>
+      <span class="badge badge-info">{{ upcoming|length }} préstamos</span>
+    </div>
+    <p class="muted" style="font-size: 0.82rem; margin-top: -4px; margin-bottom: 12px;">Muestra únicamente la siguiente cuota inmediata a vencer de cada cliente.</p>
+    {% if upcoming %}
+    <table id="upcoming-table">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Préstamo</th>
+          <th>Cuota</th>
+          <th>Vence</th>
+          <th>Estado</th>
+          <th>Valor</th>
+        </tr>
+        <tr class="filter-row" style="background: rgba(241, 245, 249, 0.6);">
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="upcoming-table" data-col="0" placeholder="Cliente..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="upcoming-table" data-col="1" placeholder="Préstamo..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="upcoming-table" data-col="2" placeholder="Cuota..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="upcoming-table" data-col="3" placeholder="Fecha..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="upcoming-table" data-col="4" placeholder="Estado..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="upcoming-table" data-col="5" placeholder="Valor..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in upcoming %}
+        <tr class="clickable-row" onclick="window.location='{{ url_for('loans.detail', loan_id=o.loan.id) }}';" style="cursor: pointer;">
+          <td><strong>{{ o.loan.client.full_name }}</strong></td>
+          <td><span class="badge">{{ o.loan.code }}</span></td>
+          <td>#{{ o.number }}</td>
+          <td>{{ o.due_date|d }}</td>
+          <td>
+            {% if o.due_date == today %}
+            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #d97706; font-weight: 700;">🔔 HOY</span>
+            {% elif o.due_date == tomorrow %}
+            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #2563eb; font-weight: 600;">🟡 MAÑANA</span>
+            {% elif o.due_date == day_after %}
+            <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #7c3aed;">PASADO MAÑANA</span>
+            {% else %}
+            <span class="badge">{{ (o.due_date - today).days }} días</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ o.pending_balance|money }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Sin obligaciones por vencer próximamente.</p>
+    {% endif %}
+  </section>
+
+  {# Obligaciones Vencidas #}
+  <section class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <h2 style="margin: 0; color: #ef4444;">Obligaciones vencidas (Mora)</h2>
+      <a class="btn btn-sm" href="{{ url_for('collections.list_collections') }}">Ir a Cobranza</a>
+    </div>
+    <p class="muted" style="font-size: 0.82rem; margin-top: -4px; margin-bottom: 12px;">Cuotas con días de atraso que requieren gestión de cobro.</p>
+    {% if overdue %}
+    <table id="overdue-table">
+      <thead>
+        <tr><th>Cliente</th><th>Cuota</th><th>Venció</th><th>Días mora</th><th>Valor</th></tr>
+        <tr class="filter-row" style="background: rgba(241, 245, 249, 0.6);">
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="overdue-table" data-col="0" placeholder="Cliente..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="overdue-table" data-col="1" placeholder="Cuota..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="overdue-table" data-col="2" placeholder="Venció..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="overdue-table" data-col="3" placeholder="Días..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+          <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="overdue-table" data-col="4" placeholder="Valor..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in overdue %}
+        <tr class="clickable-row" onclick="window.location='{{ url_for('collections.register', obligation_id=o.id) }}';" style="cursor: pointer;">
+          <td><strong>{{ o.loan.client.full_name }}</strong></td>
+          <td>#{{ o.number }}</td>
+          <td>{{ o.due_date|d }}</td>
+          <td><span class="badge badge-danger">{{ o.days_late }} días</span></td>
+          <td><strong style="color: #ef4444;">{{ o.pending_balance|money }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="color: #10b981;">✓ Excelente. No hay obligaciones en mora actualmente.</p>
+    {% endif %}
+  </section>
+</div>
+
+{# Pagos Recientes #}
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <h2>Pagos recientes (Últimos movimientos)</h2>
+    <a class="btn btn-sm" href="{{ url_for('payments.list_payments') }}">Ver todos los pagos</a>
+  </div>
+  {% if payments_recent %}
+  <table id="recent-payments-table">
+    <thead>
+      <tr><th>Código Pago</th><th>Cliente</th><th>Fecha Pago</th><th>Concepto</th><th>Monto</th><th>Recibo</th><th>Estado</th></tr>
+      <tr class="filter-row" style="background: rgba(241, 245, 249, 0.6);">
+        <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="recent-payments-table" data-col="0" placeholder="Código..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="recent-payments-table" data-col="1" placeholder="Cliente..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="recent-payments-table" data-col="2" placeholder="Fecha..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="recent-payments-table" data-col="3" placeholder="Concepto..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="recent-payments-table" data-col="4" placeholder="Monto..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="recent-payments-table" data-col="5" placeholder="Recibo..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+        <th style="padding: 4px 6px;"><input type="text" class="table-col-filter" data-table="recent-payments-table" data-col="6" placeholder="Estado..." style="width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in payments_recent %}
+      <tr class="clickable-row" onclick="window.location='{{ url_for('payments.receipt', payment_id=p.id) }}';" style="cursor: pointer;">
+        <td><strong>{{ p.code }}</strong></td>
+        <td>{{ p.client.full_name }}</td>
+        <td>{{ p.payment_date|d }}</td>
+        <td>{{ p.concept }}</td>
+        <td><strong style="color: #10b981;">{{ p.amount|money }}</strong></td>
+        <td><span class="badge">{{ p.receipt_number or 'REC' }}</span></td>
+        <td><span class="badge badge-success">{{ p.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Aún no hay pagos registrados.</p>
+  {% endif %}
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const colInputs = document.querySelectorAll('.table-col-filter');
+  
+  colInputs.forEach(input => {
+    input.addEventListener('click', (e) => e.stopPropagation());
+    
+    input.addEventListener('input', () => {
+      const tableId = input.dataset.table;
+      const table = document.getElementById(tableId);
+      if (!table) return;
+
+      const filters = Array.from(table.querySelectorAll('.table-col-filter')).map(inp => ({
+        col: parseInt(inp.dataset.col, 10),
+        val: inp.value.toLowerCase().trim()
+      })).filter(f => f.val.length > 0);
+
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        let match = true;
+        for (const f of filters) {
+          if (cells[f.col]) {
+            const txt = cells[f.col].textContent.toLowerCase();
+            if (!txt.includes(f.val)) {
+              match = false;
+              break;
+            }
+          }
+        }
+        row.style.display = match ? '' : 'none';
+      });
+    });
+  });
+});
+</script>
+{% endblock %}

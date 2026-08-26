@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Cobranza · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Cobranza</h1>
+    <p class="muted">Obligaciones vencidas y gestión de cobro</p>
+  </div>
+  <a class="btn" href="{{ url_for('collections.history') }}">Historial de gestiones</a>
+</header>
+
+<form class="search-bar" method="get">
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por cliente, identificación o préstamo…">
+  <button class="btn">Buscar</button>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Cliente</th><th>Préstamo</th><th>Cuota</th><th>Venció</th><th>Días mora</th><th>Valor a cobrar</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for o in overdue %}
+      <tr>
+        <td>
+          <strong>{{ o.loan.client.full_name }}</strong>
+          {% if o.loan.client.phone %}
+          <div style="margin-top: 3px;">
+            <a href="https://wa.me/57{{ o.loan.client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" class="badge" style="background: rgba(16,185,129,0.15); color: #059669; text-decoration: none; font-weight: 600;" title="Escribir por WhatsApp">
+              💬 WhatsApp
+            </a>
+          </div>
+          {% endif %}
+        </td>
+        <td><span class="badge">{{ o.loan.code }}</span></td>
+        <td>#{{ o.number }}</td>
+        <td>{{ o.due_date|d }}</td>
+        <td><span class="badge badge-danger">{{ o.days_late }} días</span></td>
+        <td><strong style="color: #ef4444;">{{ o.pending_balance|money }}</strong></td>
+        <td>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            {% if o.loan.client.phone %}
+            <a class="btn btn-sm" href="https://wa.me/57{{ o.loan.client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" style="background: #10b981; color: #fff; border-color: #10b981;" title="Abrir WhatsApp con cliente">💬 Chat</a>
+            {% endif %}
+            {% if current_user.has_permission('collections.create') %}
+            <a class="btn btn-sm btn-primary" href="{{ url_for('collections.register', obligation_id=o.id) }}">Registrar gestión</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted center">No hay obligaciones vencidas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

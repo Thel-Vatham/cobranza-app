@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% block title %}{{ client.full_name }} · Cartera{% endblock %}
+{% block content %}
+<header class="page-head" style="margin-bottom: 24px;">
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div class="avatar" style="width: 56px; height: 56px; font-size: 22px; background: linear-gradient(135deg, #2563eb, #3b82f6); box-shadow: 0 4px 10px rgba(37,99,235,0.25);">
+      {{ client.first_name[:1] }}{{ client.last_name[:1] }}
+    </div>
+    <div>
+      <h1 style="margin: 0; font-size: 1.6rem; font-weight: 700;">{{ client.full_name }}</h1>
+      <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+        <span class="badge badge-info" style="font-weight: 600;">{{ client.code }}</span>
+        <span class="badge" style="background: #e2e8f0; color: #334155;">{{ client.identification_type }}: {{ client.identification_number }}</span>
+        {% if client.email %}
+        <span class="muted" style="font-size: 0.85rem;">{{ client.email }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="btn-group">
+    <a class="btn" href="{{ url_for('clients.list_clients') }}">← Volver</a>
+    {% if current_user.has_permission('clients.edit') %}
+    <a class="btn" href="{{ url_for('clients.edit', client_id=client.id) }}">Editar Datos</a>
+    {% endif %}
+    {% if current_user.has_permission('loans.create') %}
+    <a class="btn btn-primary" href="{{ url_for('loans.create') }}?client_id={{ client.id }}">+ Nuevo Préstamo</a>
+    {% endif %}
+  </div>
+</header>
+
+{# Top Summary KPI Cards #}
+<div class="grid grid-4" style="margin-bottom: 24px;">
+  <div class="card stat">
+    <span class="stat-label">Capital Total Otorgado</span>
+    <span class="stat-value">{{ total_principal|money }}</span>
+    <small class="muted">{{ client.loans|length }} préstamo(s) histórico(s)</small>
+  </div>
+  <div class="card stat">
+    <span class="stat-label">Saldo Pendiente Activo</span>
+    <span class="stat-value" style="color: {% if total_balance > 0 %}#2563eb{% else %}#10b981{% endif %};">{{ total_balance|money }}</span>
+    <small class="muted">Capital por amortizar</small>
+  </div>
+  <div class="card stat stat-success">
+    <span class="stat-label">Total Capital Pagado</span>
+    <span class="stat-value">{{ total_paid|money }}</span>
+    <small class="muted">Recuperación de cartera</small>
+  </div>
+  <div class="card stat" style="border-left: 4px solid {% if score.score is none %}#94a3b8{% elif score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+    <span class="stat-label">Score de Comportamiento</span>
+    <div style="display: flex; align-items: baseline; gap: 8px;">
+      <span class="stat-value" style="color: {% if score.score is none %}#64748b{% elif score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+        {{ score.score if score.score is not none else 'N/A' }}
+      </span>
+      {% if score.band %}
+      <span class="badge" style="background: {% if score.score >= 80 %}rgba(16,185,129,0.15); color: #059669;{% elif score.score >= 50 %}rgba(245,158,11,0.15); color: #d97706;{% else %}rgba(239,68,68,0.15); color: #dc2626;{% endif %}">
+        {{ score.band }}
+      </span>
+      {% endif %}
+    </div>
+    <small class="muted">Evaluación de riesgo crediticio</small>
+  </div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom: 24px;">
+  {# Card 1: Datos de Contacto #}
+  <section class="card" style="display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Información de Contacto</h2>
+      <span class="badge badge-info">Cliente</span>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+      {# Teléfono y WhatsApp #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Teléfono Móvil</small>
+          <strong style="font-size: 1rem; color: var(--text);">{{ client.phone or '—' }}</strong>
+        </div>
+        {% if client.phone %}
+        <a href="https://wa.me/57{{ client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" class="btn btn-sm" style="background: #10b981; color: #ffffff; border: none; font-weight: 600; padding: 6px 12px; border-radius: 6px;" title="Abrir chat en WhatsApp">
+          WhatsApp ↗
+        </a>
+        {% endif %}
+      </div>
+
+      {# Email #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px;">
+        <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Correo Electrónico</small>
+        <span style="font-size: 0.92rem; color: var(--text); word-break: break-all;">{{ client.email or 'No registrado' }}</span>
+      </div>
+
+      {# Dirección #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px;">
+        <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Dirección de Residencia</small>
+        <strong style="font-size: 0.92rem; color: var(--text);">{{ client.address or 'No registrada' }}</strong>
+      </div>
+
+      {# Ubicación y Registro #}
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
+          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">País</small>
+          <span style="font-size: 0.88rem; font-weight: 600;">{{ client.country or 'Colombia' }}</span>
+        </div>
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
+          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Registrado</small>
+          <span style="font-size: 0.88rem;">{{ client.created_at|d if client.created_at else '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# Card 2: Referencias y Codeudores #}
+  <section class="card" style="display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Referencias y Codeudores</h2>
+      <span class="badge badge-info">{{ client.references|length }} registro(s)</span>
+    </div>
+    {% if client.references %}
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+      {% for r in client.references %}
+      <div class="ref-item" style="padding: 12px 14px; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <strong style="font-size: 0.95rem; color: var(--text);">{{ r.full_name }}</strong>
+          <span class="badge" style="background: {% if r.relationship == 'Codeudor' %}#fee2e2; color: #dc2626; font-weight: 700;{% else %}#e2e8f0; color: #475569; font-weight: 600;{% endif %}">
+            {{ r.relationship or 'Referencia' }}
+          </span>
+        </div>
+        <div style="font-size: 0.84rem; color: var(--text-soft); display: grid; grid-template-columns: 1fr; gap: 4px;">
+          {% if r.phone %}
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Tel: <strong>{{ r.phone }}</strong></span>
+            <a href="https://wa.me/57{{ r.phone|replace(' ', '')|replace('-', '') }}" target="_blank" style="font-size: 0.78rem; color: #10b981; font-weight: 600; text-decoration: none;">WhatsApp ↗</a>
+          </div>
+          {% endif %}
+          {% if r.identification_number %}<span>Doc: <strong>{{ r.identification_number }}</strong></span>{% endif %}
+          {% if r.address %}<span>Dir: {{ r.address }}</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      </div>
+    {% else %}
+    <div style="text-align: center; padding: 24px 0; color: var(--muted);">
+      <p style="margin: 0;">Sin referencias registradas para este cliente.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  {# Card 3: Score y Análisis de Riesgo #}
+  <section class="card" style="display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      <h2 style="margin: 0; font-size: 1.05rem;">Análisis de Riesgo</h2>
+      <a class="btn btn-sm" href="{{ url_for('reports.scoring') }}">Ver Matriz</a>
+    </div>
+    {% if score.score is not none %}
+    <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--border);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 0.85rem; font-weight: 600;">Calificación Crediticia</span>
+        <strong style="font-size: 1.1rem; color: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">{{ score.score }} / 100</strong>
+      </div>
+      <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+        <div style="width: {{ score.score }}%; height: 100%; background: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; transition: width 0.4s ease;"></div>
+      </div>
+    </div>
+    <dl class="kv" style="margin: 0;">
+      <dt>Puntualidad en Pagos</dt><dd><strong>{{ score.detail.puntualidad }}%</strong></dd>
+      <dt>Cumplimiento General</dt><dd><strong>{{ score.detail.cumplimiento }}%</strong></dd>
+      <dt>Máx. Días en Mora</dt><dd style="color: {% if score.detail.max_dias_mora > 0 %}#ef4444{% else %}#10b981{% endif %};"><strong>{{ score.detail.max_dias_mora }} días</strong></dd>
+      <dt>Obligaciones Vencidas</dt><dd><strong>{{ score.detail.obligaciones_vencidas }}</strong></dd>
+    </dl>
+    {% else %}
+    <div style="text-align: center; padding: 24px 0; color: var(--muted);">
+      <p style="margin: 0;">{{ score.detail }}</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+{# Card 4: Préstamos del Cliente #}
+<section class="card" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+    <div>
+      <h2 style="margin: 0;">Préstamos y Amortizaciones</h2>
+      <p class="muted" style="font-size: 0.85rem; margin: 2px 0 0 0;">Historial de créditos asignados a este cliente</p>
+    </div>
+    {% if current_user.has_permission('loans.create') %}
+    <a class="btn btn-sm btn-primary" href="{{ url_for('loans.create') }}?client_id={{ client.id }}">+ Crear Préstamo</a>
+    {% endif %}
+  </div>
+
+  {% if client.loans %}
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Fecha Inicio</th>
+        <th>Capital Inicial</th>
+        <th>Interés Anual</th>
+        <th>Frecuencia</th>
+        <th>Cuotas</th>
+        <th>Saldo Pendiente</th>
+        <th>Estado</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in client.loans %}
+      <tr class="clickable-row" onclick="window.location='{{ url_for('loans.detail', loan_id=l.id) }}';" style="cursor: pointer;">
+        <td><strong>{{ l.code }}</strong></td>
+        <td>{{ l.start_date|d }}</td>
+        <td><strong>{{ l.principal|money }}</strong></td>
+        <td>{{ (l.annual_rate * 100)|round(1) }}%</td>
+        <td><span class="badge">{{ 'Quincenal' if l.frequency_days == 15 else 'Mensual' if l.frequency_days == 30 else (l.frequency_days ~ ' días') }}</span></td>
+        <td>{{ l.installments_count }} cuotas</td>
+        <td><strong style="color: {% if l.outstanding_balance > 0 %}#2563eb{% else %}#10b981{% endif %};">{{ l.outstanding_balance|money }}</strong></td>
+        <td>
+          <span class="badge {% if l.status == 'pagado' %}badge-success{% elif l.status == 'mora' %}badge-danger{% else %}badge-info{% endif %}">
+            {{ l.status|capitalize }}
+          </span>
+        </td>
+        <td><a class="btn btn-sm" href="{{ url_for('loans.detail', loan_id=l.id) }}">Plan de Pagos →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted" style="text-align: center; padding: 20px 0;">Este cliente no tiene préstamos activos ni históricos.</p>
+  {% endif %}
+</section>
+
+{# Card 5: Documentos y Evidencias #}
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+    <div>
+      <h2 style="margin: 0;">Documentos y Evidencias Adjuntas</h2>
+      <p class="muted" style="font-size: 0.85rem; margin: 2px 0 0 0;">Cédulas, fachadas de inmueble/negocio, comprobantes y contratos</p>
+    </div>
+  </div>
+
+  {% if documents %}
+  <div class="grid grid-3" style="gap: 16px; margin-bottom: 20px;">
+    {% for d in documents %}
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="badge" style="font-weight: 700; background: #e0e7ff; color: #3730a3;">{{ d.doc_type|upper }}</span>
+          <small class="muted">{{ d.extension|upper }} · {{ (d.size / 1024)|round(1) }} KB</small>
+        </div>
+        <strong style="display: block; font-size: 0.92rem; word-break: break-all; margin-bottom: 6px;">{{ d.original_name }}</strong>
+        <small class="muted" style="display: block; margin-bottom: 12px;">Cargado: {{ d.uploaded_at|d }}</small>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-top: 12px;">
+        <a class="btn btn-sm" href="{{ url_for('documents.download', document_id=d.id) }}">Descargar</a>
+        <a class="btn btn-sm" href="{{ url_for('documents.ocr', document_id=d.id) }}">OCR</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align: center; padding: 20px 0; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius-sm); margin-bottom: 16px;">
+    <p style="margin: 0;">No hay documentos adjuntos para este cliente todavía.</p>
+  </div>
+  {% endif %}
+
+  {% if current_user.has_permission('clients.edit') %}
+  <div style="background: var(--bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+    <strong style="display: block; font-size: 0.9rem; margin-bottom: 8px;">+ Adjuntar Nuevo Documento / Foto de Fachada</strong>
+    <form class="inline-upload" method="post" action="{{ url_for('clients.add_document', client_id=client.id) }}" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <select name="doc_type" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <option value="identificacion">Cédula / Identificación</option>
+        <option value="fachada">Foto de Fachada / Negocio</option>
+        <option value="comprobante">Comprobante de Ingresos / Servicios</option>
+        <option value="contrato">Contrato Firmado</option>
+        <option value="pagaré">Pagaré</option>
+        <option value="otro">Otro Documento</option>
+      </select>
+      <input type="file" name="file" required style="padding: 6px; font-size: 0.85rem;">
+      <button class="btn btn-sm btn-primary" type="submit">Subir Documento</button>
+    </form>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

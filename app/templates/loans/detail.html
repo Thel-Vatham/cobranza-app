@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Préstamo {{ loan.code }} · Cartera{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Préstamo {{ loan.code }}</h1>
+    <p class="muted">{{ loan.client.full_name }} · Creado {{ loan.created_at|d }}</p>
+  </div>
+  {% if current_user.has_permission('payments.create') %}
+  <a class="btn btn-primary" href="{{ url_for('payments.create') }}?loan_id={{ loan.id }}">+ Registrar pago</a>
+  {% endif %}
+</header>
+
+<div class="grid grid-4">
+  <div class="card mini"><strong>{{ loan.principal|money }}</strong><span>Valor principal</span></div>
+  <div class="card mini"><strong>{{ (loan.annual_rate * 100)|round(2) }}%</strong><span>Interés anual</span></div>
+  <div class="card mini"><strong>{{ loan.installments_count }}</strong><span>Cuotas</span></div>
+  <div class="card mini"><strong>{{ loan.outstanding_balance|money }}</strong><span>Saldo pendiente</span></div>
+</div>
+
+<section class="card">
+  <h2>Obligaciones (cuotas)</h2>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Vence</th><th>Valor cuota</th><th>Capital</th><th>Interés</th><th>Saldo pendiente</th><th>Días mora</th><th>Estado</th></tr>
+    </thead>
+    <tbody>
+      {% for o in loan.obligations %}
+      <tr>
+        <td>{{ o.number }}</td>
+        <td>{{ o.due_date|d }}</td>
+        <td>{{ o.scheduled_value|money }}</td>
+        <td>{{ o.capital|money }}</td>
+        <td>{{ o.interest|money }}</td>
+        <td>{{ o.pending_balance|money }}</td>
+        <td>{{ o.days_late if o.days_late else '—' }}</td>
+        <td><span class="badge {{ 'badge-success' if o.status == 'pagada' else 'badge-danger' if o.status == 'vencida' or o.days_late > 0 else 'badge-warning' if o.status == 'parcial' else '' }}">{{ o.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Pagos del préstamo</h2>
+  {% if loan.payments %}
+  <table>
+    <thead><tr><th>Código</th><th>Fecha</th><th>Concepto</th><th>Valor</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      {% for p in loan.payments %}
+      <tr>
+        <td>{{ p.code }}</td>
+        <td>{{ p.payment_date|d }}</td>
+        <td>{{ p.concept }}</td>
+        <td>{{ p.amount|money }}</td>
+        <td><span class="badge {{ 'badge-success' if p.status == 'aplicado' else 'badge-danger' }}">{{ p.status }}</span></td>
+        <td><a class="btn btn-sm" href="{{ url_for('payments.receipt', payment_id=p.id) }}">Recibo</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Sin pagos registrados.</p>
+  {% endif %}
+</section>
+{% endblock %}
