@@ -147,26 +147,74 @@
 
   {# Card 3: Score y Análisis de Riesgo #}
   <section class="card" style="display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
-      <h2 style="margin: 0; font-size: 1.05rem;">Análisis de Riesgo</h2>
-      <a class="btn btn-sm" href="{{ url_for('reports.scoring') }}">Ver Matriz</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Análisis de Riesgo</h2>
+      <a class="btn btn-sm" href="{{ url_for('reports.scoring') }}">Ver Matriz →</a>
     </div>
     {% if score.score is not none %}
-    <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--border);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span style="font-size: 0.85rem; font-weight: 600;">Calificación Crediticia</span>
-        <strong style="font-size: 1.1rem; color: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">{{ score.score }} / 100</strong>
+    {# Tarjeta Principal de Score #}
+    <div style="background: var(--bg); padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; border: 1px solid var(--border);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text);">Calificación Crediticia</span>
+        <strong style="font-size: 1.15rem; color: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; font-weight: 800;">
+          {{ score.score }} / 100
+        </strong>
       </div>
       <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
-        <div style="width: {{ score.score }}%; height: 100%; background: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; transition: width 0.4s ease;"></div>
+        <div style="width: {{ score.score }}%; height: 100%; background: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; border-radius: 999px; transition: width 0.4s ease;"></div>
       </div>
     </div>
-    <dl class="kv" style="margin: 0;">
-      <dt>Puntualidad en Pagos</dt><dd><strong>{{ score.detail.puntualidad }}%</strong></dd>
-      <dt>Cumplimiento General</dt><dd><strong>{{ score.detail.cumplimiento }}%</strong></dd>
-      <dt>Máx. Días en Mora</dt><dd style="color: {% if score.detail.max_dias_mora > 0 %}#ef4444{% else %}#10b981{% endif %};"><strong>{{ score.detail.max_dias_mora }} días</strong></dd>
-      <dt>Obligaciones Vencidas</dt><dd><strong>{{ score.detail.obligaciones_vencidas }}</strong></dd>
-    </dl>
+
+    {# Desglose de Factores de Riesgo en Grid Estructurado #}
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1;">
+      
+      {# Puntualidad #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between;">
+        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Puntualidad</small>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 6px 0;">
+          <strong style="font-size: 1.05rem; color: #2563eb;">{{ score.detail.puntualidad }}%</strong>
+        </div>
+        <div style="width: 100%; height: 5px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+          <div style="width: {{ score.detail.puntualidad }}%; height: 100%; background: #2563eb; border-radius: 999px;"></div>
+        </div>
+      </div>
+
+      {# Cumplimiento #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between;">
+        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Cumplimiento</small>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 6px 0;">
+          <strong style="font-size: 1.05rem; color: #10b981;">{{ score.detail.cumplimiento }}%</strong>
+        </div>
+        <div style="width: 100%; height: 5px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+          <div style="width: {{ score.detail.cumplimiento }}%; height: 100%; background: #10b981; border-radius: 999px;"></div>
+        </div>
+      </div>
+
+      {# Días de Mora #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
+        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Máx. Días Mora</small>
+        <div style="margin-top: 4px;">
+          {% if score.detail.max_dias_mora > 0 %}
+          <span class="badge badge-danger" style="font-weight: 700; font-size: 0.85rem;">{{ score.detail.max_dias_mora }} días atraso</span>
+          {% else %}
+          <span class="badge badge-success" style="font-weight: 700; font-size: 0.85rem;">0 días (Al día)</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Cuotas Vencidas #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
+        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Cuotas Vencidas</small>
+        <div style="margin-top: 4px;">
+          {% if score.detail.obligaciones_vencidas > 0 %}
+          <span class="badge badge-danger" style="font-weight: 700; font-size: 0.85rem;">{{ score.detail.obligaciones_vencidas }} en mora</span>
+          {% else %}
+          <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.85rem;">0 cuotas</span>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
     {% else %}
     <div style="text-align: center; padding: 24px 0; color: var(--muted);">
       <p style="margin: 0;">{{ score.detail }}</p>
