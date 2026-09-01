@@ -43,12 +43,17 @@ def list_collections():
 def register(obligation_id):
     obligation = Obligation.query.get_or_404(obligation_id)
     if request.method == "POST":
+        action = request.form.get("action", "").strip() or "Gestión de cobro"
+        notes_raw = request.form.get("notes", "").strip()
+        comp_note = request.form.get("compromise_note", "").strip()
+        final_notes = f"[{comp_note}] {notes_raw}".strip() if comp_note else notes_raw
+
         management = CollectionManagement(
             client_id=obligation.loan.client_id,
             loan_id=obligation.loan_id,
             obligation_id=obligation.id,
-            action=request.form.get("action", "").strip(),
-            notes=request.form.get("notes", "").strip(),
+            action=action,
+            notes=final_notes,
             next_date=datetime.strptime(request.form.get("next_date"), "%Y-%m-%d").date()
             if request.form.get("next_date") else None,
             created_by=current_user.id,

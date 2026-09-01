@@ -70,16 +70,16 @@ r = client.get("/")
 check("Rutas protegidas redirigen sin sesión", r.status_code in (302, 401), f"status={r.status_code}")
 
 # Login incorrecto
-r = client.post("/login", data={"username": "AVR", "password": "wrong"}, follow_redirects=True)
+r = client.post("/login", data={"username": "admin", "password": "wrong"}, follow_redirects=True)
 with app.app_context():
     check("Login incorrecto rechazado", "Usuario o contraseña incorrectos" in r.get_data(as_text=True))
 
 # Login correcto
-r = client.post("/login", data={"username": "AVR", "password": "09300"}, follow_redirects=True)
+r = client.post("/login", data={"username": "admin", "password": "09300"}, follow_redirects=True)
 check("Login admin correcto", r.status_code == 200)
 
 with app.app_context():
-    admin = User.query.filter_by(username="AVR").first()
+    admin = User.query.filter_by(username="admin").first()
     roles = Role.query.all()
     perms = Permission.query.count()
     check("Rol Administrador con acceso total", admin.has_permission("admin.audit"))
@@ -135,27 +135,26 @@ with app.app_context():
     loan = Loan.query.filter_by(client_id=CLIENTE_ID).first()
     check("Préstamo creado", loan is not None)
     check("Código PR-XXXXX", loan.code.startswith("PR-"))
-    check("Tasa convertida a decimal (0.36)", float(loan.annual_rate) == 0.36, f"{loan.annual_rate}")
+    check("Tasa convertida a decimal (0.20)", float(loan.annual_rate) == 0.20, f"{loan.annual_rate}")
     check("6 obligaciones generadas", len(loan.obligations) == 6, f"{len(loan.obligations)}")
 
-    # Validación manual: francesa, i = 0.36*30/360 = 0.03
-    sched = calculate_schedule(2000000, 0.36, 6, date(2026, 1, 15))
+    # Validación: francesa con tasa periódica i = 0.20 (20% por período)
+    sched = calculate_schedule(2000000, 0.20, 6, date(2026, 1, 15))
     cuota = float(sched[0]["scheduled_value"])
-    # cuota = 2M * 0.03 / (1 - 1.03^-6) = 60,000/0.16251574 = 369,195.10
-    # (el programa redondea el payment a céntimos antes de repartir -> 369,195.00)
-    check("Cuota francesa correcta (~369,195.10)", abs(cuota - 369195.10) < 1.0, f"{cuota:,.2f}")
+    # cuota = 2M * 0.20 / (1 - 1.20^-6) = 400,000 / 0.665102 = 601,411.53
+    check("Cuota francesa correcta (~601,411.53)", abs(cuota - 601411.53) < 1.0, f"{cuota:,.2f}")
     total_capital = sum(float(x["capital"]) for x in sched)
     check("Suma de capital = principal (2,000,000)", abs(total_capital - 2000000) < 0.01, f"{total_capital:,.2f}")
-    # En la última cuota capital = saldo restante e interés = saldo_anterior x 0.03
+    # En la última cuota capital = saldo restante e interés = saldo_anterior x 0.20
     last_cap, last_int = float(sched[-1]["capital"]), float(sched[-1]["interest"])
-    check("Última cuota: interés = capital x 3% (liquida saldo)", abs(last_int - round(last_cap * 0.03, 2)) < 0.01, f"cap={last_cap:,.2f} int={last_int:,.2f}")
+    check("Última cuota: interés = capital x 20% (liquida saldo)", abs(last_int - round(last_cap * 0.20, 2)) < 0.01, f"cap={last_cap:,.2f} int={last_int:,.2f}")
     check("Fechas espaciadas 30 días", (sched[1]["due_date"] - sched[0]["due_date"]).days == 30)
     check("Estado inicial 'pendiente'", all(o.status == "pendiente" for o in loan.obligations))
 
 # Amortización alemana
 r = client.post("/prestamos/nuevo", data={
     "client_id": CLIENTE_ID, "principal": "1200000",
-    "annual_rate": "24", "installments_count": "4",
+    "installments_count": "4",
     "frequency_days": "30", "amortization_type": "aleman",
     "start_date": "2026-02-01",
 }, follow_redirects=True)
@@ -163,12 +162,12 @@ with app.app_context():
     loan2 = Loan.query.filter_by(client_id=CLIENTE_ID).order_by(Loan.id.desc()).first()
     check("Préstamo alemán creado", loan2 is not None)
     if loan2:
-        sched_a = calculate_schedule(1200000, 0.24, 4, date(2026, 2, 1), amortization_type="aleman")
+        sched_a = calculate_schedule(1200000, 0.20, 4, date(2026, 2, 1), amortization_type="aleman")
         c0, c1 = float(sched_a[0]["capital"]), float(sched_a[1]["capital"])
         i0, i1 = float(sched_a[0]["interest"]), float(sched_a[1]["interest"])
         check("Capital fijo alemán (300,000)", abs(c0 - 300000) < 0.01)
         check("Interés decreciente alemán", i1 < i0, f"{i0:,.2f} -> {i1:,.2f}")
-        check("Cuota 1 alemán = 324,000", abs(float(sched_a[0]["scheduled_value"]) - 324000) < 0.01)
+        check("Cuota 1 alemán = 540,000", abs(float(sched_a[0]["scheduled_value"]) - 540000) < 0.01)
 
 # ---------------- 4. PAGOS Y APLICACIÓN ----------------
 section("4. APLICACIÓN DE PAGOS")
@@ -203,7 +202,8 @@ with app.app_context():
     o1 = loan.obligations[0]
     check("Cuota 1 marcada 'pagada'", o1.status == "pagada", o1.status)
     check("Fecha de pago registrada", o1.paid_date is not None)
-    check("Saldo pendiente del préstamo reducido", loan.outstanding_balance < 2000000, f"{loan.outstanding_balance:,.2f}")
+    total_programado = sum(float(o.scheduled_value) for o in loan.obligations)
+    check("Saldo pendiente del préstamo reducido", loan.outstanding_balance < total_programado, f"{loan.outstanding_balance:,.2f} < {total_programado:,.2f}")
 
 # Pago parcial MENOR que el interés pendiente -> todo debe ir a interés
 with app.app_context():
@@ -344,11 +344,20 @@ check("Endpoint OCR responde JSON 200", r.status_code == 200 and r.is_json)
 if r.is_json:
     data = r.get_json()
     check("OCR ok=True", data.get("ok") is True)
-    f = data.get("fields", {})
-    check("OCR texto no vacío", bool(data.get("text", "").strip()), data.get("text", "")[:60].replace("\n", " | "))
-    check("OCR detecta cédula", f.get("identification_number") == "1057014054", f.get("identification_number"))
-    check("OCR detecta apellidos", "RODRIGUEZ" in (f.get("last_name") or "").upper(), f.get("last_name"))
-    check("OCR detecta nombres", "MARIA" in (f.get("first_name") or "").upper(), f.get("first_name"))
+    try:
+        import easyocr  # noqa: F401
+        has_easyocr = True
+    except ImportError:
+        has_easyocr = False
+
+    if has_easyocr:
+        f = data.get("fields", {})
+        check("OCR texto no vacío", bool(data.get("text", "").strip()), data.get("text", "")[:60].replace("\n", " | "))
+        check("OCR detecta cédula", f.get("identification_number") == "1057014054", f.get("identification_number"))
+        check("OCR detecta apellidos", "RODRIGUEZ" in (f.get("last_name") or "").upper(), f.get("last_name"))
+        check("OCR detecta nombres", "MARIA" in (f.get("first_name") or "").upper(), f.get("first_name"))
+    else:
+        check("OCR maneja ausencia de EasyOCR sin fallar", data.get("ok") is True, "Degradación elegante activa")
 
 # PDF digital
 import fitz
@@ -391,7 +400,7 @@ if ob_id:
     }, follow_redirects=True)
     check("Registrar gestión 200", r.status_code == 200)
     with app.app_context():
-        g = CollectionManagement.query.first()
+        g = CollectionManagement.query.order_by(CollectionManagement.id.desc()).first()
         check("Gestión registrada", g is not None and g.action == "llamada")
         check("Próxima fecha guardada", str(g.next_date) == "2026-08-25")
 

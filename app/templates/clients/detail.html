@@ -70,17 +70,27 @@
     </div>
     
     <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
-      {# Teléfono y WhatsApp #}
-      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Teléfono Móvil</small>
-          <strong style="font-size: 1rem; color: var(--text);">{{ client.phone or '—' }}</strong>
+      {# Teléfono y WhatsApp con botones directos #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div>
+            <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Teléfono Móvil</small>
+            <strong style="font-size: 1.05rem; color: var(--text);">{{ client.phone or 'No registrado' }}</strong>
+          </div>
+          {% if client.phone %}
+          <div class="btn-action-group">
+            <button type="button" class="btn-wa-action" data-wa-trigger
+                    data-name="{{ client.full_name }}"
+                    data-phone="{{ client.phone }}"
+                    data-default-template="libre">
+              {{ icon('whatsapp', 14) }} WhatsApp
+            </button>
+            <a class="btn-tel-action" href="tel:{{ client.phone }}">
+              {{ icon('phone', 14) }} Llamar
+            </a>
+          </div>
+          {% endif %}
         </div>
-        {% if client.phone %}
-        <a href="https://wa.me/57{{ client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" class="btn btn-sm" style="background: #10b981; color: #ffffff; border: none; font-weight: 600; padding: 6px 12px; border-radius: 6px;" title="Abrir chat en WhatsApp">
-          WhatsApp ↗
-        </a>
-        {% endif %}
       </div>
 
       {# Email #}
@@ -89,17 +99,26 @@
         <span style="font-size: 0.92rem; color: var(--text); word-break: break-all;">{{ client.email or 'No registrado' }}</span>
       </div>
 
-      {# Dirección #}
-      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px;">
-        <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Dirección de Residencia</small>
-        <strong style="font-size: 0.92rem; color: var(--text);">{{ client.address or 'No registrada' }}</strong>
+      {# Dirección de Residencia con Botón a Maps #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div>
+            <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Dirección de Residencia</small>
+            <strong style="font-size: 0.92rem; color: var(--text);">{{ client.address or 'No registrada' }}</strong>
+          </div>
+          {% if client.address %}
+          <a class="btn-map-action" href="https://www.google.com/maps/search/?api=1&query={{ client.address|urlencode }}+{{ (client.city or 'Colombia')|urlencode }}" target="_blank">
+            {{ icon('map-pin', 14) }} Ver Mapa
+          </a>
+          {% endif %}
+        </div>
       </div>
 
       {# Ubicación y Registro #}
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
-          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">País</small>
-          <span style="font-size: 0.88rem; font-weight: 600;">{{ client.country or 'Colombia' }}</span>
+          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Ciudad / País</small>
+          <span style="font-size: 0.88rem; font-weight: 600;">{{ client.city or '' }} {{ client.country or 'Colombia' }}</span>
         </div>
         <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
           <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Registrado</small>
@@ -125,15 +144,32 @@
             {{ r.relationship or 'Referencia' }}
           </span>
         </div>
-        <div style="font-size: 0.84rem; color: var(--text-soft); display: grid; grid-template-columns: 1fr; gap: 4px;">
+        <div style="font-size: 0.84rem; color: var(--text-soft); display: flex; flex-direction: column; gap: 6px;">
           {% if r.phone %}
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span>Tel: <strong>{{ r.phone }}</strong></span>
-            <a href="https://wa.me/57{{ r.phone|replace(' ', '')|replace('-', '') }}" target="_blank" style="font-size: 0.78rem; color: #10b981; font-weight: 600; text-decoration: none;">WhatsApp ↗</a>
+            <div class="btn-action-group">
+              <button type="button" class="btn-wa-action" style="padding: 4px 8px; font-size: 0.75rem;" data-wa-trigger
+                      data-name="{{ r.full_name }}"
+                      data-phone="{{ r.phone }}"
+                      data-default-template="libre">
+                {{ icon('whatsapp', 12) }} WA
+              </button>
+              <a class="btn-tel-action" style="padding: 4px 8px; font-size: 0.75rem;" href="tel:{{ r.phone }}">
+                {{ icon('phone', 12) }} Tel
+              </a>
+            </div>
           </div>
           {% endif %}
           {% if r.identification_number %}<span>Doc: <strong>{{ r.identification_number }}</strong></span>{% endif %}
-          {% if r.address %}<span>Dir: {{ r.address }}</span>{% endif %}
+          {% if r.address %}
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Dir: {{ r.address }}</span>
+            <a class="btn-map-action" style="padding: 4px 8px; font-size: 0.75rem;" href="https://www.google.com/maps/search/?api=1&query={{ r.address|urlencode }}" target="_blank">
+              {{ icon('map-pin', 12) }} Mapa
+            </a>
+          </div>
+          {% endif %}
         </div>
       </div>
       {% endfor %}

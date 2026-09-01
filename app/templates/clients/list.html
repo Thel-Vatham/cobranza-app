@@ -16,29 +16,64 @@
   <span class="search-count" id="search-count"></span>
 </div>
 
-<div class="card">
-  <table id="clients-table">
-    <thead>
-      <tr><th>Código</th><th>Nombre</th><th>Identificación</th><th>Teléfono</th><th>País</th><th>Préstamos</th></tr>
-    </thead>
-    <tbody>
-      {% for c in clients %}
-      <tr class="client-row" data-href="{{ url_for('clients.detail', client_id=c.id) }}"
-          data-name="{{ c.full_name|lower }}" data-cc="{{ c.identification_number|lower }}" data-code="{{ c.code|lower }}">
-        <td><strong>{{ c.code }}</strong></td>
-        <td>{{ c.full_name }}</td>
-        <td>{{ c.identification_type }} {{ c.identification_number }}</td>
-        <td>{{ c.phone or '—' }}</td>
-        <td>{{ c.country }}</td>
-        <td>{{ c.loans|length }}</td>
-      </tr>
-      {% else %}
-      <tr id="no-clients-row"><td colspan="6" class="muted center">No hay clientes. Cree el primero.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="card" style="padding: 0; overflow: hidden;">
+  <div class="table-wrap" style="border: none; box-shadow: none;">
+    <table id="clients-table" class="responsive-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Identificación</th>
+          <th>Teléfono</th>
+          <th>Ciudad</th>
+          <th>Préstamos</th>
+          <th style="text-align: center;">Contacto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+        <tr class="client-row" data-href="{{ url_for('clients.detail', client_id=c.id) }}"
+            data-name="{{ c.full_name|lower }}" data-cc="{{ c.identification_number|lower }}" data-code="{{ c.code|lower }}">
+          <td data-label="Código"><strong>{{ c.code }}</strong></td>
+          <td data-label="Nombre">
+            <strong style="color: var(--text);">{{ c.full_name }}</strong>
+          </td>
+          <td data-label="Identificación">{{ c.identification_type }} {{ c.identification_number }}</td>
+          <td data-label="Teléfono">{{ c.phone or '—' }}</td>
+          <td data-label="Ciudad">{{ c.city or c.country or 'Colombia' }}</td>
+          <td data-label="Préstamos">
+            <span class="badge badge-info">{{ c.loans|length }} crédito(s)</span>
+          </td>
+          <td data-label="Contacto" class="full-width-cell" style="text-align: center;" onclick="event.stopPropagation();">
+            <div class="btn-action-group" style="justify-content: center;">
+              {% if c.phone %}
+              <button type="button" class="btn-wa-action" style="padding: 4px 8px; font-size: 0.75rem;" data-wa-trigger
+                      data-name="{{ c.full_name }}"
+                      data-phone="{{ c.phone }}"
+                      data-default-template="libre">
+                {{ icon('whatsapp', 13) }} WA
+              </button>
+              <a class="btn-tel-action" style="padding: 4px 8px; font-size: 0.75rem;" href="tel:{{ c.phone }}">
+                {{ icon('phone', 13) }} Tel
+              </a>
+              {% endif %}
+              {% if c.address %}
+              <a class="btn-map-action" style="padding: 4px 8px; font-size: 0.75rem;" href="https://www.google.com/maps/search/?api=1&query={{ c.address|urlencode }}+{{ (c.city or 'Colombia')|urlencode }}" target="_blank">
+                {{ icon('map-pin', 13) }}
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr id="no-clients-row"><td colspan="7" class="muted center" style="padding: 30px; text-align: center;">No hay clientes. Cree el primero.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   <p id="no-results-msg" class="muted center" style="display:none;padding:1.5rem 0;">No se encontraron clientes para esa búsqueda.</p>
 </div>
+
 {% endblock %}
 
 {% block scripts %}

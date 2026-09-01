@@ -2,27 +2,54 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{% block title %}Cartera · Gestión de Cartera y Cobranza{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260901_3">
 </head>
 <body>
   {% if current_user.is_authenticated %}
+  {# Top Mobile App Bar (visible solo en < 768px) #}
+  <header class="mobile-top-bar" id="mobileHeader">
+    <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Abrir menú">
+      {{ icon('menu', 24) }}
+    </button>
+    <a class="mobile-brand" href="{{ url_for('dashboard.index') }}">
+      {{ logo(28) }}
+      <span>Cartera</span>
+    </a>
+    <div class="mobile-top-actions">
+      {% if current_user.has_permission('payments.create') %}
+      <a href="{{ url_for('payments.create') }}" class="mobile-quick-pay-btn" title="Registrar Pago">
+        {{ icon('plus', 16) }}<span>Pago</span>
+      </a>
+      {% endif %}
+      <a href="{{ url_for('auth.logout') }}" class="mobile-logout-btn" title="Cerrar sesión">
+        {{ icon('logout', 18) }}
+      </a>
+    </div>
+  </header>
+
+  {# Backdrop oscuro para cerrar el Drawer en móvil #}
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
   <div class="layout">
-    <aside class="sidebar">
+    {# Sidebar / Off-canvas Drawer en móvil #}
+    <aside class="sidebar" id="sidebarDrawer">
       <div class="brand">
         <a class="brand-logo" href="{{ url_for('dashboard.index') }}">{{ logo(36) }}</a>
         <div class="brand-text">
           <strong>Cartera</strong>
           <small>Gestión y Cobranza</small>
         </div>
-        <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menú" aria-expanded="true">{{ icon('panel', 18) }}</button>
+        <button class="sidebar-toggle desktop-only" id="sidebarToggle" type="button" aria-label="Contraer menú" aria-expanded="true">{{ icon('panel', 18) }}</button>
+        <button class="sidebar-close-btn mobile-only" id="sidebarCloseBtn" type="button" aria-label="Cerrar menú">{{ icon('x', 20) }}</button>
       </div>
+
       <nav class="nav">
         {% if current_user.has_permission('dashboard.view') %}
         <a href="{{ url_for('dashboard.index') }}" title="Panel principal" class="{% if request.endpoint == 'dashboard.index' %}active{% endif %}">{{ icon('dashboard', 18) }}<span class="nav-label">Panel principal</span></a>
@@ -82,6 +109,7 @@
         </div>
         {% endif %}
       </nav>
+
       <div class="sidebar-footer">
         <div class="user-chip">
           <span class="avatar">{{ (current_user.full_name or current_user.username)[:1]|upper }}</span>
@@ -93,6 +121,7 @@
         <a class="logout" href="{{ url_for('auth.logout') }}">{{ icon('logout', 16) }}<span class="logout-text">Cerrar sesión</span></a>
       </div>
     </aside>
+
     <main class="content">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -106,6 +135,153 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+
+  {# Bottom Navigation Bar fija (tipo App Nativa en móvil) #}
+  <nav class="mobile-bottom-nav">
+    <a href="{{ url_for('dashboard.index') }}" class="bottom-nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+      {{ icon('dashboard', 20) }}
+      <span>Inicio</span>
+    </a>
+    <a href="{{ url_for('clients.list_clients') }}" class="bottom-nav-item {% if request.blueprint == 'clients' %}active{% endif %}">
+      {{ icon('users', 20) }}
+      <span>Clientes</span>
+    </a>
+    <a href="{{ url_for('collections.list_collections') }}" class="bottom-nav-item {% if request.blueprint == 'collections' %}active{% endif %}">
+      {{ icon('phone', 20) }}
+      <span>Cobranza</span>
+    </a>
+    {% if current_user.has_permission('payments.create') %}
+    <a href="{{ url_for('payments.create') }}" class="bottom-nav-item bottom-nav-action {% if request.endpoint == 'payments.create' %}active{% endif %}">
+      {{ icon('plus', 22) }}
+      <span>+ Pago</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('payments.list_payments') }}" class="bottom-nav-item {% if request.blueprint == 'payments' %}active{% endif %}">
+      {{ icon('banknote', 20) }}
+      <span>Pagos</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  {# ──────────────── MODAL GLOBAL WHATSAPP 1-TAP (EDITABLE) ──────────────── #}
+  <div class="wa-modal-backdrop" id="waModalBackdrop" style="display: none;">
+    <div class="wa-modal-box">
+      <div class="wa-modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="wa-icon-badge">{{ icon('whatsapp', 20) }}</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #065f46;">Enviar WhatsApp</h3>
+            <small class="muted" id="waRecipientInfo">Personalizar mensaje antes de abrir chat</small>
+          </div>
+        </div>
+        <button class="wa-close-btn" id="waModalCloseBtn" type="button" aria-label="Cerrar">{{ icon('x', 18) }}</button>
+      </div>
+
+      <div class="wa-modal-body">
+        {# Selector de Teléfono y Plantilla #}
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-soft); text-transform: uppercase; margin-bottom: 6px; display: block;">Plantilla de Mensaje</label>
+          <div class="wa-template-tabs" id="waTemplateTabs">
+            <button type="button" class="wa-tab active" data-template="mora">
+              {{ icon('alert-circle', 14) }} <span>Cobro Mora</span>
+            </button>
+            <button type="button" class="wa-tab" data-template="recordatorio">
+              {{ icon('clock', 14) }} <span>Recordatorio</span>
+            </button>
+            <button type="button" class="wa-tab" data-template="acuerdo">
+              {{ icon('handshake', 14) }} <span>Acuerdo</span>
+            </button>
+            <button type="button" class="wa-tab" data-template="libre">
+              {{ icon('file-text', 14) }} <span>Libre</span>
+            </button>
+          </div>
+        </div>
+
+        {# Destinatario #}
+        <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; margin-bottom: 14px;">
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px;">Cliente</label>
+            <input type="text" id="waClientName" readonly style="font-weight: 700; font-size: 0.9rem; background: var(--bg);">
+          </div>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px;">Teléfono WhatsApp</label>
+            <input type="tel" id="waClientPhone" style="font-weight: 700; font-size: 0.9rem;">
+          </div>
+        </div>
+
+        {# Textarea editable #}
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-soft); text-transform: uppercase;">Mensaje a Enviar</label>
+            <small class="muted" id="waCharCount">0 caracteres</small>
+          </div>
+          <textarea id="waMessageText" rows="6" style="font-size: 0.92rem; line-height: 1.5; padding: 12px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); width: 100%; font-family: inherit; resize: vertical;" placeholder="Escriba el mensaje…"></textarea>
+          <small class="muted" style="display: block; font-size: 0.78rem; margin-top: 4px;">
+            El texto es completamente editable antes de realizar el envío.
+          </small>
+        </div>
+
+        {# Acciones #}
+        <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+          <button type="button" class="btn" id="waCopyBtn">{{ icon('copy', 15) }} Copiar Texto</button>
+          <button type="button" class="btn btn-primary" id="waSendBtn" style="background: #10b981; border-color: #10b981; font-weight: 700; padding: 10px 20px;">
+            {{ icon('whatsapp', 16) }} Abrir WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ──────────────── MODAL GLOBAL DESPACHO MASIVO ASISTIDO ──────────────── #}
+  <div class="wa-modal-backdrop" id="waBulkModalBackdrop" style="display: none;">
+    <div class="wa-modal-box" style="max-width: 580px;">
+      <div class="wa-modal-header" style="background: linear-gradient(135deg, #065f46, #047857);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="wa-icon-badge" style="background: rgba(255,255,255,0.2); color: #fff;">{{ icon('send', 18) }}</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">Despacho Masivo Asistido</h3>
+            <small style="color: #d1fae5;" id="waBulkCounter">Cola de envío secuencial</small>
+          </div>
+        </div>
+        <button class="wa-close-btn" id="waBulkCloseBtn" type="button" style="color: #fff;" aria-label="Cerrar">{{ icon('x', 18) }}</button>
+      </div>
+
+      <div class="wa-modal-body">
+        <div class="wa-bulk-progress" style="margin-bottom: 18px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px;">
+            <span id="waBulkProgressText">Mensaje 1 de 10</span>
+            <span id="waBulkProgressPct" style="color: #10b981;">10%</span>
+          </div>
+          <div style="background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden;">
+            <div id="waBulkProgressBar" style="background: #10b981; height: 100%; width: 10%; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div>
+              <strong style="font-size: 1rem; color: var(--text);" id="waBulkCurrentName">Cliente</strong>
+              <small class="muted" style="display: block;" id="waBulkCurrentDetails">Préstamo PR-00001 · Cuota #1</small>
+            </div>
+            <span class="badge" style="background: #ecfdf5; color: #059669; font-weight: 700;" id="waBulkCurrentPhone">Teléfono</span>
+          </div>
+
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; display: block;">Vista previa del mensaje</label>
+          <textarea id="waBulkMessageText" rows="5" style="font-size: 0.88rem; width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: inherit;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn" id="waBulkSkipBtn">Saltar registro</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-primary" id="waBulkSendNextBtn" style="background: #10b981; border-color: #10b981; font-weight: 700;">
+              {{ icon('whatsapp', 16) }} Enviar y Continuar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   {% else %}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -122,3 +298,4 @@
   {% block scripts %}{% endblock %}
 </body>
 </html>
+

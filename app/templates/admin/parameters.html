@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Parámetros · Cartera{% endblock %}
+{% block title %}Parámetros del Sistema · Cartera{% endblock %}
 {% block content %}
 <header class="page-head">
   <div>
-    <h1>Parámetros del sistema</h1>
-    <p class="muted">Reglas financieras y de negocio parametrizables</p>
+    <h1>Parámetros del Sistema</h1>
+    <p class="muted">Configuración centralizada de políticas de crédito, cobranza y calibración del score de riesgo</p>
   </div>
 </header>
 
@@ -13,91 +13,150 @@
   {% set _ = groups.setdefault(p.category or 'generales', []).append(p) %}
 {% endfor %}
 
-<div class="layout-params" style="display: flex; gap: 24px; align-items: flex-start;">
-  <!-- Sidebar de pestañas -->
-  <div class="card" style="width: 260px; padding: 12px; position: sticky; top: 24px; flex-shrink: 0;">
-    <h3 style="margin: 8px 12px 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">Categorías</h3>
-    <div class="param-tabs" style="display: flex; flex-direction: column; gap: 4px;">
-      {% for category, label in categories.items() %}
-        {% if groups.get(category) %}
-        <button type="button" class="btn param-tab-btn {% if loop.first %}active{% endif %}" data-target="cat-{{ category }}" style="justify-content: flex-start; text-align: left; padding: 10px 14px; border: none; background: transparent; box-shadow: none;">
-          {{ label }}
+<div class="layout-params" style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;">
+  <!-- Sidebar de Categorías -->
+  <div class="card" style="width: 280px; padding: 12px; position: sticky; top: 24px; flex-shrink: 0; box-shadow: var(--shadow-sm);">
+    <h3 style="margin: 8px 12px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);">Configuración</h3>
+    <div class="param-tabs" style="display: flex; flex-direction: column; gap: 6px;">
+      {% for cat_key, cat_data in categories.items() %}
+        {% if groups.get(cat_key) %}
+        <button type="button" class="btn param-tab-btn {% if loop.first %}active{% endif %}" data-target="cat-{{ cat_key }}"
+                style="justify-content: flex-start; text-align: left; padding: 10px 14px; border: 1.5px solid transparent; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; width: 100%;">
+          <span style="display: flex; align-items: center; gap: 10px;">
+            {{ icon(cat_data.icon or 'settings', 18) }}
+            <span>{{ cat_data.label }}</span>
+          </span>
         </button>
         {% endif %}
       {% endfor %}
     </div>
+
+    <!-- Resumen rápido de ayuda -->
+    <div style="margin-top: 20px; padding: 12px 14px; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-soft); line-height: 1.5;">
+      <strong style="display: block; color: var(--text); margin-bottom: 4px;">Nota para el Administrador</strong>
+      Los cambios guardados aquí se aplican automáticamente en nuevos créditos, cálculos de score y validaciones de cobranza en tiempo real.
+    </div>
   </div>
 
-  <!-- Contenido de las pestañas -->
-  <div class="param-content" style="flex: 1; min-width: 0;">
+  <!-- Paneles de Parámetros -->
+  <div class="param-content" style="flex: 1; min-width: 320px;">
     <form method="post" id="paramsForm">
-      {% for category, label in categories.items() %}
-        {% if groups.get(category) %}
-        <section class="card form param-panel" id="cat-{{ category }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
-          <h2>{{ label }}</h2>
-          <div class="grid grid-2">
-            {% for p in groups[category] %}
-            <label>
-              <div style="display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px;">
-                <span style="font-weight: 600; font-size: 14px; color: var(--text-soft);">{{ p.description or p.key }}</span>
-                <span style="font-family: monospace; font-size: 11.5px; color: var(--muted);">{{ p.key }}</span>
+      {% for cat_key, cat_data in categories.items() %}
+        {% if groups.get(cat_key) %}
+        <div class="param-panel" id="cat-{{ cat_key }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
+          
+          <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+              {{ icon(cat_data.icon or 'settings', 20, 'text-primary') }}
+              <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text);">{{ cat_data.label }}</h2>
+            </div>
+            <p class="muted" style="margin: 0; font-size: 0.88rem;">{{ cat_data.desc }}</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+            {% for p in groups[cat_key] %}
+              {% set m = meta.get(p.key, {}) %}
+              <div class="card" style="padding: 20px; margin-bottom: 0; transition: all 0.2s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+                  <div style="flex: 1; min-width: 240px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                      <strong style="font-size: 0.98rem; color: var(--text);">
+                        {{ m.title or p.description or p.key }}
+                      </strong>
+                      {% if m.badge %}
+                      <span class="badge" style="background: #eff6ff; color: #1d4ed8; font-size: 0.72rem;">{{ m.badge }}</span>
+                      {% endif %}
+                    </div>
+                    <p style="margin: 0; font-size: 0.84rem; color: var(--muted); line-height: 1.45;">
+                      {{ m.explanation or p.description or 'Parámetro de configuración operativa.' }}
+                    </p>
+                  </div>
+
+                  <!-- Control de Entrada -->
+                  <div style="width: 100%; max-width: {% if m.type == 'select' %}340px{% else %}220px{% endif %};">
+                    {% if m.type == 'select' %}
+                    <select name="param_{{ p.id }}" style="font-weight: 600; font-size: 0.88rem; padding: 10px 12px; border-radius: var(--radius-sm); width: 100%;">
+                      {% for opt_val, opt_label in m.options %}
+                      <option value="{{ opt_val }}" {% if p.value == opt_val %}selected{% endif %}>
+                        {{ opt_label }}
+                      </option>
+                      {% endfor %}
+                    </select>
+
+                    {% elif p.kind == 'boolean' %}
+                    <select name="param_{{ p.id }}" style="font-weight: 600; font-size: 0.88rem; padding: 10px 12px; border-radius: var(--radius-sm); width: 100%;">
+                      <option value="true" {% if p.value in ['true','1','True'] %}selected{% endif %}>Habilitado</option>
+                      <option value="false" {% if p.value in ['false','0','False'] %}selected{% endif %}>Deshabilitado</option>
+                    </select>
+
+                    {% elif m.type == 'number' or p.kind == 'number' %}
+                    <div style="display: flex; align-items: center; background: #ffffff; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden;">
+                      <input type="number" step="{{ m.step or 'any' }}" name="param_{{ p.id }}" value="{{ p.value }}"
+                             style="border: none; box-shadow: none; font-weight: 700; font-size: 1rem; color: var(--text); padding: 10px 14px; width: 100%; min-height: auto;">
+                      {% if m.unit %}
+                      <span style="background: #f1f5f9; padding: 10px 12px; font-size: 0.8rem; font-weight: 600; color: var(--muted); border-left: 1px solid var(--border); white-space: nowrap;">
+                        {{ m.unit }}
+                      </span>
+                      {% endif %}
+                    </div>
+
+                    {% else %}
+                    <input type="text" name="param_{{ p.id }}" value="{{ p.value }}"
+                           style="font-weight: 600; font-size: 0.92rem; padding: 10px 14px; border-radius: var(--radius-sm); width: 100%;">
+                    {% endif %}
+                  </div>
+                </div>
               </div>
-              {% if p.kind == 'boolean' %}
-              <select name="param_{{ p.id }}">
-                <option value="true" {% if p.value in ['true','1','True'] %}selected{% endif %}>Activo</option>
-                <option value="false" {% if p.value in ['false','0','False'] %}selected{% endif %}>Inactivo</option>
-              </select>
-              {% elif p.kind == 'number' %}
-              <input type="number" step="any" name="param_{{ p.id }}" value="{{ p.value }}">
-              {% else %}
-              <input type="text" name="param_{{ p.id }}" value="{{ p.value }}">
-              {% endif %}
-            </label>
             {% endfor %}
           </div>
-          <div class="form-actions" style="border: none; padding-top: 0; margin-top: 24px; margin-bottom: 0;">
-            <button type="submit" class="btn btn-primary">Guardar todos los parámetros</button>
+
+          <div style="display: flex; justify-content: flex-end; padding: 16px 0;">
+            <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: var(--shadow-btn);">
+              {{ icon('check', 18) }} Guardar Parámetros
+            </button>
           </div>
-        </section>
+
+        </div>
         {% endif %}
       {% endfor %}
     </form>
-
   </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const btns = document.querySelectorAll('.param-tab-btn');
-    const panels = document.querySelectorAll('.param-panel');
+document.addEventListener('DOMContentLoaded', function () {
+  const tabBtns = document.querySelectorAll('.param-tab-btn');
+  const panels = document.querySelectorAll('.param-panel');
 
-    btns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Remove active state
-        btns.forEach(b => {
-          b.classList.remove('active');
-          b.style.background = 'transparent';
-          b.style.color = 'inherit';
-        });
-        panels.forEach(p => p.style.display = 'none');
-        
-        // Set active state
-        btn.classList.add('active');
-        btn.style.background = 'var(--primary-soft)';
-        btn.style.color = 'var(--primary-dark)';
-        
-        const targetId = btn.getAttribute('data-target');
-        document.getElementById(targetId).style.display = 'block';
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'transparent';
+        b.style.borderColor = 'transparent';
+        b.style.color = 'var(--text-soft)';
       });
+      panels.forEach(p => p.style.display = 'none');
+
+      btn.classList.add('active');
+      btn.style.background = 'var(--primary-soft)';
+      btn.style.borderColor = 'var(--primary-focus)';
+      btn.style.color = 'var(--primary-dark)';
+
+      const targetId = btn.getAttribute('data-target');
+      const targetPanel = document.getElementById(targetId);
+      if (targetPanel) {
+        targetPanel.style.display = 'block';
+      }
     });
-    
-    // Set initial style for active tab
-    const initialActive = document.querySelector('.param-tab-btn.active');
-    if(initialActive) {
-      initialActive.style.background = 'var(--primary-soft)';
-      initialActive.style.color = 'var(--primary-dark)';
-    }
   });
+
+  const activeBtn = document.querySelector('.param-tab-btn.active');
+  if (activeBtn) {
+    activeBtn.style.background = 'var(--primary-soft)';
+    activeBtn.style.borderColor = 'var(--primary-focus)';
+    activeBtn.style.color = 'var(--primary-dark)';
+  }
+});
 </script>
 {% endblock %}
-

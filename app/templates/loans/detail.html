@@ -36,9 +36,9 @@
     <small class="muted">Monto original del crédito</small>
   </div>
   <div class="card stat">
-    <span class="stat-label">Tasa de Interés</span>
+    <span class="stat-label">Tasa por Cuota</span>
     <span class="stat-value" style="color: #2563eb;">{{ (loan.annual_rate * 100)|round(2) }}%</span>
-    <small class="muted">Frecuencia: {{ loan.frequency_days }} días</small>
+    <small class="muted">Por cada período ({{ loan.frequency_days }} días)</small>
   </div>
   <div class="card stat stat-success">
     <span class="stat-label">Capital Amortizado</span>
@@ -64,49 +64,70 @@
 </div>
 
 {# Tabla de Plan de Pagos / Amortización #}
-<section class="card" style="margin-bottom: 24px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+<section class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border);">
     <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Plan de Pagos y Amortización</h2>
     <span class="badge badge-info">{{ loan.obligations|length }} cuotas</span>
   </div>
-  <table>
-    <thead>
-      <tr style="background: var(--bg);">
-        <th>Cuota</th>
-        <th>Fecha Vence</th>
-        <th style="text-align: right;">Valor Cuota</th>
-        <th style="text-align: right;">Capital</th>
-        <th style="text-align: right;">Interés</th>
-        <th style="text-align: right;">Saldo Pendiente</th>
-        <th style="text-align: center;">Días Mora</th>
-        <th style="text-align: center;">Estado</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for o in loan.obligations %}
-      <tr>
-        <td><strong>#{{ o.number }}</strong></td>
-        <td>{{ o.due_date|d }}</td>
-        <td style="text-align: right;"><strong>{{ o.scheduled_value|money }}</strong></td>
-        <td style="text-align: right; color: var(--text-soft);">{{ o.capital|money }}</td>
-        <td style="text-align: right; color: var(--text-soft);">{{ o.interest|money }}</td>
-        <td style="text-align: right;"><strong style="color: {% if o.pending_balance > 0 %}#2563eb{% else %}#10b981{% endif %};">{{ o.pending_balance|money }}</strong></td>
-        <td style="text-align: center;">
-          {% if o.days_late and o.days_late > 0 %}
-          <span class="badge badge-danger">{{ o.days_late }} días</span>
-          {% else %}
-          <span class="muted">—</span>
-          {% endif %}
-        </td>
-        <td style="text-align: center;">
-          <span class="badge {{ 'badge-success' if o.status == 'pagada' else 'badge-danger' if o.status == 'vencida' or o.days_late > 0 else 'badge-warning' if o.status == 'parcial' else 'badge-info' }}">
-            {{ o.status|upper }}
-          </span>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap" style="border: none; box-shadow: none;">
+    <table class="responsive-table">
+      <thead>
+        <tr style="background: var(--bg);">
+          <th>Cuota</th>
+          <th>Fecha Vence</th>
+          <th style="text-align: right;">Valor Cuota</th>
+          <th style="text-align: right;">Capital</th>
+          <th style="text-align: right;">Interés</th>
+          <th style="text-align: right;">Saldo Pendiente</th>
+          <th style="text-align: center;">Días Mora</th>
+          <th style="text-align: center;">Estado</th>
+          <th style="text-align: center;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in loan.obligations %}
+        <tr>
+          <td data-label="Cuota"><strong>#{{ o.number }}</strong></td>
+          <td data-label="Fecha Vence">{{ o.due_date|d }}</td>
+          <td data-label="Valor Cuota" style="text-align: right;"><strong>{{ o.scheduled_value|money }}</strong></td>
+          <td data-label="Capital" style="text-align: right; color: var(--text-soft);">{{ o.capital|money }}</td>
+          <td data-label="Interés" style="text-align: right; color: var(--text-soft);">{{ o.interest|money }}</td>
+          <td data-label="Saldo Pendiente" style="text-align: right;"><strong style="color: {% if o.pending_balance > 0 %}#2563eb{% else %}#10b981{% endif %};">{{ o.pending_balance|money }}</strong></td>
+          <td data-label="Días Mora" style="text-align: center;">
+            {% if o.days_late and o.days_late > 0 %}
+            <span class="badge badge-danger">{{ o.days_late }} días</span>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td data-label="Estado" style="text-align: center;">
+            <span class="badge {{ 'badge-success' if o.status == 'pagada' else 'badge-danger' if o.status == 'vencida' or o.days_late > 0 else 'badge-warning' if o.status == 'parcial' else 'badge-info' }}">
+              {{ o.status|upper }}
+            </span>
+          </td>
+          <td data-label="Recordar" class="full-width-cell" style="text-align: center;">
+            {% if o.status != 'pagada' and loan.client.phone %}
+            <button type="button" class="btn-wa-action" style="padding: 4px 8px; font-size: 0.75rem;" data-wa-trigger
+                    data-name="{{ loan.client.full_name }}"
+                    data-phone="{{ loan.client.phone }}"
+                    data-loan-code="{{ loan.code }}"
+                    data-installment="{{ o.number }}"
+                    data-amount="{{ o.pending_balance|money }}"
+                    data-due-date="{{ o.due_date|d }}"
+                    data-balance="{{ loan.outstanding_balance|money }}"
+                    data-default-template="{{ 'mora' if (o.days_late and o.days_late > 0) else 'recordatorio' }}"
+                    title="Enviar recordatorio por WhatsApp">
+              {{ icon('whatsapp', 12) }} Recordar
+            </button>
+            {% else %}
+            <span class="muted" style="font-size: 0.8rem;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 
 {# Historial de Pagos Aplicados #}

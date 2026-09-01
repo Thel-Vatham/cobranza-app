@@ -3,36 +3,114 @@
 {% block content %}
 <header class="page-head">
   <div>
-    <h1>Registrar gestión de cobranza</h1>
-    <p class="muted">{{ obligation.loan.client.full_name }} · Préstamo {{ obligation.loan.code }} · Cuota #{{ obligation.number }} (vence {{ obligation.due_date|d }})</p>
+    <h1>Registrar Gestión de Cobranza</h1>
+    <p class="muted">Trazabilidad de contacto para {{ obligation.loan.client.full_name }}</p>
   </div>
-  <div style="display: flex; gap: 8px; align-items: center;">
-    {% if obligation.loan.client.phone %}
-    <a class="btn" href="https://wa.me/57{{ obligation.loan.client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" style="background: #10b981; color: #fff; border-color: #10b981;">💬 Abrir WhatsApp</a>
-    {% endif %}
-    <a class="btn" href="{{ url_for('collections.list_collections') }}">← Volver</a>
-  </div>
+  <a class="btn" href="{{ url_for('collections.list_collections') }}">← Volver a Cobranza</a>
 </header>
 
+{# Ficha rápida de contacto con botones 1-Tap #}
+<div class="card" style="margin-bottom: 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid var(--border);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+        <strong style="font-size: 1.15rem; color: var(--text);">{{ obligation.loan.client.full_name }}</strong>
+        <span class="badge badge-info">{{ obligation.loan.code }}</span>
+      </div>
+      <div style="font-size: 0.88rem; color: var(--text-soft); display: flex; gap: 12px; flex-wrap: wrap;">
+        <span>Cuota: <strong>#{{ obligation.number }}</strong></span>
+        <span>Venció: <strong style="color: #ef4444;">{{ obligation.due_date|d }}</strong></span>
+        <span>Mora: <strong style="color: #ef4444;">{{ obligation.days_late }} días</strong></span>
+        <span>Valor: <strong style="color: #ef4444;">{{ obligation.pending_balance|money }}</strong></span>
+      </div>
+    </div>
+
+    {# Botones de Contacto Rápido en Campo #}
+    <div class="btn-action-group">
+      {% if obligation.loan.client.phone %}
+      <button type="button" class="btn-wa-action" data-wa-trigger
+              data-name="{{ obligation.loan.client.full_name }}"
+              data-phone="{{ obligation.loan.client.phone }}"
+              data-loan-code="{{ obligation.loan.code }}"
+              data-installment="{{ obligation.number }}"
+              data-amount="{{ obligation.pending_balance|money }}"
+              data-due-date="{{ obligation.due_date|d }}"
+              data-balance="{{ obligation.loan.outstanding_balance|money }}"
+              data-default-template="mora">
+        {{ icon('whatsapp', 16) }} WhatsApp 1-Tap
+      </button>
+      <a class="btn-tel-action" href="tel:{{ obligation.loan.client.phone }}">
+        {{ icon('phone', 16) }} Llamar ({{ obligation.loan.client.phone }})
+      </a>
+      {% endif %}
+
+      {% if obligation.loan.client.address %}
+      <a class="btn-map-action" href="https://www.google.com/maps/search/?api=1&query={{ obligation.loan.client.address|urlencode }}+{{ (obligation.loan.client.city or 'Colombia')|urlencode }}" target="_blank">
+        {{ icon('map-pin', 16) }} Ver en Mapa
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
 <form class="card form" method="post">
+  {# Tipificación Profesional de Contacto #}
+  <div style="margin-bottom: 24px;">
+    <label style="font-size: 0.92rem; font-weight: 700; color: var(--text); margin-bottom: 8px; display: block;">
+      Tipificación del Contacto *
+    </label>
+    <div class="typification-grid">
+      <label class="typification-card selected">
+        <input type="radio" name="action" value="Llamada contestada" checked>
+        <span class="typ-icon" style="color: #2563eb;">{{ icon('phone', 17) }}</span>
+        <span>Llamada contestada</span>
+      </label>
+      <label class="typification-card">
+        <input type="radio" name="action" value="No contesta">
+        <span class="typ-icon" style="color: #64748b;">{{ icon('phone-off', 17) }}</span>
+        <span>No contesta</span>
+      </label>
+      <label class="typification-card">
+        <input type="radio" name="action" value="Visita realizada">
+        <span class="typ-icon" style="color: #d97706;">{{ icon('navigation', 17) }}</span>
+        <span>Visita realizada</span>
+      </label>
+      <label class="typification-card">
+        <input type="radio" name="action" value="Acuerdo de pago">
+        <span class="typ-icon" style="color: #059669;">{{ icon('handshake', 17) }}</span>
+        <span>Acuerdo de pago</span>
+      </label>
+      <label class="typification-card">
+        <input type="radio" name="action" value="Ilocalizable">
+        <span class="typ-icon" style="color: #dc2626;">{{ icon('user-x', 17) }}</span>
+        <span>Ilocalizable</span>
+      </label>
+      <label class="typification-card">
+        <input type="radio" name="action" value="Mensaje / WhatsApp">
+        <span class="typ-icon" style="color: #10b981;">{{ icon('whatsapp', 17) }}</span>
+        <span>Mensaje / WhatsApp</span>
+      </label>
+    </div>
+  </div>
+
   <div class="grid grid-2">
-    <label>Acción *
-      <select name="action" required>
-        {% for a in ['Llamada telefónica','Visita domiciliaria','Mensaje / WhatsApp','Acuerdo de pago','Notificación escrita','Otro'] %}
-        <option value="{{ a }}">{{ a }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Próxima fecha de seguimiento
+    <label>Próxima fecha de seguimiento / Promesa de Pago
       <input type="date" name="next_date">
+      <small class="muted">Fecha acordada para volver a llamar o visitar al cliente</small>
     </label>
-    <label class="span-2">Notas
-      <textarea name="notes" rows="4" placeholder="Detalle de la gestión realizada…"></textarea>
+    <label>Monto comprometido / Observación clave
+      <input type="text" name="compromise_note" placeholder="Ej: Promete pagar $50.000 el viernes">
+      <small class="muted">Detalle rápido del compromiso de pago</small>
+    </label>
+    <label class="span-2">Notas detalladas de la gestión
+      <textarea name="notes" rows="4" placeholder="Escriba aquí los detalles conversados con el cliente, motivo del no pago o acuerdos pactados…"></textarea>
     </label>
   </div>
+
   <div class="form-actions">
-    <button type="submit" class="btn btn-primary">Guardar gestión</button>
+    <button type="submit" class="btn btn-primary" style="padding: 12px 24px; font-weight: 700;">Guardar gestión</button>
     <a class="btn" href="{{ url_for('collections.list_collections') }}">Cancelar</a>
   </div>
 </form>
 {% endblock %}
+

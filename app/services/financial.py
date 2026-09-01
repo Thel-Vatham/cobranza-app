@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 from ..extensions import db
-from ..models import Loan, Obligation, PaymentApplication, Audit
+from ..models import Loan, Obligation, PaymentApplication, Audit, Parameter
 
 CENTS = Decimal("0.01")
 
@@ -21,9 +21,11 @@ def calculate_schedule(principal, annual_rate, installments_count, start_date, f
     principal = money(principal)
     annual_rate = float(annual_rate or 0)
     n = int(installments_count)
-    
-    # Tasa periódica basada en la frecuencia real
-    period_rate = annual_rate * (frequency_days / 360.0)
+
+    # Tasa por período de pago (por cuota, quincenal o mensual).
+    # Se usa directamente sin convertir a anual, ya que el parámetro
+    # 'tasa_interes_periodo' representa el % de interés por cada cuota.
+    period_rate = annual_rate
 
     # Cálculo de cuota fija (Francés)
     if amortization_type == "frances":
@@ -90,14 +92,11 @@ def generate_obligations(loan: Loan) -> list[Obligation]:
 
 
 def apply_payment(payment) -> list[dict]:
-    """Aplica un pago a las obligaciones pendientes (interés primero, luego capital).
+    """Aplica un pago a las obligaciones pendientes según orden_aplicacion_pago.
 
-    Orden de aplicación:
-    1. Intereses pendientes de la obligación más antigua.
-    2. Capital pendiente de la misma obligación.
-    3. Continúa con la siguiente obligación.
-
-    Devuelve la lista de aplicaciones generadas. Operación transaccional.
+    Orden configurable:
+    - 'interes_primero' (Estándar): Intereses pendientes primero, luego capital.
+    - 'capital_primero': Capital pendiente primero (reduce saldo rápido), luego intereses.
     """
     loan = payment.loan
     remaining = money(payment.amount)
@@ -108,15 +107,27 @@ def apply_payment(payment) -> list[dict]:
         key=lambda o: (o.due_date, o.number),
     )
 
+    order = Parameter.get("orden_aplicacion_pago", "interes_primero")
+
     for obligation in obligations:
         if remaining <= 0:
             break
 
-        interest_to_apply = min(money(obligation.pending_interest), remaining)
-        remaining = (remaining - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
-
-        capital_to_apply = min(money(obligation.pending_capital), remaining)
-        remaining = (remaining - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
+        if order == "capital_primero":
+            # 1. Capital primero
+            capital_to_apply = min(money(obligation.pending_capital), remaining)
+            remaining = (remaining - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
+            # 2. Interés después
+            interest_to_apply = min(money(obligation.pending_interest), remaining)
+            remaining = (remaining - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
+        else:
+            # interes_primero (Estándar recomendado)
+            # 1. Interés primero
+            interest_to_apply = min(money(obligation.pending_interest), remaining)
+            remaining = (remaining - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
+            # 2. Capital después
+            capital_to_apply = min(money(obligation.pending_capital), remaining)
+            remaining = (remaining - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
 
         if interest_to_apply > 0 or capital_to_apply > 0:
             obligation.pending_interest = (money(obligation.pending_interest) - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)

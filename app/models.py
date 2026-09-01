@@ -264,3 +264,10 @@ class Parameter(db.Model):
             return float(Parameter.get(key, default))
         except (TypeError, ValueError):
             return default
+
+    @staticmethod
+    def get_int(key, default=0):
+        try:
+            return int(float(Parameter.get(key, default)))
+        except (TypeError, ValueError):
+            return default

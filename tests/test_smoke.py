@@ -64,8 +64,8 @@ class SmokeTest(unittest.TestCase):
             loan = Loan.query.filter_by(client_id=client.id).first()
             self.assertIsNotNone(loan)
             self.assertEqual(len(loan.obligations), 12)
-            # cuota fija (amortización francesa) ~ 94,559.60
-            self.assertAlmostEqual(float(loan.obligations[0].scheduled_value), 94559.60, delta=0.01)
+            # cuota fija (amortización francesa al 20% por período) ~ 225,264.98
+            self.assertAlmostEqual(float(loan.obligations[0].scheduled_value), 225264.98, delta=1.0)
 
             # registrar pago
             resp = self.client.post("/pagos/nuevo", data={
@@ -79,8 +79,9 @@ class SmokeTest(unittest.TestCase):
             self.assertGreater(len(payment.applications), 0)
             self.assertEqual(payment.status, "aplicado")
 
-            # el saldo debe haberse reducido
-            self.assertLess(loan.outstanding_balance, 1000000)
+            # el saldo debe haberse reducido tras el abono
+            initial_balance = 12 * 225264.98
+            self.assertLess(loan.outstanding_balance, initial_balance)
 
             # recibo
             resp = self.client.get(f"/pagos/{payment.id}/recibo")

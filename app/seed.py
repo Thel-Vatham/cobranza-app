@@ -44,23 +44,33 @@ ROLES = {
 
 # (key, value, category, kind, description)
 PARAMETERS = [
-    ("metodo_interes", "frances", "financieros", "text", "Método de amortización de la cuota"),
-    ("periodicidad_interes", "mensual", "financieros", "text", "Periodicidad del interés"),
-    ("orden_aplicacion_pago", "interes_primero", "financieros", "text", "Orden de aplicación del pago"),
-    ("tasa_mora_diaria", "0.001", "financieros", "number", "Tasa de mora diaria (referencial)"),
-    ("dias_proximos_vencer", "15", "cobranza", "number", "Días del horizonte de obligaciones por vencer"),
-    ("dias_alerta_mora", "5", "cobranza", "number", "Umbral de días para alerta de mora temprana"),
-    ("peso_puntualidad", "0.45", "scoring", "number", "Peso de puntualidad en el score"),
-    ("peso_cumplimiento", "0.35", "scoring", "number", "Peso de cumplimiento en el score"),
-    ("peso_mora", "0.20", "scoring", "number", "Peso de mora en el score"),
-    ("dias_max_mora_score", "90", "scoring", "number", "Días máximos de mora para escalar la penalización"),
+    # ── Políticas Financieras y de Crédito ──
+    ("tasa_interes_periodo", "20", "financieros", "number", "Tasa de interés fija por cuota / período de pago (%)"),
+    ("orden_aplicacion_pago", "interes_primero", "financieros", "select", "Prioridad de aplicación del pago (Interés primero vs Capital primero)"),
+    ("tasa_mora_diaria", "0.1", "financieros", "number", "Tasa de interés moratorio diario de referencia (%)"),
+    
+    # ── Cobranza y Alertas en Campo ──
+    ("dias_proximos_vencer", "15", "cobranza", "number", "Horizonte de días para alertar cuotas próximas a vencer"),
+    ("dias_alerta_mora", "5", "cobranza", "number", "Días de retraso para marcar alerta de mora temprana"),
+
+    # ── Calibración del Score de Comportamiento y Riesgo ──
+    ("peso_puntualidad", "45", "scoring", "number", "Peso de la puntualidad histórica en el Score (%)"),
+    ("peso_cumplimiento", "35", "scoring", "number", "Peso del cumplimiento de cuotas pagadas (%)"),
+    ("peso_mora", "20", "scoring", "number", "Peso del castigo por mora activa en el Score (%)"),
+    ("dias_max_mora_score", "90", "scoring", "number", "Días de mora para alcanzar la penalización máxima (días)"),
+    ("umbral_score_excelente", "80", "scoring", "number", "Puntaje mínimo para clasificación Excelente / Riesgo Bajo (pts)"),
+    ("umbral_score_bueno", "60", "scoring", "number", "Puntaje mínimo para clasificación Bueno / Riesgo Medio (pts)"),
+    ("umbral_score_regular", "40", "scoring", "number", "Puntaje mínimo para clasificación Regular (pts)"),
+
+    # ── Datos de la Organización ──
+    ("nombre_empresa", "Cartera & Cobranzas", "generales", "text", "Nombre comercial de la entidad o empresa"),
+    ("moneda_simbolo", "$", "generales", "text", "Símbolo monetario utilizado en comprobantes y vistas"),
 ]
 
 
 def seed_if_empty():
     _seed_permissions_and_roles()
     _seed_users()
-    _seed_demo_data()
     seed_parameters()
 
 
@@ -144,6 +154,9 @@ def _seed_demo_data(force=False):
     admin = User.query.filter_by(username="admin").first()
     admin_id = admin.id if admin else 1
 
+    # Leer la tasa de interés global desde los parámetros del sistema
+    tasa_global = Decimal(str(Parameter.get_float("tasa_interes_periodo", 20.0) / 100.0))
+
     clients_def = [
         {
             "code": "CL-00001",
@@ -161,7 +174,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00001",
                 "principal": 250000,
-                "annual_rate": 0.20,
                 "installments": 4,
                 "freq": 15,
                 "start_date": date(2026, 7, 27),
@@ -184,7 +196,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00002",
                 "principal": 600000,
-                "annual_rate": 0.20,
                 "installments": 4,
                 "freq": 15,
                 "start_date": date(2026, 7, 28),
@@ -207,7 +218,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00003",
                 "principal": 400000,
-                "annual_rate": 0.20,
                 "installments": 3,
                 "freq": 30,
                 "start_date": date(2026, 7, 29),
@@ -230,7 +240,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00004",
                 "principal": 350000,
-                "annual_rate": 0.20,
                 "installments": 3,
                 "freq": 30,
                 "start_date": date(2026, 7, 27),
@@ -253,7 +262,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00005",
                 "principal": 500000,
-                "annual_rate": 0.20,
                 "installments": 3,
                 "freq": 30,
                 "start_date": date(2026, 7, 28),
@@ -276,7 +284,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00006",
                 "principal": 300000,
-                "annual_rate": 0.20,
                 "installments": 4,
                 "freq": 15,
                 "start_date": date(2026, 7, 29),
@@ -299,7 +306,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00007",
                 "principal": 200000,
-                "annual_rate": 0.20,
                 "installments": 3,
                 "freq": 30,
                 "start_date": date(2026, 6, 20),
@@ -323,7 +329,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00008",
                 "principal": 150000,
-                "annual_rate": 0.20,
                 "installments": 4,
                 "freq": 15,
                 "start_date": date(2026, 7, 27),
@@ -346,7 +351,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00009",
                 "principal": 150000,
-                "annual_rate": 0.20,
                 "installments": 4,
                 "freq": 15,
                 "start_date": date(2026, 7, 28),
@@ -369,7 +373,6 @@ def _seed_demo_data(force=False):
             "loan": {
                 "code": "PR-00010",
                 "principal": 100000,
-                "annual_rate": 0.20,
                 "installments": 4,
                 "freq": 15,
                 "start_date": date(2026, 7, 29),
@@ -412,7 +415,7 @@ def _seed_demo_data(force=False):
             code=l_info["code"],
             client_id=client.id,
             principal=Decimal(str(l_info["principal"])),
-            annual_rate=Decimal(str(l_info["annual_rate"])),
+            annual_rate=tasa_global,  # Siempre desde el parámetro global
             installments_count=l_info["installments"],
             frequency_days=l_info["freq"],
             amortization_type="frances",
@@ -551,22 +554,6 @@ def _seed_demo_data(force=False):
         details="Generados 10 clientes con cartera activa de $3,000,000 COP y trazabilidad quincenal/mensual",
     ))
 
-    db.session.commit()
-
-
-def seed_parameters():
-    """Inserta/actualiza parámetros conservando los valores ya configurados."""
-    existing = {p.key: p for p in Parameter.query.all()}
-    for key, value, category, kind, description in PARAMETERS:
-        if key in existing:
-            param = existing[key]
-            param.description = description
-            param.category = category
-            param.kind = kind
-        else:
-            db.session.add(Parameter(
-                key=key, value=value, category=category, kind=kind, description=description,
-            ))
     db.session.commit()
 
 

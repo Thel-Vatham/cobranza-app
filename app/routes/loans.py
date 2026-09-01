@@ -4,7 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from ..extensions import db
-from ..models import Client, Loan
+from ..models import Client, Loan, Parameter
 from ..services.decorators import permission_required
 from ..services.financial import generate_obligations, log_audit
 
@@ -41,11 +41,14 @@ def list_loans():
 @login_required
 @permission_required("loans.create")
 def create():
+    # Tasa de interés por período (por cuota) leída desde parámetros del sistema
+    tasa_actual = Parameter.get_float("tasa_interes_periodo", 20.0)
     clients = Client.query.order_by(Client.first_name).all()
     if request.method == "POST":
         client_id = request.form.get("client_id", type=int)
         principal = request.form.get("principal", type=float)
-        annual_rate = request.form.get("annual_rate", type=float) or 0
+        # La tasa NO se toma del formulario; siempre viene del parámetro global (por período)
+        annual_rate = Parameter.get_float("tasa_interes_periodo", 20.0)
         installments_count = request.form.get("installments_count", type=int)
         frequency_days = request.form.get("frequency_days", type=int) or 15
         amortization_type = request.form.get("amortization_type") or "frances"
@@ -55,7 +58,7 @@ def create():
             code=_generate_code(),
             client_id=client_id,
             principal=principal,
-            annual_rate=annual_rate / 100.0 if annual_rate else 0,
+            annual_rate=annual_rate / 100.0,  # Convertir % a decimal
             installments_count=installments_count,
             frequency_days=frequency_days,
             amortization_type=amortization_type,
@@ -64,16 +67,16 @@ def create():
         )
         if not client_id or not principal or not installments_count:
             flash("Cliente, valor principal y número de cuotas son obligatorios.", "danger")
-            return render_template("loans/form.html", loan=loan, clients=clients)
+            return render_template("loans/form.html", loan=loan, clients=clients, tasa_actual=tasa_actual)
         db.session.add(loan)
         db.session.flush()
         for obligation in generate_obligations(loan):
             db.session.add(obligation)
-        log_audit(current_user.id, "Crear préstamo", "Préstamo", loan.id, f"{loan.code} monto {principal}")
+        log_audit(current_user.id, "Crear préstamo", "Préstamo", loan.id, f"{loan.code} monto {principal} tasa {annual_rate}%")
         db.session.commit()
-        flash(f"Préstamo {loan.code} creado con {installments_count} cuotas.", "success")
+        flash(f"Préstamo {loan.code} creado con {installments_count} cuotas a una tasa de {annual_rate}% anual.", "success")
         return redirect(url_for("loans.detail", loan_id=loan.id))
-    return render_template("loans/form.html", loan=None, clients=clients)
+    return render_template("loans/form.html", loan=None, clients=clients, tasa_actual=tasa_actual)
 
 
 @bp.route("/<int:loan_id>")
@@ -82,8 +85,10 @@ def create():
 def detail(loan_id):
     loan = Loan.query.get_or_404(loan_id)
     principal_val = float(loan.principal)
-    balance_val = float(loan.outstanding_balance)
-    total_capital_paid = max(0.0, principal_val - balance_val)
+    total_capital_paid = sum(
+        (float(o.capital or 0) - float(o.pending_capital or 0) for o in loan.obligations),
+        0.0
+    )
     pct_paid = round((total_capital_paid / principal_val * 100), 1) if principal_val > 0 else 0.0
     return render_template(
         "loans/detail.html",

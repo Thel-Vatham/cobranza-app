@@ -1,38 +1,119 @@
 {% extends "base.html" %}
-{% block title %}Roles y permisos · Cartera{% endblock %}
+{% block title %}Roles y Permisos · Cartera{% endblock %}
 {% block content %}
 <header class="page-head">
   <div>
-    <h1>Roles y permisos</h1>
-    <p class="muted">Asignación de permisos por rol (Administrador tiene acceso total)</p>
+    <h1>Roles y Permisos de Acceso</h1>
+    <p class="muted">Configuración de niveles de autorización por perfil de usuario en la plataforma</p>
   </div>
 </header>
 
-{% for role in roles %}
-<section class="card">
-  <div class="role-head">
-    <h2>{{ role.name }}</h2>
-    <span class="muted">{{ role.description }}</span>
-    <span class="badge">{{ role.users|length }} usuario(s)</span>
-  </div>
-  {% if role.name != 'Administrador' %}
-  <form method="post" action="{{ url_for('admin.role_update', role_id=role.id) }}">
-    <div class="perm-grid">
-      {% for p in permissions %}
-      <label class="perm-item">
-        <input type="checkbox" name="permissions" value="{{ p.id }}" {% if p in role.permissions %}checked{% endif %}>
-        <span>{{ p.name }}</span>
-        <small>{{ p.code }}</small>
-      </label>
-      {% endfor %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+  {% for role in roles %}
+  <section class="card" style="padding: 24px 28px; box-shadow: var(--shadow); border-left: 4px solid {% if role.name == 'Administrador' %}#10b981{% elif role.name == 'Operador de cobranza' %}#2563eb{% else %}#64748b{% endif %};">
+    
+    <div class="role-head">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+          <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text);">{{ role.name }}</h2>
+          <span class="badge" style="background: {% if role.name == 'Administrador' %}#ecfdf5; color: #059669;{% elif role.name == 'Operador de cobranza' %}#eff6ff; color: #1d4ed8;{% else %}#f1f5f9; color: #475569;{% endif %}; font-weight: 700;">
+            {{ role.users|length }} usuario(s) asignado(s)
+          </span>
+        </div>
+        <p class="muted" style="margin: 0; font-size: 0.88rem;">
+          {% if role.name == 'Administrador' %}
+            Control total y bypass de seguridad sin restricciones para todos los módulos y acciones del sistema.
+          {% elif role.name == 'Operador de cobranza' %}
+            Perfil operativo para asesores en campo: gestión de clientes, créditos, cobranza 1-Tap, recaudos y reportes.
+          {% else %}
+            Perfil de consulta, supervisión y auditoría con permisos de solo lectura.
+          {% endif %}
+        </p>
+      </div>
     </div>
-    <div class="form-actions">
-      <button class="btn btn-primary">Guardar permisos</button>
+
+    {% if role.name != 'Administrador' %}
+    <form method="post" action="{{ url_for('admin.role_update', role_id=role.id) }}">
+      
+      <div class="perm-modules-grid">
+        {% for mod_key, mod_info in modules.items() %}
+          {% if grouped_perms.get(mod_key) %}
+          <div class="perm-module-box">
+            
+            <div class="perm-module-header">
+              <div class="perm-module-title">
+                {{ icon(mod_info.icon, 18) }}
+                <span>{{ mod_info.title }}</span>
+                <span class="muted" style="font-weight: 400; font-size: 0.8rem; margin-left: 4px;">· {{ mod_info.desc }}</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-sm select-all-mod-btn" style="padding: 3px 8px; font-size: 0.72rem;">Marcar todos</button>
+                <button type="button" class="btn btn-sm unselect-all-mod-btn" style="padding: 3px 8px; font-size: 0.72rem;">Desmarcar</button>
+              </div>
+            </div>
+
+            <div class="perm-grid">
+              {% for p in grouped_perms[mod_key] %}
+              <label class="perm-item">
+                <input type="checkbox" name="permissions" value="{{ p.id }}" {% if p in role.permissions %}checked{% endif %}>
+                <div class="perm-item-text">
+                  <span class="perm-item-title">{{ p.name }}</span>
+                  <span class="perm-item-desc">{{ perm_desc.get(p.code, p.description or 'Permiso del sistema.') }}</span>
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border);">
+        <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-weight: 700; box-shadow: var(--shadow-btn);">
+          {{ icon('check', 18) }} Guardar Permisos de {{ role.name }}
+        </button>
+      </div>
+
+    </form>
+    {% else %}
+    <div style="padding: 16px 20px; background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 1px solid #a7f3d0; border-radius: var(--radius-sm); color: #065f46; font-size: 0.92rem; display: flex; align-items: center; gap: 12px;">
+      <span style="background: #10b981; color: #fff; width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; flex-shrink: 0;">
+        {{ icon('check', 16) }}
+      </span>
+      <div>
+        <strong>Rol de Superusuario Protegido</strong>
+        <p style="margin: 2px 0 0; font-size: 0.84rem; color: #047857;">
+          Los usuarios con rol Administrador tienen acceso y control irrestricto sobre todas las vistas, datos y operaciones de la plataforma.
+        </p>
+      </div>
     </div>
-  </form>
-  {% else %}
-  <p class="muted">El rol Administrador tiene acceso total a todos los módulos.</p>
-  {% endif %}
-</section>
-{% endfor %}
+    {% endif %}
+
+  </section>
+  {% endfor %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Botones de marcar/desmarcar módulo completo
+  document.querySelectorAll('.select-all-mod-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var box = btn.closest('.perm-module-box');
+      if (box) {
+        box.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = true; });
+      }
+    });
+  });
+
+  document.querySelectorAll('.unselect-all-mod-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var box = btn.closest('.perm-module-box');
+      if (box) {
+        box.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = false; });
+      }
+    });
+  });
+});
+</script>
 {% endblock %}

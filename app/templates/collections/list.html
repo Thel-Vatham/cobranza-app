@@ -4,54 +4,216 @@
 <header class="page-head">
   <div>
     <h1>Cobranza</h1>
-    <p class="muted">Obligaciones vencidas y gestión de cobro</p>
+    <p class="muted">Gestión de obligaciones vencidas, contacto 1-Tap y despacho masivo</p>
   </div>
-  <a class="btn" href="{{ url_for('collections.history') }}">Historial de gestiones</a>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <a class="btn" href="{{ url_for('collections.history') }}">Historial de gestiones</a>
+  </div>
 </header>
 
+{# Barra de búsqueda y filtros #}
 <form class="search-bar" method="get">
-  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por cliente, identificación o préstamo…">
-  <button class="btn">Buscar</button>
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por cliente, cédula o préstamo…">
+  <button class="btn btn-primary" type="submit">Buscar</button>
+  {% if q %}
+  <a class="btn" href="{{ url_for('collections.list_collections') }}">Limpiar</a>
+  {% endif %}
 </form>
 
-<div class="card">
-  <table>
-    <thead>
-      <tr><th>Cliente</th><th>Préstamo</th><th>Cuota</th><th>Venció</th><th>Días mora</th><th>Valor a cobrar</th><th></th></tr>
-    </thead>
-    <tbody>
-      {% for o in overdue %}
-      <tr>
-        <td>
-          <strong>{{ o.loan.client.full_name }}</strong>
-          {% if o.loan.client.phone %}
-          <div style="margin-top: 3px;">
-            <a href="https://wa.me/57{{ o.loan.client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" class="badge" style="background: rgba(16,185,129,0.15); color: #059669; text-decoration: none; font-weight: 600;" title="Escribir por WhatsApp">
-              💬 WhatsApp
-            </a>
-          </div>
-          {% endif %}
-        </td>
-        <td><span class="badge">{{ o.loan.code }}</span></td>
-        <td>#{{ o.number }}</td>
-        <td>{{ o.due_date|d }}</td>
-        <td><span class="badge badge-danger">{{ o.days_late }} días</span></td>
-        <td><strong style="color: #ef4444;">{{ o.pending_balance|money }}</strong></td>
-        <td>
-          <div style="display: flex; gap: 6px; align-items: center;">
-            {% if o.loan.client.phone %}
-            <a class="btn btn-sm" href="https://wa.me/57{{ o.loan.client.phone|replace(' ', '')|replace('-', '') }}" target="_blank" style="background: #10b981; color: #fff; border-color: #10b981;" title="Abrir WhatsApp con cliente">💬 Chat</a>
-            {% endif %}
-            {% if current_user.has_permission('collections.create') %}
-            <a class="btn btn-sm btn-primary" href="{{ url_for('collections.register', obligation_id=o.id) }}">Registrar gestión</a>
-            {% endif %}
-          </div>
-        </td>
-      </tr>
-      {% else %}
-      <tr><td colspan="7" class="muted center">No hay obligaciones vencidas.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+{# Barra de Acciones Masivas WhatsApp #}
+{% if overdue %}
+<div class="card" style="padding: 14px 18px; margin-bottom: 16px; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #bbf7d0;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; color: #065f46;">
+        <input type="checkbox" id="selectAllOverdue" style="transform: scale(1.15);">
+        <span>Seleccionar todos</span>
+      </label>
+      <span class="badge" style="background: #d1fae5; color: #065f46; font-weight: 700;" id="selectedCountBadge">0 seleccionados</span>
+      <div style="display: inline-flex; gap: 6px;">
+        <button type="button" class="btn btn-sm" id="select10Btn" style="font-size: 0.75rem;">10 primeros</button>
+        <button type="button" class="btn btn-sm" id="select20Btn" style="font-size: 0.75rem;">20 primeros</button>
+      </div>
+    </div>
+    <button type="button" class="btn" id="startBulkWhatsAppBtn" style="background: #10b981; color: #ffffff; border-color: #059669; font-weight: 700; box-shadow: 0 2px 6px rgba(16,185,129,0.35);">
+      {{ icon('send', 16) }} Enviar WhatsApp Masivo (<span id="bulkBtnCount">0</span>)
+    </button>
+  </div>
 </div>
+{% endif %}
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <div class="table-wrap" style="border: none; box-shadow: none;">
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th style="width: 40px; text-align: center;">✓</th>
+          <th>Cliente</th>
+          <th>Préstamo</th>
+          <th>Cuota</th>
+          <th>Venció</th>
+          <th>Días mora</th>
+          <th style="text-align: right;">Valor a cobrar</th>
+          <th style="text-align: center;">Contacto y Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in overdue %}
+        <tr>
+          <td data-label="Seleccionar" style="text-align: center;">
+            <input type="checkbox" class="overdue-checkbox"
+                   data-name="{{ o.loan.client.full_name }}"
+                   data-phone="{{ o.loan.client.phone or '' }}"
+                   data-loan-code="{{ o.loan.code }}"
+                   data-installment="{{ o.number }}"
+                   data-amount="{{ o.pending_balance|money }}"
+                   data-due-date="{{ o.due_date|d }}"
+                   data-balance="{{ o.loan.outstanding_balance|money }}"
+                   style="transform: scale(1.15); cursor: pointer;">
+          </td>
+          <td data-label="Cliente">
+            <div>
+              <a href="{{ url_for('clients.detail', client_id=o.loan.client.id) }}" style="font-weight: 700; color: var(--text);">
+                {{ o.loan.client.full_name }}
+              </a>
+              <div class="muted" style="font-size: 0.78rem; margin-top: 2px;">
+                CC: {{ o.loan.client.identification_number }}
+                {% if o.loan.client.address %} · {{ o.loan.client.address }}{% endif %}
+              </div>
+            </div>
+          </td>
+          <td data-label="Préstamo">
+            <a href="{{ url_for('loans.detail', loan_id=o.loan.id) }}" class="badge" style="text-decoration: none; font-weight: 700;">
+              {{ o.loan.code }}
+            </a>
+          </td>
+          <td data-label="Cuota"><strong>#{{ o.number }}</strong> de {{ o.loan.installments_count }}</td>
+          <td data-label="Venció">{{ o.due_date|d }}</td>
+          <td data-label="Días mora">
+            <span class="badge badge-danger" style="font-weight: 700;">{{ o.days_late }} días</span>
+          </td>
+          <td data-label="Valor a cobrar" style="text-align: right;">
+            <strong style="color: #ef4444; font-size: 1.05rem;">{{ o.pending_balance|money }}</strong>
+          </td>
+          <td data-label="Acciones" class="full-width-cell" style="text-align: center;">
+            <div class="btn-action-group" style="justify-content: center;">
+              {# 1-Tap WhatsApp con mensaje dinámico y editable #}
+              {% if o.loan.client.phone %}
+              <button type="button" class="btn-wa-action" data-wa-trigger
+                      data-name="{{ o.loan.client.full_name }}"
+                      data-phone="{{ o.loan.client.phone }}"
+                      data-loan-code="{{ o.loan.code }}"
+                      data-installment="{{ o.number }}"
+                      data-amount="{{ o.pending_balance|money }}"
+                      data-due-date="{{ o.due_date|d }}"
+                      data-balance="{{ o.loan.outstanding_balance|money }}"
+                      data-default-template="mora"
+                      title="Abrir WhatsApp con mensaje personalizado">
+                {{ icon('whatsapp', 14) }} WhatsApp
+              </button>
+              {# Enlace tel: directo #}
+              <a class="btn-tel-action" href="tel:{{ o.loan.client.phone }}" title="Llamar a {{ o.loan.client.full_name }}">
+                {{ icon('phone', 14) }} Llamar
+              </a>
+              {% endif %}
+
+              {# Enlace a Google Maps si tiene dirección #}
+              {% if o.loan.client.address %}
+              <a class="btn-map-action" href="https://www.google.com/maps/search/?api=1&query={{ o.loan.client.address|urlencode }}+{{ (o.loan.client.city or 'Colombia')|urlencode }}" target="_blank" title="Ver dirección en Google Maps">
+                {{ icon('map-pin', 14) }} Mapa
+              </a>
+              {% endif %}
+
+              {# Registrar Gestión #}
+              {% if current_user.has_permission('collections.create') %}
+              <a class="btn btn-sm btn-primary" href="{{ url_for('collections.register', obligation_id=o.id) }}" style="padding: 6px 10px; font-size: 0.8rem;">
+                + Gestión
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="muted center" style="padding: 40px 20px; text-align: center;">
+            No hay obligaciones vencidas en este momento.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var selectAll = document.getElementById("selectAllOverdue");
+  var checkboxes = document.querySelectorAll(".overdue-checkbox");
+  var countBadge = document.getElementById("selectedCountBadge");
+  var bulkBtnCount = document.getElementById("bulkBtnCount");
+  var startBulkBtn = document.getElementById("startBulkWhatsAppBtn");
+  var select10Btn = document.getElementById("select10Btn");
+  var select20Btn = document.getElementById("select20Btn");
+
+  function updateSelectionCount() {
+    var checked = document.querySelectorAll(".overdue-checkbox:checked");
+    var count = checked.length;
+    if (countBadge) countBadge.textContent = count + " seleccionados";
+    if (bulkBtnCount) bulkBtnCount.textContent = count;
+    if (selectAll) selectAll.checked = count > 0 && count === checkboxes.length;
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener("change", function () {
+      checkboxes.forEach(function (cb) { cb.checked = selectAll.checked; });
+      updateSelectionCount();
+    });
+  }
+
+  checkboxes.forEach(function (cb) {
+    cb.addEventListener("change", updateSelectionCount);
+  });
+
+  if (select10Btn) {
+    select10Btn.addEventListener("click", function () {
+      checkboxes.forEach(function (cb, i) { cb.checked = (i < 10); });
+      updateSelectionCount();
+    });
+  }
+
+  if (select20Btn) {
+    select20Btn.addEventListener("click", function () {
+      checkboxes.forEach(function (cb, i) { cb.checked = (i < 20); });
+      updateSelectionCount();
+    });
+  }
+
+  if (startBulkBtn) {
+    startBulkBtn.addEventListener("click", function () {
+      var checked = document.querySelectorAll(".overdue-checkbox:checked");
+      if (checked.length === 0) {
+        alert("Por favor seleccione al menos 1 cliente con la casilla de verificación.");
+        return;
+      }
+      var items = [];
+      checked.forEach(function (cb) {
+        items.push({
+          name: cb.getAttribute("data-name"),
+          phone: cb.getAttribute("data-phone"),
+          loan: cb.getAttribute("data-loan-code"),
+          installment: cb.getAttribute("data-installment"),
+          amount: cb.getAttribute("data-amount"),
+          dueDate: cb.getAttribute("data-due-date"),
+          balance: cb.getAttribute("data-balance"),
+          template: "mora"
+        });
+      });
+      if (window.startWhatsAppBulk) {
+        window.startWhatsAppBulk(items);
+      }
+    });
+  }
+});
+</script>
 {% endblock %}
+
