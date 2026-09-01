@@ -3,7 +3,7 @@ services:
     name: cartera
     runtime: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn -w 4 -t 120 run:app"
+    startCommand: "gunicorn -w 2 -t 120 run:app"
     envVars:
       - key: AUTH_DISABLED
         value: "false"
