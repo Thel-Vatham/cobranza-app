@@ -8,8 +8,8 @@ from flask_login import current_user, login_required
 
 from ..extensions import db
 from ..models import (Audit, Client, CollectionManagement, Document,
-                       Loan, Obligation, Parameter, Payment,
-                       PaymentApplication, Permission, Role, User)
+                       Loan, Obligation, OCRResult, Parameter, Payment,
+                       PaymentApplication, Permission, Reference, Role, User)
 from ..services.decorators import permission_required
 from ..services.financial import log_audit
 
@@ -419,11 +419,12 @@ def delete_data():
         return redirect(url_for("admin.data_management"))
 
     try:
-        # Orden respetando FK: aplicaciones → pagos → obligaciones → gestiones → documentos → referencias → préstamos → clientes
+        # Orden respetando FK: aplicaciones → pagos → obligaciones → gestiones → OCR → documentos → referencias → préstamos → clientes
         PaymentApplication.query.delete()
         Payment.query.delete()
         Obligation.query.delete()
         CollectionManagement.query.delete()
+        OCRResult.query.delete()
         Document.query.delete()
         Reference.query.delete()
         Loan.query.delete()

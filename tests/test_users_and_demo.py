@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 from app import create_app
 from app.config import Config
 from app.models import User, Client, Loan, Payment
@@ -12,6 +12,9 @@ class UserRolesAndTraceabilityTest(unittest.TestCase):
             AUTH_DISABLED = False
             SESSION_COOKIE_SECURE = False
         cls.app = create_app(TC)
+        with cls.app.app_context():
+            from app.seed import _seed_demo_data
+            _seed_demo_data(force=True)
 
     def test_users_exist_and_passwords(self):
         with self.app.app_context():

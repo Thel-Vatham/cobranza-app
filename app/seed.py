@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from .extensions import db
 from .models import (Audit, Client, CollectionManagement, Document,
-                     Loan, Obligation, Parameter, Payment,
+                     Loan, Obligation, OCRResult, Parameter, Payment,
                      PaymentApplication, Permission, Reference, Role, User)
 from .services.financial import calculate_schedule
 
@@ -145,6 +145,7 @@ def _seed_demo_data(force=False):
         Payment.query.delete()
         Obligation.query.delete()
         CollectionManagement.query.delete()
+        OCRResult.query.delete()
         Document.query.delete()
         Reference.query.delete()
         Loan.query.delete()
