@@ -342,9 +342,12 @@ def audit():
 @permission_required("admin.audit")
 def data_management():
     stats = {
-        "clients":  Client.query.count(),
-        "loans":    Loan.query.count(),
-        "payments": Payment.query.count(),
+        "clients":     Client.query.count(),
+        "loans":       Loan.query.count(),
+        "payments":    Payment.query.count(),
+        "obligations": Obligation.query.count(),
+        "references":  Reference.query.count(),
+        "collections": CollectionManagement.query.count(),
     }
     return render_template("admin/data.html", stats=stats)
 
@@ -353,52 +356,213 @@ def data_management():
 @login_required
 @permission_required("admin.audit")
 def export_csv():
-    """Genera un ZIP con CSVs de las tablas principales."""
+    """Genera un archivo comprimido .ZIP con CSVs limpios y comprensibles para usuarios no técnicos."""
 
-    def write_csv(rows, fields):
+    def _format_date(d):
+        if not d:
+            return ""
+        if isinstance(d, datetime):
+            return d.strftime("%Y-%m-%d %H:%M")
+        return d.strftime("%Y-%m-%d")
+
+    def _format_money(val):
+        if val is None:
+            return "0.00"
+        try:
+            return f"{float(val):.2f}"
+        except (ValueError, TypeError):
+            return str(val)
+
+    def _format_freq(days):
+        if days == 30:
+            return "Mensual (30 días)"
+        elif days == 15:
+            return "Quincenal (15 días)"
+        elif days == 7:
+            return "Semanal (7 días)"
+        elif days == 1:
+            return "Diario (1 día)"
+        return f"Cada {days} días"
+
+    def _format_amort(tipo):
+        mapping = {
+            "francesa": "Francesa (Cuota fija)",
+            "alemana": "Alemana (Capital fijo)",
+            "directo": "Interés Directo",
+        }
+        return mapping.get((tipo or "").lower(), tipo or "")
+
+    def _format_status(st):
+        mapping = {
+            "activo": "Activo",
+            "liquidado": "Liquidado",
+            "castigado": "Castigado",
+            "pendiente": "Pendiente",
+            "pagada": "Pagada",
+            "parcial": "Abono Parcial",
+            "vencida": "Vencida",
+            "aplicado": "Aplicado",
+            "anulado": "Anulado",
+        }
+        return mapping.get((st or "").lower(), st or "")
+
+    def build_csv(headers, data_rows):
         buf = io.StringIO()
-        w = csv.writer(buf)
-        w.writerow(fields)
-        for row in rows:
-            w.writerow([getattr(row, f, "") for f in fields])
-        return buf.getvalue().encode("utf-8-sig")  # BOM para Excel
+        w = csv.writer(buf, quoting=csv.QUOTE_MINIMAL)
+        w.writerow(headers)
+        for row in data_rows:
+            w.writerow(row)
+        return buf.getvalue().encode("utf-8-sig")  # BOM para apertura directa en Microsoft Excel
 
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Clientes
-        clients = Client.query.order_by(Client.id).all()
-        zf.writestr("clientes.csv", write_csv(clients, [
-            "id", "code", "first_name", "last_name",
-            "identification_type", "identification_number",
-            "country", "address", "phone", "email", "created_at",
-        ]))
+        # 1. Clientes
+        clients = Client.query.order_by(Client.id.asc()).all()
+        client_headers = [
+            "Código Cliente", "Nombres", "Apellidos", "Nombre Completo",
+            "Tipo Documento", "Número de Documento", "Teléfono", "Correo Electrónico",
+            "Dirección", "País", "Créditos Registrados", "Referencias Registradas", "Fecha de Registro"
+        ]
+        client_rows = []
+        for c in clients:
+            client_rows.append([
+                c.code,
+                c.first_name,
+                c.last_name,
+                c.full_name,
+                c.identification_type,
+                c.identification_number,
+                c.phone or "",
+                c.email or "",
+                c.address or "",
+                c.country or "Colombia",
+                len(c.loans),
+                len(c.references),
+                _format_date(c.created_at)
+            ])
+        zf.writestr("clientes.csv", build_csv(client_headers, client_rows))
 
-        # Préstamos
-        loans = Loan.query.order_by(Loan.id).all()
-        zf.writestr("prestamos.csv", write_csv(loans, [
-            "id", "code", "client_id", "principal", "annual_rate",
-            "installments_count", "frequency_days", "amortization_type",
-            "start_date", "status", "created_at",
-        ]))
+        # 2. Préstamos
+        loans = Loan.query.order_by(Loan.id.asc()).all()
+        loan_headers = [
+            "Código Préstamo", "Código Cliente", "Nombre del Cliente", "Documento Cliente",
+            "Monto Desembolsado (COP)", "Tasa de Interés Nominal", "N° Cuotas",
+            "Frecuencia de Pago", "Sistema de Amortización", "Fecha de Inicio / Desembolso",
+            "Estado del Crédito", "Fecha de Creación"
+        ]
+        loan_rows = []
+        for l in loans:
+            loan_rows.append([
+                l.code,
+                l.client.code if l.client else "",
+                l.client.full_name if l.client else "",
+                f"{l.client.identification_type} {l.client.identification_number}" if l.client else "",
+                _format_money(l.principal),
+                f"{float(l.annual_rate) * 100:.2f}%" if l.annual_rate is not None else "",
+                l.installments_count,
+                _format_freq(l.frequency_days),
+                _format_amort(l.amortization_type),
+                _format_date(l.start_date),
+                _format_status(l.status),
+                _format_date(l.created_at)
+            ])
+        zf.writestr("prestamos.csv", build_csv(loan_headers, loan_rows))
 
-        # Pagos
-        payments = Payment.query.order_by(Payment.id).all()
-        zf.writestr("pagos.csv", write_csv(payments, [
-            "id", "code", "client_id", "loan_id", "amount",
-            "payment_date", "concept", "receipt_number", "status", "created_at",
-        ]))
+        # 3. Pagos
+        payments = Payment.query.order_by(Payment.id.asc()).all()
+        payment_headers = [
+            "Código de Pago", "N° de Recibo", "Código Préstamo", "Código Cliente",
+            "Nombre del Cliente", "Monto Pagado (COP)", "Fecha de Pago",
+            "Concepto / Medio", "Estado del Recibo", "Fecha de Registro"
+        ]
+        payment_rows = []
+        for p in payments:
+            payment_rows.append([
+                p.code,
+                p.receipt_number or "",
+                p.loan.code if p.loan else "",
+                p.client.code if p.client else "",
+                p.client.full_name if p.client else "",
+                _format_money(p.amount),
+                _format_date(p.payment_date),
+                p.concept or "Pago de cuota",
+                _format_status(p.status),
+                _format_date(p.created_at)
+            ])
+        zf.writestr("pagos.csv", build_csv(payment_headers, payment_rows))
 
-        # Obligaciones
-        obligations = Obligation.query.order_by(Obligation.id).all()
-        zf.writestr("obligaciones.csv", write_csv(obligations, [
-            "id", "loan_id", "number", "due_date", "scheduled_value",
-            "capital", "interest", "pending_capital", "pending_interest",
-            "status", "paid_date",
-        ]))
+        # 4. Obligaciones (Plan de Cuotas)
+        obligations = Obligation.query.order_by(Obligation.loan_id.asc(), Obligation.number.asc()).all()
+        obligation_headers = [
+            "Código Préstamo", "Código Cliente", "Nombre del Cliente", "N° Cuota",
+            "Fecha de Vencimiento", "Valor Cuota (COP)", "Capital Programado (COP)",
+            "Interés Programado (COP)", "Capital Pendiente (COP)", "Interés Pendiente (COP)",
+            "Saldo Pendiente Total (COP)", "Estado de la Cuota", "Fecha en que se Pagó"
+        ]
+        obligation_rows = []
+        for o in obligations:
+            pend_cap = float(o.pending_capital or 0)
+            pend_int = float(o.pending_interest or 0)
+            obligation_rows.append([
+                o.loan.code if o.loan else "",
+                o.loan.client.code if (o.loan and o.loan.client) else "",
+                o.loan.client.full_name if (o.loan and o.loan.client) else "",
+                o.number,
+                _format_date(o.due_date),
+                _format_money(o.scheduled_value),
+                _format_money(o.capital),
+                _format_money(o.interest),
+                _format_money(pend_cap),
+                _format_money(pend_int),
+                _format_money(pend_cap + pend_int),
+                _format_status(o.status),
+                _format_date(o.paid_date)
+            ])
+        zf.writestr("obligaciones.csv", build_csv(obligation_headers, obligation_rows))
+
+        # 5. Referencias y Codeudores
+        references = Reference.query.order_by(Reference.id.asc()).all()
+        ref_headers = [
+            "Código Cliente", "Nombre del Cliente", "Nombre de la Referencia / Codeudor",
+            "Tipo de Relación", "N° de Identificación", "Teléfono de Contacto", "Dirección"
+        ]
+        ref_rows = []
+        for r in references:
+            ref_rows.append([
+                r.client.code if r.client else "",
+                r.client.full_name if r.client else "",
+                r.full_name,
+                r.relationship or "Referencia",
+                r.identification_number or "",
+                r.phone or "",
+                r.address or ""
+            ])
+        zf.writestr("referencias.csv", build_csv(ref_headers, ref_rows))
+
+        # 6. Gestiones de Cobranza
+        managements = CollectionManagement.query.order_by(CollectionManagement.created_at.desc()).all()
+        mgmt_headers = [
+            "Fecha y Hora", "Código Cliente", "Nombre del Cliente", "Código Préstamo",
+            "Acción Realizada", "Próxima Fecha / Compromiso", "Gestionado Por", "Notas y Observaciones"
+        ]
+        mgmt_rows = []
+        for m in managements:
+            user_name = m.user.full_name if (m.user and m.user.full_name) else (m.user.username if m.user else "Sistema")
+            mgmt_rows.append([
+                _format_date(m.created_at),
+                m.client.code if m.client else "",
+                m.client.full_name if m.client else "",
+                m.loan.code if m.loan else "",
+                m.action,
+                _format_date(m.next_date),
+                user_name,
+                m.notes or ""
+            ])
+        zf.writestr("gestiones_cobranza.csv", build_csv(mgmt_headers, mgmt_rows))
 
     zip_buf.seek(0)
     ts = datetime.now().strftime("%Y%m%d_%H%M")
-    log_audit(current_user.id, "Exportar datos", "Sistema")
+    log_audit(current_user.id, "Exportar datos comprensibles (ZIP/CSV)", "Sistema")
     db.session.commit()
     return send_file(
         zip_buf,

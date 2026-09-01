@@ -46,6 +46,17 @@ class NewFeaturesTest(unittest.TestCase):
             self.assertIn("prestamos.csv", names)
             self.assertIn("pagos.csv", names)
             self.assertIn("obligaciones.csv", names)
+            self.assertIn("referencias.csv", names)
+            self.assertIn("gestiones_cobranza.csv", names)
+
+            # Verificar que los encabezados son amigables y en español
+            client_csv = zf.read("clientes.csv").decode("utf-8-sig")
+            self.assertIn("Código Cliente", client_csv)
+            self.assertIn("Nombre Completo", client_csv)
+
+            loans_csv = zf.read("prestamos.csv").decode("utf-8-sig")
+            self.assertIn("Código Préstamo", loans_csv)
+            self.assertIn("Nombre del Cliente", loans_csv)
 
     def test_wipe_data_flow(self):
         with self.app.app_context():

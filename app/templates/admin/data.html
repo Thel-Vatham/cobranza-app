@@ -24,13 +24,15 @@
       <h2>Exportar Base de Datos</h2>
       <p class="muted">Descarga un archivo comprimido <code>.ZIP</code> con los datos operativos en formato CSV (codificación UTF-8 BOM compatible con Excel):</p>
       <ul class="export-list">
-        <li><span class="badge">CSV</span> <strong>clientes.csv</strong> &mdash; {{ stats.clients }} registros</li>
-        <li><span class="badge">CSV</span> <strong>prestamos.csv</strong> &mdash; {{ stats.loans }} registros</li>
-        <li><span class="badge">CSV</span> <strong>pagos.csv</strong> &mdash; {{ stats.payments }} registros</li>
-        <li><span class="badge">CSV</span> <strong>obligaciones.csv</strong></li>
+        <li><span class="badge">CSV</span> <strong>clientes.csv</strong> &mdash; {{ stats.clients }} clientes (identificación, contacto, totales)</li>
+        <li><span class="badge">CSV</span> <strong>prestamos.csv</strong> &mdash; {{ stats.loans }} créditos (montos, tasas, amortización, nombres)</li>
+        <li><span class="badge">CSV</span> <strong>pagos.csv</strong> &mdash; {{ stats.payments }} recibos (cliente, crédito, montos, métodos)</li>
+        <li><span class="badge">CSV</span> <strong>obligaciones.csv</strong> &mdash; {{ stats.obligations }} cuotas (plan de pagos, saldos pendientes y estado)</li>
+        <li><span class="badge">CSV</span> <strong>referencias.csv</strong> &mdash; {{ stats.references }} referencias y codeudores</li>
+        <li><span class="badge">CSV</span> <strong>gestiones_cobranza.csv</strong> &mdash; {{ stats.collections }} registros en bitácora de cobranza</li>
       </ul>
       <a class="btn btn-primary" href="{{ url_for('admin.export_csv') }}" id="btn-export">
-        📥 Descargar Copia en ZIP
+        📥 Descargar Copia en ZIP (Excel Compatible)
       </a>
     </div>
   </div>
