@@ -12,23 +12,23 @@
   <div class="card stat" style="border-left: 4px solid #10b981;">
     <span class="stat-label">Bajo Riesgo (Excelente: 80-100)</span>
     <span class="stat-value" style="color: #10b981;">
-      {{ results|selectattr('score.score', 'ge', 80)|list|length }} clientes
+      {{ summary.bajo_riesgo }} clientes
     </span>
     <small class="muted">Clientes con alta puntualidad</small>
   </div>
   <div class="card stat" style="border-left: 4px solid #f59e0b;">
     <span class="stat-label">Riesgo Medio (Regular: 50-79)</span>
     <span class="stat-value" style="color: #d97706;">
-      {{ results|selectattr('score.score', 'ge', 50)|rejectattr('score.score', 'ge', 80)|list|length }} clientes
+      {{ summary.medio_riesgo }} clientes
     </span>
     <small class="muted">Atrasos ocasionales moderados</small>
   </div>
   <div class="card stat stat-danger" style="border-left: 4px solid #ef4444;">
     <span class="stat-label">Alto Riesgo (Crítico: < 50)</span>
     <span class="stat-value" style="color: #ef4444;">
-      {{ results|selectattr('score.score', 'lt', 50)|list|length }} clientes
+      {{ summary.alto_riesgo }} clientes
     </span>
-    <small class="muted">Requieren seguimiento prioritario</small>
+    <small class="muted">Requieren seguimiento prioritario{% if summary.sin_historial %} · {{ summary.sin_historial }} sin historial{% endif %}</small>
   </div>
 </div>
 

@@ -31,6 +31,9 @@
     <label>País
       <input type="text" name="country" id="country" value="{{ client.country if client else 'Colombia' }}">
     </label>
+    <label>Ciudad
+      <input type="text" name="city" id="city" placeholder="Ej: Bogotá, Medellín..." value="{{ client.city if client else '' }}">
+    </label>
     <label>Teléfono
       <input type="text" name="phone" id="phone" value="{{ client.phone if client else '' }}">
     </label>

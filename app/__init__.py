@@ -94,6 +94,11 @@ def create_app(config_object=Config):
     def not_found(_e):
         return render_template("error.html", code=404, message="El recurso solicitado no existe."), 404
 
+    @app.errorhandler(500)
+    def internal_error(e):
+        app.logger.error(f"Error interno 500: {e}", exc_info=True)
+        return render_template("error.html", code=500, message="Ha ocurrido un error interno en el servidor. Por favor intente nuevamente."), 500
+
     with app.app_context():
         db.create_all()
         _ensure_columns()
@@ -143,6 +148,8 @@ def _ensure_columns():
     if "clients" in table_names:
         client_cols = {c["name"] for c in inspector.get_columns("clients")}
         with db.engine.begin() as conn:
+            if "city" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN city VARCHAR(80)")
             if "bank_name" not in client_cols:
                 conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN bank_name VARCHAR(100)")
             if "account_type" not in client_cols:

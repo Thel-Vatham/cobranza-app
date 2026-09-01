@@ -69,6 +69,7 @@ def create():
             identification_type=request.form.get("identification_type", "CC"),
             identification_number=request.form.get("identification_number", "").strip(),
             country=request.form.get("country", "Colombia"),
+            city=request.form.get("city", "").strip(),
             address=request.form.get("address", "").strip(),
             phone=request.form.get("phone", "").strip(),
             email=request.form.get("email", "").strip(),
@@ -174,6 +175,7 @@ def edit(client_id):
         client.identification_type = request.form.get("identification_type", "CC")
         client.identification_number = request.form.get("identification_number", "").strip()
         client.country = request.form.get("country", "Colombia")
+        client.city = request.form.get("city", "").strip()
         client.address = request.form.get("address", "").strip()
         client.phone = request.form.get("phone", "").strip()
         client.email = request.form.get("email", "").strip()

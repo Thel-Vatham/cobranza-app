@@ -60,4 +60,14 @@ def scoring():
         s = compute_score(client)
         results.append({"client": client, "score": s})
     results.sort(key=lambda r: (r["score"].get("score") is None, -(r["score"].get("score") or 0)))
-    return render_template("reports/scoring.html", results=results)
+
+    # Precalculo robusto de resumen estadístico para evitar comparaciones con None en Jinja
+    summary = {
+        "bajo_riesgo": sum(1 for r in results if r["score"].get("score") is not None and r["score"]["score"] >= 80),
+        "medio_riesgo": sum(1 for r in results if r["score"].get("score") is not None and 50 <= r["score"]["score"] < 80),
+        "alto_riesgo": sum(1 for r in results if r["score"].get("score") is not None and r["score"]["score"] < 50),
+        "sin_historial": sum(1 for r in results if r["score"].get("score") is None),
+        "total": len(results),
+    }
+
+    return render_template("reports/scoring.html", results=results, summary=summary)

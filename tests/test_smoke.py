@@ -87,10 +87,20 @@ class SmokeTest(unittest.TestCase):
             resp = self.client.get(f"/pagos/{payment.id}/recibo")
             self.assertEqual(resp.status_code, 200)
 
+            # cliente sin préstamos ni historial
+            resp_c2 = self.client.post("/clientes/nuevo", data={
+                "first_name": "Cliente", "last_name": "Sin Prestamos",
+                "identification_type": "CC", "identification_number": "99988877",
+                "country": "Colombia", "city": "Medellín",
+            }, follow_redirects=True)
+            self.assertEqual(resp_c2.status_code, 200)
+
             # panel y reportes
             self.assertEqual(self.client.get("/").status_code, 200)
             self.assertEqual(self.client.get("/reportes/cartera").status_code, 200)
-            self.assertEqual(self.client.get("/reportes/score").status_code, 200)
+            score_resp = self.client.get("/reportes/score")
+            self.assertEqual(score_resp.status_code, 200)
+            self.assertIn(b"Score de Comportamiento Crediticio", score_resp.data)
             self.assertEqual(self.client.get("/admin/usuarios").status_code, 200)
 
 

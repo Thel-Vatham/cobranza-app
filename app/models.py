@@ -68,6 +68,7 @@ class Client(db.Model):
     identification_type = db.Column(db.String(30), default="CC")
     identification_number = db.Column(db.String(60), nullable=False, index=True)
     country = db.Column(db.String(80), default="Colombia")
+    city = db.Column(db.String(80), nullable=True)
     address = db.Column(db.String(255))
     phone = db.Column(db.String(40))
     email = db.Column(db.String(120))
