@@ -4,8 +4,9 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from ..extensions import db
-from ..models import Client, Loan, Parameter
+from ..models import Client, Document, Loan, Parameter
 from ..services.decorators import permission_required
+from ..services.documents import allowed, create_document, replace_file
 from ..services.financial import generate_obligations, log_audit
 
 bp = Blueprint("loans", __name__, url_prefix="/prestamos")
@@ -72,9 +73,15 @@ def create():
         db.session.flush()
         for obligation in generate_obligations(loan):
             db.session.add(obligation)
+
+        # Carga opcional de comprobante de envío / desembolso
+        voucher_file = request.files.get("disbursement_voucher")
+        if voucher_file and voucher_file.filename and allowed(voucher_file.filename):
+            create_document("prestamo", loan.id, "comprobante", voucher_file, current_user.id)
+
         log_audit(current_user.id, "Crear préstamo", "Préstamo", loan.id, f"{loan.code} monto {principal} tasa {annual_rate}%")
         db.session.commit()
-        flash(f"Préstamo {loan.code} creado con {installments_count} cuotas a una tasa de {annual_rate}% anual.", "success")
+        flash(f"Préstamo {loan.code} creado con {installments_count} cuotas a una tasa de {annual_rate}% por período.", "success")
         return redirect(url_for("loans.detail", loan_id=loan.id))
     return render_template("loans/form.html", loan=None, clients=clients, tasa_actual=tasa_actual)
 
@@ -90,9 +97,35 @@ def detail(loan_id):
         0.0
     )
     pct_paid = round((total_capital_paid / principal_val * 100), 1) if principal_val > 0 else 0.0
+    voucher_doc = Document.query.filter_by(entity_type="prestamo", entity_id=loan.id, doc_type="comprobante").first()
+
     return render_template(
         "loans/detail.html",
         loan=loan,
         total_capital_paid=total_capital_paid,
         pct_paid=pct_paid,
+        voucher_doc=voucher_doc,
     )
+
+
+@bp.route("/<int:loan_id>/comprobante", methods=["POST"])
+@login_required
+@permission_required("loans.create")
+def upload_voucher(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    file = request.files.get("disbursement_voucher")
+    if not file or not file.filename:
+        flash("Debe seleccionar un archivo para el comprobante.", "danger")
+    elif not allowed(file.filename):
+        flash("Formato de archivo no permitido (use PDF, PNG, JPG, JPEG o WEBP).", "danger")
+    else:
+        doc = Document.query.filter_by(entity_type="prestamo", entity_id=loan.id, doc_type="comprobante").first()
+        if doc:
+            replace_file(doc, file)
+            flash("Comprobante de desembolso actualizado exitosamente.", "success")
+        else:
+            create_document("prestamo", loan.id, "comprobante", file, current_user.id)
+            flash("Comprobante de desembolso cargado exitosamente.", "success")
+        log_audit(current_user.id, "Cargar comprobante de desembolso", "Préstamo", loan.id, f"{loan.code}: {file.filename}")
+        db.session.commit()
+    return redirect(url_for("loans.detail", loan_id=loan.id))

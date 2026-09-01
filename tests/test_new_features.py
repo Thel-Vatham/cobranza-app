@@ -82,5 +82,68 @@ class NewFeaturesTest(unittest.TestCase):
             self.assertIsNotNone(User.query.filter_by(username="admin").first())
             self.assertIsNotNone(User.query.filter_by(username="user_0").first())
 
+    def test_client_bank_details(self):
+        resp = self.client.post(
+            "/clientes/nuevo",
+            data={
+                "first_name": "Juan",
+                "last_name": "Perez Bancario",
+                "identification_type": "CC",
+                "identification_number": "123450987",
+                "bank_name": "Bancolombia",
+                "account_type": "Ahorros",
+                "account_number": "9876543210",
+                "account_holder": "Juan Perez",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        html = resp.get_data(as_text=True)
+        self.assertIn("Bancolombia", html)
+        self.assertIn("9876543210", html)
+
+        with self.app.app_context():
+            cli = Client.query.filter_by(identification_number="123450987").first()
+            self.assertIsNotNone(cli)
+            self.assertEqual(cli.bank_name, "Bancolombia")
+            self.assertEqual(cli.account_number, "9876543210")
+
+    def test_loan_with_disbursement_voucher(self):
+        with self.app.app_context():
+            c = Client(
+                code="CL-BK01",
+                first_name="Cliente",
+                last_name="Prestamo",
+                identification_number="77766655",
+                bank_name="Nequi",
+                account_type="Billetera Digital",
+                account_number="3001234567",
+            )
+            db.session.add(c)
+            db.session.commit()
+            client_id = c.id
+
+        voucher_content = b"%PDF-1.4 test voucher PDF content"
+        resp = self.client.post(
+            "/prestamos/nuevo",
+            data={
+                "client_id": client_id,
+                "principal": 500000,
+                "installments_count": 4,
+                "frequency_days": 15,
+                "amortization_type": "frances",
+                "start_date": "2026-09-01",
+                "disbursement_voucher": (io.BytesIO(voucher_content), "comprobante_transferencia.pdf"),
+            },
+            content_type="multipart/form-data",
+            follow_redirects=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        html = resp.get_data(as_text=True)
+        self.assertIn("Nequi", html)
+        self.assertIn("3001234567", html)
+        self.assertIn("comprobante_transferencia.pdf", html)
+        self.assertIn("Descargar", html)
+
 if __name__ == "__main__":
     unittest.main()

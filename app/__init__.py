@@ -130,10 +130,24 @@ def _ensure_columns():
     from sqlalchemy import inspect
 
     inspector = inspect(db.engine)
-    if "parameters" in inspector.get_table_names():
+    table_names = inspector.get_table_names()
+
+    if "parameters" in table_names:
         cols = {c["name"] for c in inspector.get_columns("parameters")}
         with db.engine.begin() as conn:
             if "category" not in cols:
                 conn.exec_driver_sql("ALTER TABLE parameters ADD COLUMN category VARCHAR(80)")
             if "kind" not in cols:
                 conn.exec_driver_sql("ALTER TABLE parameters ADD COLUMN kind VARCHAR(20) DEFAULT 'text'")
+
+    if "clients" in table_names:
+        client_cols = {c["name"] for c in inspector.get_columns("clients")}
+        with db.engine.begin() as conn:
+            if "bank_name" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN bank_name VARCHAR(100)")
+            if "account_type" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN account_type VARCHAR(40)")
+            if "account_number" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN account_number VARCHAR(60)")
+            if "account_holder" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN account_holder VARCHAR(160)")

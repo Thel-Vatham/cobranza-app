@@ -71,6 +71,11 @@ class Client(db.Model):
     address = db.Column(db.String(255))
     phone = db.Column(db.String(40))
     email = db.Column(db.String(120))
+    # Datos bancarios para desembolso / depósito
+    bank_name = db.Column(db.String(100), nullable=True)
+    account_type = db.Column(db.String(40), nullable=True)  # Ahorros, Corriente, Billetera Digital, etc.
+    account_number = db.Column(db.String(60), nullable=True)
+    account_holder = db.Column(db.String(160), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

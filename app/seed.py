@@ -168,6 +168,10 @@ def _seed_demo_data(force=False):
             "address": "Carrera 7 # 72-11, Bogotá",
             "email": "nicolas.santa@example.com",
             "city": "Bogotá",
+            "bank_name": "Bancolombia",
+            "account_type": "Ahorros",
+            "account_number": "10570140541",
+            "account_holder": "NICOLAS SANTA GONZALEZ",
             "references": [
                 {"name": "MARIA ELENA GONZALEZ", "rel": "Familiar", "id_num": "51876543", "phone": "3119876543", "address": "Carrera 7 # 72-11, Bogotá"},
                 {"name": "PEDRO PABLO SANTA", "rel": "Codeudor", "id_num": "19345678", "phone": "3123456789", "address": "Calle 68 # 14-20, Bogotá"}
@@ -190,6 +194,10 @@ def _seed_demo_data(force=False):
             "address": "Calle 45 # 18-30, Medellín",
             "email": "carolina.martinez@example.com",
             "city": "Medellín",
+            "bank_name": "Nequi",
+            "account_type": "Billetera Digital",
+            "account_number": "3159876543",
+            "account_holder": "CAROLINA MARTINEZ RUIZ",
             "references": [
                 {"name": "LUIS FERNANDO TORRES", "rel": "Codeudor", "id_num": "798765432", "phone": "3112223344", "address": "Calle 45 # 18-30, Medellín"},
                 {"name": "CLARA INES RUIZ", "rel": "Familiar", "id_num": "43567890", "phone": "3167778899", "address": "Circular 4 # 70-15, Medellín"}
@@ -212,6 +220,10 @@ def _seed_demo_data(force=False):
             "address": "Avenida 6N # 24-05, Cali",
             "email": "andres.gomez@example.com",
             "city": "Cali",
+            "bank_name": "Daviplata",
+            "account_type": "Billetera Digital",
+            "account_number": "3205551234",
+            "account_holder": "ANDRES FELIPE GOMEZ OROZCO",
             "references": [
                 {"name": "MARIA PAULA GOMEZ", "rel": "Familiar", "id_num": "52987654", "phone": "3189998877", "address": "Avenida 6N # 24-05, Cali"},
                 {"name": "CARLOS ALBERTO OROZCO", "rel": "Comercial", "id_num": "16789012", "phone": "3104443322", "address": "Calle 9 # 32-10, Cali"}
@@ -234,6 +246,10 @@ def _seed_demo_data(force=False):
             "address": "Calle 72 # 53-19, Barranquilla",
             "email": "diana.rodriguez@example.com",
             "city": "Barranquilla",
+            "bank_name": "Davivienda",
+            "account_type": "Ahorros",
+            "account_number": "48291039482",
+            "account_holder": "DIANA MARCELA RODRIGUEZ SILVA",
             "references": [
                 {"name": "GUSTAVO RODRIGUEZ", "rel": "Familiar", "id_num": "72345678", "phone": "3145556677", "address": "Calle 72 # 53-19, Barranquilla"},
                 {"name": "SONIA SILVA PEREZ", "rel": "Codeudor", "id_num": "32876543", "phone": "3171112233", "address": "Carrera 46 # 80-25, Barranquilla"}
@@ -256,6 +272,10 @@ def _seed_demo_data(force=False):
             "address": "Carrera 27 # 36-14, Bucaramanga",
             "email": "carlos.herrera@example.com",
             "city": "Bucaramanga",
+            "bank_name": "BBVA Colombia",
+            "account_type": "Ahorros",
+            "account_number": "0013082910293",
+            "account_holder": "CARLOS EDUARDO HERRERA CASTRO",
             "references": [
                 {"name": "ALVARO HERRERA", "rel": "Familiar", "id_num": "91234567", "phone": "3168889900", "address": "Carrera 27 # 36-14, Bucaramanga"},
                 {"name": "PATRICIA CASTRO", "rel": "Codeudor", "id_num": "63456789", "phone": "3154445566", "address": "Calle 48 # 33-20, Bucaramanga"}
@@ -278,6 +298,10 @@ def _seed_demo_data(force=False):
             "address": "Avenida Circunvalar # 12-40, Pereira",
             "email": "valentina.restrepo@example.com",
             "city": "Pereira",
+            "bank_name": "Banco de Bogotá",
+            "account_type": "Corriente",
+            "account_number": "19283019283",
+            "account_holder": "VALENTINA RESTREPO LOPEZ",
             "references": [
                 {"name": "SANTIAGO RESTREPO", "rel": "Codeudor", "id_num": "9876543", "phone": "3156667788", "address": "Avenida Circunvalar # 12-40, Pereira"},
                 {"name": "GLORIA LOPEZ GIRALDO", "rel": "Familiar", "id_num": "42123456", "phone": "3113332211", "address": "Carrera 8 # 20-30, Pereira"}
@@ -300,6 +324,10 @@ def _seed_demo_data(force=False):
             "address": "Carrera 23 # 55-08, Manizales",
             "email": "jorge.castro@example.com",
             "city": "Manizales",
+            "bank_name": "Bancolombia",
+            "account_type": "Ahorros",
+            "account_number": "91283019283",
+            "account_holder": "JORGE ENRIQUE CASTRO MORA",
             "references": [
                 {"name": "HECTOR CASTRO", "rel": "Familiar", "id_num": "10234567", "phone": "3187776655", "address": "Carrera 23 # 55-08, Manizales"},
                 {"name": "LUCIA MORA CARDONA", "rel": "Codeudor", "id_num": "30456789", "phone": "3142223344", "address": "Avenida Santander # 45-12, Manizales"}
@@ -323,6 +351,10 @@ def _seed_demo_data(force=False):
             "address": "Bocagrande Carrera 3 # 8-12, Cartagena",
             "email": "liliana.vargas@example.com",
             "city": "Cartagena",
+            "bank_name": "Nequi",
+            "account_type": "Billetera Digital",
+            "account_number": "3178889900",
+            "account_holder": "LILIANA PATRICIA VARGAS MENDOZA",
             "references": [
                 {"name": "ROBERTO VARGAS", "rel": "Familiar", "id_num": "73123456", "phone": "3176665544", "address": "Bocagrande Carrera 3 # 8-12, Cartagena"},
                 {"name": "MARINA MENDOZA", "rel": "Comercial", "id_num": "45678901", "phone": "3103332211", "address": "Manga Avenida Jiménez # 18-05, Cartagena"}
@@ -345,6 +377,10 @@ def _seed_demo_data(force=False):
             "address": "Calle 14 # 16-25, Armenia",
             "email": "mauricio.duque@example.com",
             "city": "Armenia",
+            "bank_name": "Scotiabank Colpatria",
+            "account_type": "Ahorros",
+            "account_number": "58291029384",
+            "account_holder": "MAURICIO ALEJANDRO DUQUE JARAMILLO",
             "references": [
                 {"name": "JAVIER DUQUE", "rel": "Familiar", "id_num": "75123456", "phone": "3105554433", "address": "Calle 14 # 16-25, Armenia"},
                 {"name": "ANA MARIA JARAMILLO", "rel": "Codeudor", "id_num": "41987654", "phone": "3184443322", "address": "Avenida Bolívar # 19-30, Armenia"}
@@ -367,6 +403,10 @@ def _seed_demo_data(force=False):
             "address": "Carrera 5 # 38-20, Ibagué",
             "email": "camila.ortiz@example.com",
             "city": "Ibagué",
+            "bank_name": "Daviplata",
+            "account_type": "Billetera Digital",
+            "account_number": "3132221100",
+            "account_holder": "CAMILA ANDREA ORTIZ PENAGOS",
             "references": [
                 {"name": "FERNANDO ORTIZ", "rel": "Familiar", "id_num": "93456789", "phone": "3137776655", "address": "Carrera 5 # 38-20, Ibagué"},
                 {"name": "SANDRA PENAGOS", "rel": "Codeudor", "id_num": "65123456", "phone": "3129998877", "address": "Calle 60 # 7-15, Ibagué"}
@@ -395,6 +435,10 @@ def _seed_demo_data(force=False):
             email=c_def.get("email"),
             address=c_def["address"],
             country="Colombia",
+            bank_name=c_def.get("bank_name"),
+            account_type=c_def.get("account_type"),
+            account_number=c_def.get("account_number"),
+            account_holder=c_def.get("account_holder"),
         )
         db.session.add(client)
         db.session.flush()

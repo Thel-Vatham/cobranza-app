@@ -42,6 +42,37 @@
     </label>
   </div>
 
+  <h2>🏦 Datos bancarios para desembolso / depósito</h2>
+  <div class="grid grid-4" style="background: var(--bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 24px;">
+    <label>Entidad Financiera / Banco
+      <select name="bank_name" id="bank_name">
+        <option value="">Seleccione banco…</option>
+        {% set banks = [
+          'Bancolombia', 'Nequi', 'Daviplata', 'Davivienda', 'BBVA Colombia',
+          'Banco de Bogotá', 'Banco Agrario', 'Scotiabank Colpatria', 'Banco Popular',
+          'Banco AV Villas', 'Banco Caja Social', 'Banco de Occidente', 'Lulo Bank',
+          'Nu Colombia', 'RappiPay', 'Dale!', 'Movii', 'Banco Falabella', 'Banco Itaú', 'Otro'
+        ] %}
+        {% for b in banks %}
+        <option value="{{ b }}" {% if client and client.bank_name == b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Tipo de Cuenta
+      <select name="account_type" id="account_type">
+        <option value="Ahorros" {% if not client or client.account_type == 'Ahorros' %}selected{% endif %}>Cuenta de Ahorros</option>
+        <option value="Corriente" {% if client and client.account_type == 'Corriente' %}selected{% endif %}>Cuenta Corriente</option>
+        <option value="Billetera Digital" {% if client and client.account_type == 'Billetera Digital' %}selected{% endif %}>Billetera Digital (Nequi/Daviplata)</option>
+      </select>
+    </label>
+    <label>Número de Cuenta / Teléfono
+      <input type="text" name="account_number" id="account_number" placeholder="Ej: 1234567890 o 310..." value="{{ client.account_number if client else '' }}">
+    </label>
+    <label>Titular de la Cuenta
+      <input type="text" name="account_holder" id="account_holder" placeholder="Dejar vacío si es el mismo cliente" value="{{ client.account_holder if client else '' }}">
+    </label>
+  </div>
+
   <h2>Documentos</h2>
   <div class="grid grid-2">
     <div class="upload-box">

@@ -421,7 +421,8 @@ def export_csv():
         client_headers = [
             "Código Cliente", "Nombres", "Apellidos", "Nombre Completo",
             "Tipo Documento", "Número de Documento", "Teléfono", "Correo Electrónico",
-            "Dirección", "País", "Créditos Registrados", "Referencias Registradas", "Fecha de Registro"
+            "Dirección", "País", "Banco Desembolso", "Tipo de Cuenta", "Número de Cuenta", "Titular Cuenta",
+            "Créditos Registrados", "Referencias Registradas", "Fecha de Registro"
         ]
         client_rows = []
         for c in clients:
@@ -436,6 +437,10 @@ def export_csv():
                 c.email or "",
                 c.address or "",
                 c.country or "Colombia",
+                c.bank_name or "",
+                c.account_type or "",
+                c.account_number or "",
+                c.account_holder or "",
                 len(c.loans),
                 len(c.references),
                 _format_date(c.created_at)
@@ -446,6 +451,7 @@ def export_csv():
         loans = Loan.query.order_by(Loan.id.asc()).all()
         loan_headers = [
             "Código Préstamo", "Código Cliente", "Nombre del Cliente", "Documento Cliente",
+            "Banco Desembolso", "N° Cuenta Depósito",
             "Monto Desembolsado (COP)", "Tasa de Interés Nominal", "N° Cuotas",
             "Frecuencia de Pago", "Sistema de Amortización", "Fecha de Inicio / Desembolso",
             "Estado del Crédito", "Fecha de Creación"
@@ -457,6 +463,8 @@ def export_csv():
                 l.client.code if l.client else "",
                 l.client.full_name if l.client else "",
                 f"{l.client.identification_type} {l.client.identification_number}" if l.client else "",
+                l.client.bank_name if (l.client and l.client.bank_name) else "",
+                l.client.account_number if (l.client and l.client.account_number) else "",
                 _format_money(l.principal),
                 f"{float(l.annual_rate) * 100:.2f}%" if l.annual_rate is not None else "",
                 l.installments_count,

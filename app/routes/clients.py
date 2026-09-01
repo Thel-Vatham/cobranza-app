@@ -72,6 +72,10 @@ def create():
             address=request.form.get("address", "").strip(),
             phone=request.form.get("phone", "").strip(),
             email=request.form.get("email", "").strip(),
+            bank_name=request.form.get("bank_name", "").strip(),
+            account_type=request.form.get("account_type", "").strip(),
+            account_number=request.form.get("account_number", "").strip(),
+            account_holder=request.form.get("account_holder", "").strip(),
         )
         if not client.first_name or not client.identification_number:
             flash("Nombre e identificación son obligatorios.", "danger")
@@ -173,6 +177,10 @@ def edit(client_id):
         client.address = request.form.get("address", "").strip()
         client.phone = request.form.get("phone", "").strip()
         client.email = request.form.get("email", "").strip()
+        client.bank_name = request.form.get("bank_name", "").strip()
+        client.account_type = request.form.get("account_type", "").strip()
+        client.account_number = request.form.get("account_number", "").strip()
+        client.account_holder = request.form.get("account_holder", "").strip()
         client.references.clear()
         _save_references(client)
         _save_client_documents(client)

@@ -99,6 +99,40 @@
         <span style="font-size: 0.92rem; color: var(--text); word-break: break-all;">{{ client.email or 'No registrado' }}</span>
       </div>
 
+      {# Datos Bancarios / Desembolso #}
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <small style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #166534; font-weight: 700;">
+            🏦 Cuenta para Desembolso / Depósito
+          </small>
+          {% if client.bank_name %}
+          <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; font-size: 0.75rem;">
+            {{ client.account_type or 'Ahorros' }}
+          </span>
+          {% endif %}
+        </div>
+        {% if client.bank_name or client.account_number %}
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div>
+            <strong style="font-size: 1.02rem; color: #14532d; display: block;">{{ client.bank_name or 'Banco no especificado' }}</strong>
+            <span style="font-size: 0.92rem; font-family: monospace; color: #166534; font-weight: 600;">
+              {{ client.account_number or 'Sin número' }}
+            </span>
+            {% if client.account_holder %}
+            <small class="muted" style="display: block; font-size: 0.75rem; margin-top: 2px;">Titular: {{ client.account_holder }}</small>
+            {% endif %}
+          </div>
+          {% if client.account_number %}
+          <button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText('{{ client.account_number }}'); this.innerText='¡Copiado!'; setTimeout(()=>this.innerText='Copiar', 2000);" style="font-size: 0.75rem; padding: 4px 8px; background: white; border-color: #86efac; color: #15803d;">
+            Copiar
+          </button>
+          {% endif %}
+        </div>
+        {% else %}
+        <span class="muted" style="font-size: 0.85rem;">No se han registrado datos bancarios para este cliente.</span>
+        {% endif %}
+      </div>
+
       {# Dirección de Residencia con Botón a Maps #}
       <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
