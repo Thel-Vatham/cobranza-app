@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260901_3">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260908_1">
 </head>
 <body>
   {% if current_user.is_authenticated %}
@@ -140,47 +140,47 @@
     <main class="content">
       {# Barra Superior de Selección y Alternancia de Cartera #}
       {% if not (current_user.role and current_user.role.name == "Consulta") %}
-      <div class="portfolio-switcher-bar" style="margin-bottom: 24px; padding: 10px 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(15,23,42,0.04);">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: #eff6ff; color: #2563eb; border-radius: 8px;">
-            {{ icon('folder', 15) }}
+      <div class="portfolio-switcher-bar">
+        <div class="portfolio-switcher-left">
+          <span class="portfolio-switcher-icon">
+            {{ icon('folder', 16) }}
           </span>
-          <span style="color: #64748b; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Cartera:</span>
-          <div style="position: relative; display: inline-block;">
-            <button class="btn btn-sm" id="portfolioDropdownBtn" type="button" style="padding: 6px 14px; font-size: 0.84rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; color: #0f172a; cursor: pointer; transition: all 0.15s ease;">
+          <span class="portfolio-switcher-label">Cartera:</span>
+          <div class="portfolio-dropdown-container">
+            <button class="portfolio-dropdown-trigger" id="portfolioDropdownBtn" type="button" aria-haspopup="true">
               {% if active_portfolio %}
-                <span style="display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
-                <span>{{ active_portfolio.name }}</span>
-                <span style="color: #64748b; font-weight: 500; font-size: 0.8rem;">(${{ "%.2f"|format(active_portfolio.assigned_capital_usd|float) }} USD)</span>
+                <span style="display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; flex-shrink: 0;"></span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ active_portfolio.name }}</span>
+                <span style="color: #64748b; font-weight: 500; font-size: 0.8rem; white-space: nowrap;">(${{ "%.0f"|format(active_portfolio.assigned_capital_usd|float) }} USD)</span>
               {% elif current_user.role and current_user.role.name == "Administrador" %}
-                <span style="display: inline-block; width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></span>
+                <span style="display: inline-block; width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; flex-shrink: 0;"></span>
                 <span>Vista Consolidada (Global)</span>
               {% else %}
-                <span style="display: inline-block; width: 8px; height: 8px; background: #f59e0b; border-radius: 50%;"></span>
+                <span style="display: inline-block; width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; flex-shrink: 0;"></span>
                 <span style="color: #64748b;">Sin cartera asignada</span>
               {% endif %}
-              <span style="color: #94a3b8; display: inline-flex; align-items: center;">{{ icon('chevron', 12) }}</span>
+              <span style="color: #94a3b8; display: inline-flex; align-items: center; margin-left: auto;">{{ icon('chevron', 12) }}</span>
             </button>
-            <div id="portfolioDropdownMenu" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 9999; min-width: 280px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05); padding: 6px; animation: fadeIn 0.15s ease;">
+            <div id="portfolioDropdownMenu" class="portfolio-dropdown-menu">
               {% if current_user.role and current_user.role.name == "Administrador" %}
-              <a href="{{ url_for('portfolios.switch', portfolio_id=0) }}" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #0f172a; text-decoration: none; font-size: 0.82rem; font-weight: {% if not active_portfolio %}600{% else %}400{% endif %}; border-radius: 6px; background: {% if not active_portfolio %}#eff6ff{% else %}transparent{% endif %};">
-                <span style="color: #3b82f6;">{{ icon('globe', 14) }}</span>
-                <span>Vista Consolidada (Todas las carteras)</span>
+              <a href="{{ url_for('portfolios.switch', portfolio_id=0) }}" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: #0f172a; text-decoration: none; font-size: 0.84rem; font-weight: {% if not active_portfolio %}700{% else %}500{% endif %}; border-radius: 6px; background: {% if not active_portfolio %}#eff6ff{% else %}transparent{% endif %};">
+                <span style="color: #3b82f6;">{{ icon('globe', 15) }}</span>
+                <span>Vista Consolidada (Global)</span>
               </a>
               <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
               {% endif %}
               {% for p in available_portfolios %}
-              <a href="{{ url_for('portfolios.switch', portfolio_id=p.id) }}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; color: #0f172a; text-decoration: none; font-size: 0.82rem; font-weight: {% if active_portfolio and active_portfolio.id == p.id %}600{% else %}400{% endif %}; border-radius: 6px; background: {% if active_portfolio and active_portfolio.id == p.id %}#eff6ff{% else %}transparent{% endif %};">
+              <a href="{{ url_for('portfolios.switch', portfolio_id=p.id) }}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; color: #0f172a; text-decoration: none; font-size: 0.84rem; font-weight: {% if active_portfolio and active_portfolio.id == p.id %}700{% else %}500{% endif %}; border-radius: 6px; background: {% if active_portfolio and active_portfolio.id == p.id %}#eff6ff{% else %}transparent{% endif %};">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <span style="color: #64748b;">{{ icon('folder', 14) }}</span>
                   <span>{{ p.name }}</span>
                 </div>
-                <span style="font-size: 0.76rem; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${{ "%.0f"|format(p.assigned_capital_usd|float) }}</span>
+                <span style="font-size: 0.78rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">${{ "%.0f"|format(p.assigned_capital_usd|float) }} USD</span>
               </a>
               {% endfor %}
               {% if current_user.role and current_user.role.name == "Administrador" %}
               <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
-              <a href="{{ url_for('portfolios.create') }}" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #2563eb; text-decoration: none; font-size: 0.82rem; font-weight: 600; border-radius: 6px;">
+              <a href="{{ url_for('portfolios.create') }}" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: #2563eb; text-decoration: none; font-size: 0.84rem; font-weight: 700; border-radius: 6px;">
                 <span>{{ icon('plus', 14) }}</span>
                 <span>Nueva Cartera</span>
               </a>
@@ -189,15 +189,15 @@
           </div>
         </div>
         {% if active_portfolio %}
-        <div style="display: flex; align-items: center; gap: 14px; font-size: 0.82rem; background: #f8fafc; padding: 5px 12px; border-radius: 8px; border: 1px solid #f1f5f9;">
+        <div class="portfolio-switcher-stats">
           <div style="display: flex; align-items: center; gap: 5px;">
-            <span style="color: #64748b;">Presupuesto:</span>
-            <span style="font-weight: 700; color: #0f172a;">${{ "%.2f"|format(active_portfolio.assigned_capital_usd|float) }} USD</span>
+            <span style="color: #64748b; font-size: 0.78rem; font-weight: 600;">Presupuesto:</span>
+            <span style="font-weight: 800; color: #0f172a;">${{ "%.2f"|format(active_portfolio.assigned_capital_usd|float) }} USD</span>
           </div>
-          <span style="color: #cbd5e1;">|</span>
+          <span class="divider-pipe" style="color: #cbd5e1;">|</span>
           <div style="display: flex; align-items: center; gap: 5px;">
-            <span style="color: #64748b;">Disponible:</span>
-            <span style="font-weight: 700; color: #059669; background: #ecfdf5; padding: 2px 8px; border-radius: 6px;">${{ "%.2f"|format(active_portfolio.capital_disponible|float) }} USD</span>
+            <span style="color: #64748b; font-size: 0.78rem; font-weight: 600;">Disponible:</span>
+            <span style="font-weight: 800; color: #059669; background: #ecfdf5; padding: 2px 8px; border-radius: 6px;">${{ "%.2f"|format(active_portfolio.capital_disponible|float) }} USD</span>
           </div>
         </div>
         {% endif %}

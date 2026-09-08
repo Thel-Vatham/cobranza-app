@@ -2,89 +2,91 @@
 {% block title %}Cartera: {{ portfolio.name }} · Cartera{% endblock %}
 
 {% block content %}
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; margin-bottom: 24px;">
-  <div style="display: flex; align-items: center; gap: 12px;">
-    <a href="{{ url_for('portfolios.list_portfolios') }}" 
-       style="width: 38px; height: 38px; border-radius: 10px; background: #ffffff; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; justify-content: center; color: #475569; text-decoration: none; box-shadow: 0 1px 2px rgba(15,23,42,0.04); transition: all 0.15s ease;"
-       onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'; this.style.color='#0f172a';"
-       onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e2e8f0'; this.style.color='#475569';"
-       title="Volver a carteras">
-      {{ icon('arrow-left', 18) }}
-    </a>
-    <div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 6px;">{{ portfolio.code }}</span>
-        <span class="badge badge-{% if portfolio.status == 'activa' %}success{% else %}secondary{% endif %}">{{ portfolio.status|capitalize }}</span>
+<div class="portfolio-page-head">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+    <div style="display: flex; align-items: flex-start; gap: 12px; min-width: 0;">
+      <a href="{{ url_for('portfolios.list_portfolios') }}" 
+         class="btn-touch-icon"
+         title="Volver a carteras">
+        {{ icon('arrow-left', 18) }}
+      </a>
+      <div style="min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+          <span style="font-size: 0.8rem; font-weight: 800; color: #475569; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; font-family: monospace;">{{ portfolio.code }}</span>
+          <span class="badge badge-{% if portfolio.status == 'activa' %}success{% else %}secondary{% endif %}" style="text-transform: uppercase; font-size: 0.72rem; font-weight: 700;">{{ portfolio.status|capitalize }}</span>
+        </div>
+        <h1 style="margin: 0; font-size: 1.45rem; font-weight: 800; color: #0f172a; word-break: break-word;">
+          {{ portfolio.name }}
+        </h1>
+        <p class="muted" style="margin: 4px 0 0 0; font-size: 0.85rem;">
+          Operador: <strong>{{ portfolio.user.full_name or portfolio.user.username if portfolio.user else 'Sin asignar' }}</strong>
+          {% if portfolio.description %} · {{ portfolio.description }}{% endif %}
+        </p>
       </div>
-      <h1 style="margin: 6px 0 2px 0; font-size: 1.6rem; font-weight: 800; color: #0f172a;">
-        {{ portfolio.name }}
-      </h1>
-      <p class="muted" style="margin: 0; font-size: 0.9rem;">
-        Operador responsable: <strong>{{ portfolio.user.full_name or portfolio.user.username if portfolio.user else 'Sin asignar' }}</strong>
-        {% if portfolio.description %} · {{ portfolio.description }}{% endif %}
-      </p>
     </div>
-  </div>
 
-  <div style="display: flex; gap: 10px; align-items: center;">
-    <a href="{{ url_for('portfolios.switch', portfolio_id=portfolio.id) }}" class="btn btn-primary">
-      {{ icon('refresh', 16) }} Alternar a esta Cartera
-    </a>
-    {% if is_admin %}
-    <a href="{{ url_for('portfolios.edit', portfolio_id=portfolio.id) }}" class="btn btn-secondary">
-      {{ icon('settings', 16) }} Editar Cartera
-    </a>
-    {% endif %}
+    <div class="portfolio-page-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <a href="{{ url_for('portfolios.switch', portfolio_id=portfolio.id) }}" class="btn-touch" style="background: #2563eb; color: #ffffff; border: 1px solid #2563eb;">
+        {{ icon('refresh', 16) }} <span>Alternar Cartera</span>
+      </a>
+      {% if is_admin %}
+      <a href="{{ url_for('portfolios.edit', portfolio_id=portfolio.id) }}" class="btn-touch" style="background: #ffffff; color: #475569; border: 1px solid #cbd5e1;">
+        {{ icon('settings', 16) }} <span>Editar Cartera</span>
+      </a>
+      {% endif %}
+    </div>
   </div>
 </div>
 
-<!-- KPIs Financieros de la Cartera -->
-<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
-  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #0284c7;">
-    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Capital Asignado (USD)</div>
-    <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">${{ "%.2f"|format(portfolio.assigned_capital_usd|float) }}</div>
-    <small class="muted" style="font-size: 0.75rem;">Presupuesto fijado por Admin</small>
+<!-- KPIs Financieros de la Cartera (Responsive 2x2 en móvil, 4 col en desktop) -->
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px;">
+  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #0284c7; background: #ffffff;">
+    <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">Presupuesto (USD)</div>
+    <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">${{ "%.2f"|format(portfolio.assigned_capital_usd|float) }}</div>
+    <small class="muted" style="font-size: 0.72rem;">Fijado por Admin</small>
   </div>
 
-  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #2563eb;">
-    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Capital Colocado</div>
-    <div style="font-size: 1.5rem; font-weight: 800; color: #2563eb;">${{ "%.2f"|format(portfolio.capital_colocado|float) }}</div>
-    <small class="muted" style="font-size: 0.75rem;">Total préstamos desembolsados</small>
+  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #2563eb; background: #ffffff;">
+    <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">Capital Colocado</div>
+    <div style="font-size: 1.25rem; font-weight: 800; color: #2563eb;">${{ "%.2f"|format(portfolio.capital_colocado|float) }}</div>
+    <small class="muted" style="font-size: 0.72rem;">Préstamos emitidos</small>
   </div>
 
-  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #16a34a;">
-    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Capital Disponible</div>
-    <div style="font-size: 1.5rem; font-weight: 800; color: #16a34a;">${{ "%.2f"|format(portfolio.capital_disponible|float) }}</div>
-    <small class="muted" style="font-size: 0.75rem;">Capacidad restante de colocación</small>
+  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #16a34a; background: #ffffff;">
+    <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">Disponible</div>
+    <div style="font-size: 1.25rem; font-weight: 800; color: #16a34a;">${{ "%.2f"|format(portfolio.capital_disponible|float) }}</div>
+    <small class="muted" style="font-size: 0.72rem;">Capacidad restante</small>
   </div>
 
-  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #dc2626;">
-    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Saldo en Mora</div>
-    <div style="font-size: 1.5rem; font-weight: 800; color: {% if portfolio.total_overdue > 0 %}#dc2626{% else %}#64748b{% endif %};">
+  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #dc2626; background: #ffffff;">
+    <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">Saldo en Mora</div>
+    <div style="font-size: 1.25rem; font-weight: 800; color: {% if portfolio.total_overdue > 0 %}#dc2626{% else %}#64748b{% endif %};">
       ${{ "%.2f"|format(portfolio.total_overdue|float) }}
     </div>
-    <small class="muted" style="font-size: 0.75rem;">Cuotas vencidas pendientes</small>
+    <small class="muted" style="font-size: 0.72rem;">Cuotas vencidas</small>
   </div>
 </div>
 
 <!-- Contenido: Clientes y Préstamos de la Cartera -->
-<div style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+<div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
   <!-- Clientes Propios -->
-  <div class="card" style="padding: 20px; border-radius: 12px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-        {{ icon('users', 18) }} Clientes Asignados a esta Cartera ({{ clients|length }})
+  <div class="card" style="padding: 18px; border-radius: 14px; background: #ffffff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+        {{ icon('users', 18) }} Clientes Asignados ({{ clients|length }})
       </h3>
-      <a href="{{ url_for('clients.create') }}" class="btn btn-secondary btn-sm">{{ icon('plus', 14) }} Nuevo Cliente</a>
+      <a href="{{ url_for('clients.create') }}" class="btn-touch" style="min-height: 38px; padding: 6px 14px; font-size: 0.82rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155;">
+        {{ icon('plus', 14) }} <span>Nuevo Cliente</span>
+      </a>
     </div>
 
     {% if not clients %}
-    <p class="muted" style="text-align: center; padding: 24px 0; font-size: 0.9rem;">
+    <p class="muted" style="text-align: center; padding: 24px 0; font-size: 0.88rem;">
       Esta cartera no tiene clientes asignados actualmente.
     </p>
     {% else %}
-    <div class="table-responsive">
-      <table class="table" style="width: 100%; font-size: 0.88rem;">
+    <div class="table-responsive" style="overflow-x: auto;">
+      <table class="table" style="width: 100%; font-size: 0.85rem; min-width: 520px;">
         <thead>
           <tr style="text-align: left; color: #64748b; border-bottom: 1px solid #e2e8f0;">
             <th style="padding: 10px;">Código</th>
@@ -113,7 +115,7 @@
               ${{ "%.2f"|format(c.total_outstanding|float) }} USD
             </td>
             <td style="padding: 10px; text-align: right;">
-              <a href="{{ url_for('clients.detail', client_id=c.id) }}" class="btn btn-secondary btn-sm" style="padding: 4px 10px;">Expediente</a>
+              <a href="{{ url_for('clients.detail', client_id=c.id) }}" class="btn btn-secondary btn-sm" style="padding: 5px 12px; font-size: 0.8rem;">Expediente</a>
             </td>
           </tr>
           {% endfor %}
@@ -124,21 +126,23 @@
   </div>
 
   <!-- Préstamos de esta Cartera -->
-  <div class="card" style="padding: 20px; border-radius: 12px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+  <div class="card" style="padding: 18px; border-radius: 14px; background: #ffffff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
         {{ icon('briefcase', 18) }} Préstamos en esta Cartera ({{ loans|length }})
       </h3>
-      <a href="{{ url_for('loans.create') }}" class="btn btn-secondary btn-sm">{{ icon('plus', 14) }} Nuevo Préstamo</a>
+      <a href="{{ url_for('loans.create') }}" class="btn-touch" style="min-height: 38px; padding: 6px 14px; font-size: 0.82rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155;">
+        {{ icon('plus', 14) }} <span>Nuevo Préstamo</span>
+      </a>
     </div>
 
     {% if not loans %}
-    <p class="muted" style="text-align: center; padding: 24px 0; font-size: 0.9rem;">
+    <p class="muted" style="text-align: center; padding: 24px 0; font-size: 0.88rem;">
       No hay préstamos registrados en esta cartera.
     </p>
     {% else %}
-    <div class="table-responsive">
-      <table class="table" style="width: 100%; font-size: 0.88rem;">
+    <div class="table-responsive" style="overflow-x: auto;">
+      <table class="table" style="width: 100%; font-size: 0.85rem; min-width: 520px;">
         <thead>
           <tr style="text-align: left; color: #64748b; border-bottom: 1px solid #e2e8f0;">
             <th style="padding: 10px;">Código</th>
@@ -170,7 +174,7 @@
             </td>
             <td style="padding: 10px; font-weight: 700; color: #0f172a;">${{ "%.2f"|format(l.outstanding_balance|float) }}</td>
             <td style="padding: 10px; text-align: right;">
-              <a href="{{ url_for('loans.detail', loan_id=l.id) }}" class="btn btn-secondary btn-sm" style="padding: 4px 10px;">Ver Crédito</a>
+              <a href="{{ url_for('loans.detail', loan_id=l.id) }}" class="btn btn-secondary btn-sm" style="padding: 5px 12px; font-size: 0.8rem;">Ver Crédito</a>
             </td>
           </tr>
           {% endfor %}

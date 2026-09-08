@@ -2,39 +2,38 @@
 {% block title %}Carteras de Crédito · Cartera{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 28px;">
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+<div class="portfolio-page-head">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
     <div>
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: #eff6ff; color: #2563eb; border-radius: 10px;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: #eff6ff; color: #2563eb; border-radius: 10px; flex-shrink: 0;">
           {{ icon('folder', 18) }}
         </span>
-        <h1 style="margin: 0; font-size: 1.55rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">
+        <h1 style="margin: 0; font-size: 1.45rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">
           Carteras de Crédito
         </h1>
       </div>
-      <p style="margin: 0; font-size: 0.88rem; color: #64748b;">
-        Administración de carteras independientes, asignación de capital en USD y aislamiento de clientes por operador.
+      <p style="margin: 0; font-size: 0.86rem; color: #64748b;">
+        Administración de carteras independientes, capital asignado y aislamiento por operador.
       </p>
     </div>
 
-    <div style="display: flex; gap: 10px; align-items: center;">
+    <div class="portfolio-page-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       {% if is_admin %}
         {% if active_id %}
         <a href="{{ url_for('portfolios.switch', portfolio_id=0) }}" 
-           style="padding: 8px 16px; font-size: 0.84rem; font-weight: 600; color: #475569; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.15s ease;"
-           onmouseover="this.style.background='#f8fafc'; this.style.color='#0f172a';"
-           onmouseout="this.style.background='#ffffff'; this.style.color='#475569';"
+           class="btn-touch"
+           style="background: #ffffff; border: 1px solid #cbd5e1; color: #475569;"
            title="Ver consolidado de todas las carteras">
-          {{ icon('globe', 14) }}
+          {{ icon('globe', 15) }}
           <span>Vista Global</span>
         </a>
         {% endif %}
         <a href="{{ url_for('portfolios.create') }}" 
-           style="padding: 8px 18px; font-size: 0.84rem; font-weight: 700; color: #ffffff; background: #2563eb; border: none; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.2); transition: all 0.15s ease;"
-           onmouseover="this.style.background='#1d4ed8'; this.style.boxShadow='0 4px 10px rgba(37,99,235,0.3)';"
-           onmouseout="this.style.background='#2563eb'; this.style.boxShadow='0 2px 4px rgba(37,99,235,0.2)';">
-          {{ icon('plus', 14) }}
+           class="btn-touch"
+           style="background: #2563eb; border: 1px solid #2563eb; color: #ffffff; box-shadow: 0 2px 6px rgba(37,99,235,0.25);"
+           title="Crear nueva cartera de crédito">
+          {{ icon('plus', 16) }}
           <span>Nueva Cartera</span>
         </a>
       {% endif %}
@@ -43,12 +42,12 @@
 </div>
 
 {% if not portfolios %}
-<div style="text-align: center; padding: 60px 24px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 16px;">
-  <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 16px; background: #f8fafc; color: #94a3b8; margin-bottom: 16px;">
-    {{ icon('folder', 32) }}
+<div style="text-align: center; padding: 50px 20px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 16px; margin-top: 10px;">
+  <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 14px; background: #f8fafc; color: #94a3b8; margin-bottom: 14px;">
+    {{ icon('folder', 30) }}
   </div>
   <h3 style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">No hay carteras registradas</h3>
-  <p style="max-width: 440px; margin: 0 auto 20px auto; font-size: 0.88rem; color: #64748b; line-height: 1.4;">
+  <p style="max-width: 420px; margin: 0 auto 20px auto; font-size: 0.88rem; color: #64748b; line-height: 1.4;">
     {% if is_admin %}
     Comience creando una nueva cartera, asignando el monto autorizado en dólares (USD) y designando al operador de cobranza responsable.
     {% else %}
@@ -56,78 +55,77 @@
     {% endif %}
   </p>
   {% if is_admin %}
-  <a href="{{ url_for('portfolios.create') }}" 
-     style="padding: 9px 22px; font-size: 0.88rem; font-weight: 700; color: #ffffff; background: #2563eb; border: none; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.2);">
-    {{ icon('plus', 14) }}
+  <a href="{{ url_for('portfolios.create') }}" class="btn-touch" style="background: #2563eb; color: #ffffff; display: inline-flex;">
+    {{ icon('plus', 15) }}
     <span>Crear Primera Cartera</span>
   </a>
   {% endif %}
 </div>
 {% else %}
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 22px;">
+<div class="portfolio-grid">
   {% for p in portfolios %}
   {% set is_active = (active_id == p.id) %}
-  <div style="background: #ffffff; border: 1px solid {% if is_active %}#3b82f6{% else %}#e2e8f0{% endif %}; border-radius: 16px; padding: 22px; position: relative; box-shadow: 0 4px 16px -2px rgba(15,23,42,0.04), 0 2px 4px -2px rgba(15,23,42,0.02); transition: all 0.2s ease; display: flex; flex-direction: column; justify-content: space-between;"
-       onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 10px 25px -5px rgba(15,23,42,0.08)';"
-       onmouseout="this.style.borderColor='{% if is_active %}#3b82f6{% else %}#e2e8f0{% endif %}'; this.style.boxShadow='0 4px 16px -2px rgba(15,23,42,0.04), 0 2px 4px -2px rgba(15,23,42,0.02)';">
+  <div class="portfolio-card {% if is_active %}is-active{% endif %}">
     
-    {% if is_active %}
-    <div style="position: absolute; top: -10px; right: 20px; background: #2563eb; color: #ffffff; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 12px; border-radius: 20px; box-shadow: 0 2px 6px rgba(37,99,235,0.35);">
-      ● Activa en Sesión
-    </div>
-    {% endif %}
-
     <div>
       {# Cabecera de la Tarjeta #}
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
-        <div>
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-            <span style="font-size: 0.76rem; font-weight: 700; color: #475569; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; font-family: monospace;">{{ p.code }}</span>
-            <span style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.03em;
-                         {% if p.status == 'activa' %}background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;
-                         {% elif p.status == 'inactiva' %}background: #fffbeb; color: #d97706; border: 1px solid #fde68a;
-                         {% else %}background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;{% endif %}">
-              {{ p.status|capitalize }}
+      <div class="portfolio-card-head">
+        <div style="width: 100%;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 0.78rem; font-weight: 800; color: #334155; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; font-family: monospace;">{{ p.code }}</span>
+              <span style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.03em;
+                           {% if p.status == 'activa' %}background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;
+                           {% elif p.status == 'inactiva' %}background: #fffbeb; color: #d97706; border: 1px solid #fde68a;
+                           {% else %}background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;{% endif %}">
+                {{ p.status|capitalize }}
+              </span>
+            </div>
+            {% if is_active %}
+            <span class="portfolio-badge-active-tag">
+              ● Activa en Sesión
             </span>
+            {% endif %}
           </div>
-          <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; letter-spacing: -0.01em;">
+
+          <h3 class="portfolio-title">
             <a href="{{ url_for('portfolios.detail', portfolio_id=p.id) }}" style="color: inherit; text-decoration: none;">
               {{ p.name }}
             </a>
           </h3>
-          <p style="margin: 0; font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 5px;">
-            <span style="color: #94a3b8;">{{ icon('user', 13) }}</span>
-            <span>Operador: <strong>{{ p.user.full_name or p.user.username if p.user else 'Sin asignar' }}</strong></span>
+          <p class="portfolio-operator">
+            <span style="color: #94a3b8; display: inline-flex;">{{ icon('user', 14) }}</span>
+            <span>Operador: <strong style="color: #334155;">{{ p.user.full_name or p.user.username if p.user else 'Sin asignar' }}</strong></span>
           </p>
         </div>
       </div>
 
       {# Indicadores Financieros de la Cartera #}
-      <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem; margin-bottom: 10px;">
-          <div>
-            <span style="display: block; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.03em;">Presupuesto</span>
-            <strong style="font-size: 1.05rem; color: #0f172a; font-weight: 800;">${{ "%.2f"|format(p.assigned_capital_usd|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
+      <div class="portfolio-metrics-box">
+        <div class="portfolio-metrics-grid">
+          <div class="portfolio-metric-item">
+            <span class="portfolio-metric-label">Presupuesto</span>
+            <strong class="portfolio-metric-value">${{ "%.2f"|format(p.assigned_capital_usd|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
           </div>
-          <div>
-            <span style="display: block; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.03em;">Colocado</span>
-            <strong style="font-size: 1.05rem; color: #2563eb; font-weight: 800;">${{ "%.2f"|format(p.capital_colocado|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
+          <div class="portfolio-metric-item">
+            <span class="portfolio-metric-label">Colocado</span>
+            <strong class="portfolio-metric-value" style="color: #2563eb;">${{ "%.2f"|format(p.capital_colocado|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
           </div>
-          <div>
-            <span style="display: block; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.03em;">Disponible</span>
-            <strong style="font-size: 1.05rem; color: #059669; font-weight: 800;">${{ "%.2f"|format(p.capital_disponible|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
+          <div class="portfolio-metric-item">
+            <span class="portfolio-metric-label">Disponible</span>
+            <strong class="portfolio-metric-value" style="color: #059669;">${{ "%.2f"|format(p.capital_disponible|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
           </div>
-          <div>
-            <span style="display: block; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.03em;">En Mora</span>
-            <strong style="font-size: 1.05rem; color: {% if p.total_overdue > 0 %}#dc2626{% else %}#64748b{% endif %}; font-weight: 800;">${{ "%.2f"|format(p.total_overdue|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
+          <div class="portfolio-metric-item">
+            <span class="portfolio-metric-label">En Mora</span>
+            <strong class="portfolio-metric-value" style="color: {% if p.total_overdue > 0 %}#dc2626{% else %}#64748b{% endif %};">${{ "%.2f"|format(p.total_overdue|float) }} <span style="font-size: 0.7rem; font-weight: 600; color: #94a3b8;">USD</span></strong>
           </div>
         </div>
 
         {# Barra de colocación #}
         {% set assigned = p.assigned_capital_usd|float %}
         {% set placed_pct = ((p.capital_colocado / assigned) * 100) if assigned > 0 else 0 %}
-        <div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #64748b; margin-bottom: 4px; font-weight: 600;">
+        <div class="portfolio-progress-wrap">
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #64748b; margin-bottom: 5px; font-weight: 600;">
             <span>Colocación de capital</span>
             <span style="font-weight: 700; color: #0f172a;">{{ "%.1f"|format(placed_pct) }}%</span>
           </div>
@@ -138,47 +136,46 @@
       </div>
 
       {# Métricas operativas secundarias #}
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: #64748b; margin-bottom: 16px; padding: 0 4px;">
+      <div class="portfolio-submetrics">
         <span style="display: inline-flex; align-items: center; gap: 6px;">
-          <span style="color: #94a3b8;">{{ icon('users', 14) }}</span>
-          <span><strong>{{ p.clients_count }}</strong> clientes</span>
+          <span style="color: #94a3b8;">{{ icon('users', 15) }}</span>
+          <span><strong style="color: #0f172a;">{{ p.clients_count }}</strong> clientes</span>
         </span>
         <span style="display: inline-flex; align-items: center; gap: 6px;">
-          <span style="color: #94a3b8;">{{ icon('briefcase', 14) }}</span>
-          <span><strong>{{ p.active_loans_count }}</strong> préstamos activos</span>
+          <span style="color: #94a3b8;">{{ icon('briefcase', 15) }}</span>
+          <span><strong style="color: #0f172a;">{{ p.active_loans_count }}</strong> préstamos</span>
         </span>
       </div>
     </div>
 
-    {# Acciones al pie de tarjeta #}
-    <div style="display: flex; gap: 8px; justify-content: flex-end; padding-top: 14px; border-top: 1px solid #f1f5f9;">
-      <a href="{{ url_for('portfolios.detail', portfolio_id=p.id) }}" 
-         style="flex: 1; text-align: center; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; color: #475569; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; text-decoration: none; transition: all 0.15s ease;"
-         onmouseover="this.style.background='#f8fafc'; this.style.color='#0f172a';"
-         onmouseout="this.style.background='#ffffff'; this.style.color='#475569';">
-        Ver Detalle
-      </a>
-      
+    {# Acciones al pie de tarjeta (Móvil Ergonómico) #}
+    <div class="portfolio-card-actions">
       {% if not is_active %}
       <a href="{{ url_for('portfolios.switch', portfolio_id=p.id) }}" 
-         style="flex: 1; text-align: center; padding: 8px 12px; font-size: 0.82rem; font-weight: 600; color: #ffffff; background: #2563eb; border: none; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;"
-         onmouseover="this.style.background='#1d4ed8';"
-         onmouseout="this.style.background='#2563eb';">
-        {{ icon('refresh', 13) }}
+         class="btn-touch"
+         style="background: #2563eb; color: #ffffff; border: 1px solid #2563eb; flex: 1.2;"
+         title="Seleccionar esta cartera para operar">
+        {{ icon('refresh', 15) }}
         <span>Alternar</span>
       </a>
       {% endif %}
 
+      <a href="{{ url_for('portfolios.detail', portfolio_id=p.id) }}" 
+         class="btn-touch"
+         style="background: #ffffff; color: #334155; border: 1px solid #cbd5e1; flex: 1;"
+         title="Ver detalles de la cartera">
+        <span>Detalle</span>
+      </a>
+
       {% if is_admin %}
       <a href="{{ url_for('portfolios.edit', portfolio_id=p.id) }}" 
-         style="width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: #64748b; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; text-decoration: none; transition: all 0.15s ease;"
-         onmouseover="this.style.background='#f8fafc'; this.style.color='#0f172a'; this.style.borderColor='#94a3b8';"
-         onmouseout="this.style.background='#ffffff'; this.style.color='#64748b'; this.style.borderColor='#cbd5e1';"
+         class="btn-touch-icon"
          title="Editar parámetros de la cartera">
-        {{ icon('edit', 14) }}
+        {{ icon('edit', 16) }}
       </a>
       {% endif %}
     </div>
+
   </div>
   {% endfor %}
 </div>
