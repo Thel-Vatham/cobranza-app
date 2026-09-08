@@ -1,4 +1,7 @@
 import io
+import os
+import shutil
+import tempfile
 import unittest
 from decimal import Decimal
 from app import create_app
@@ -6,15 +9,28 @@ from app.config import Config
 from app.extensions import db
 from app.models import Client, Document, Reference, User
 
-class TestConfig(Config):
-    TESTING = True
-    WTF_CSRF_ENABLED = False
-    AUTH_DISABLED = True
-    SESSION_COOKIE_SECURE = False
-
 class HojaDeVidaTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.db_path = os.path.join(cls.temp_dir, "test_hoja_vida.db")
+        class TestConfig(Config):
+            TESTING = True
+            WTF_CSRF_ENABLED = False
+            AUTH_DISABLED = True
+            SESSION_COOKIE_SECURE = False
+            SQLALCHEMY_DATABASE_URI = "sqlite:///" + cls.db_path
+        cls.test_config = TestConfig
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            shutil.rmtree(cls.temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
     def setUp(self):
-        self.app = create_app(TestConfig)
+        self.app = create_app(self.test_config)
         self.client = self.app.test_client()
 
     def test_rejection_when_less_than_two_references(self):

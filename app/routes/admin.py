@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from ..extensions import db
 from ..models import (Audit, Client, CollectionManagement, Document,
                        Loan, Obligation, OCRResult, Parameter, Payment,
-                       PaymentApplication, Permission, Reference, Role, User)
+                       PaymentApplication, Permission, Portfolio, Reference, Role, User)
 from ..services.decorators import permission_required
 from ..services.financial import log_audit
 
@@ -149,19 +149,14 @@ from ..seed import seed_parameters
 
 PARAM_CATEGORIES = {
     "financieros": {
-        "label": "Crédito y Políticas de Pago",
+        "label": "Crédito y Préstamos (USD)",
         "icon": "banknote",
-        "desc": "Tasa de interés por cuota y orden contable de imputación de pagos.",
+        "desc": "Tasa de interés fija periódica y montos de microcrédito autorizados.",
     },
     "scoring": {
         "label": "Score y Matriz de Riesgo",
         "icon": "gauge",
-        "desc": "Calibración del puntaje crediticio de 0 a 100 y umbrales de riesgo.",
-    },
-    "cobranza": {
-        "label": "Cobranza y Alertas Operativas",
-        "icon": "phone",
-        "desc": "Tiempos de alerta y horizontes de seguimiento para cobranza.",
+        "desc": "Calibración simplificada del puntaje crediticio (0 a 100) y tolerancia de mora.",
     },
     "generales": {
         "label": "Datos de la Empresa",
@@ -172,92 +167,43 @@ PARAM_CATEGORIES = {
 
 PARAM_METADATA = {
     "tasa_interes_periodo": {
-        "title": "Tasa de Interés Fija por Cuota",
-        "unit": "% por cuota",
-        "explanation": "Porcentaje de interés fijo aplicado a cada cuota (quincenal o mensual) sobre el saldo deudor.",
+        "title": "Tasa de Interés Fija por Período",
+        "unit": "% por cuota / ciclo",
+        "explanation": "Porcentaje de interés fijo (20% por defecto) aplicado a cada período (semanal o quincenal) sobre el saldo deudor.",
         "type": "number",
         "step": "0.1",
-        "badge": "Centralizado en préstamos",
+        "badge": "Fijo Editable por Admin",
     },
-    "orden_aplicacion_pago": {
-        "title": "Prioridad de Imputación de Pagos",
-        "unit": "",
-        "explanation": "Define si los abonos del cliente liquidan primero los intereses pendientes o reducen directamente el capital.",
-        "type": "select",
-        "options": [
-            ("interes_primero", "Intereses primero (Recomendado bancario) — Asegura rentabilidad cobrando intereses antes del capital."),
-            ("capital_primero", "Capital primero — Reduce el saldo principal adeudado antes de cubrir intereses."),
-        ],
-    },
-    "tasa_mora_diaria": {
-        "title": "Interés Moratorio Diario (Referencia)",
-        "unit": "% diario",
-        "explanation": "Tasa de interés moratorio diario de referencia por cada día de atraso tras la fecha de vencimiento.",
-        "type": "number",
-        "step": "0.01",
-    },
-    "peso_puntualidad": {
-        "title": "Peso de la Puntualidad en el Score",
-        "unit": "% ponderación",
-        "explanation": "Importancia porcentual de pagar en o antes de la fecha límite dentro del Score de 0 a 100.",
-        "type": "number",
-        "step": "1",
-    },
-    "peso_cumplimiento": {
-        "title": "Peso del Cumplimiento de Cuotas",
-        "unit": "% ponderación",
-        "explanation": "Importancia porcentual de la cantidad de cuotas efectivamente pagadas sobre el total contratado.",
-        "type": "number",
-        "step": "1",
-    },
-    "peso_mora": {
-        "title": "Penalización por Mora Activa",
-        "unit": "% ponderación",
-        "explanation": "Impacto negativo en el score cuando el cliente tiene cuotas actualmente vencidas e impagas.",
-        "type": "number",
-        "step": "1",
-    },
-    "dias_max_mora_score": {
-        "title": "Días de Mora para Penalización Máxima",
-        "unit": "días",
-        "explanation": "Días de atraso a partir de los cuales el componente de mora del deudor cae al castigo máximo (0 pts).",
-        "type": "number",
-        "step": "1",
+    "montos_prestamo_disponibles": {
+        "title": "Montos Predefinidos de Préstamo (USD)",
+        "unit": "USD ($)",
+        "explanation": "Opciones de monto en dólares disponibles para selección rápida al registrar préstamos. Separados por comas (Ej: 75, 100, 125, 150). Puede agregar, modificar o remover valores.",
+        "type": "text",
+        "badge": "Microcréditos en USD",
     },
     "umbral_score_excelente": {
-        "title": "Puntaje Mínimo — Riesgo Bajo (Excelente)",
+        "title": "Puntaje Mínimo — Cliente Excelente (Riesgo Bajo)",
         "unit": "puntos",
-        "explanation": "Puntaje requerido (0-100) para clasificar al deudor como Excelente / Apto para crédito inmediato.",
+        "explanation": "Puntaje mínimo requerido (0-100) para clasificar al deudor como Excelente / Apto para crédito inmediato.",
         "type": "number",
         "step": "1",
+        "badge": "Recomendado: 80",
     },
     "umbral_score_bueno": {
-        "title": "Puntaje Mínimo — Riesgo Medio (Bueno)",
+        "title": "Puntaje Mínimo — Aprobación Regular (Riesgo Medio)",
         "unit": "puntos",
-        "explanation": "Puntaje mínimo para clasificar al deudor con historial Bueno y riesgo controlado.",
+        "explanation": "Puntaje mínimo requerido para otorgar crédito con precaución. Por debajo de este valor, el deudor se clasifica como 'Riesgo Alto'.",
         "type": "number",
         "step": "1",
+        "badge": "Recomendado: 60",
     },
-    "umbral_score_regular": {
-        "title": "Puntaje Mínimo — Regular",
-        "unit": "puntos",
-        "explanation": "Puntaje mínimo para clasificación Regular. Por debajo de este valor, el deudor se clasifica como 'Riesgo Alto'.",
-        "type": "number",
-        "step": "1",
-    },
-    "dias_proximos_vencer": {
-        "title": "Horizonte de Alerta de Vencimientos",
+    "dias_max_mora_score": {
+        "title": "Tolerancia Máxima de Mora",
         "unit": "días",
-        "explanation": "Días futuros que el sistema monitorea en el Panel Principal para alertar cuotas a vencer.",
+        "explanation": "Días de retraso acumulados a partir de los cuales el cliente pierde la totalidad de su puntaje por puntualidad (0 pts).",
         "type": "number",
         "step": "1",
-    },
-    "dias_alerta_mora": {
-        "title": "Umbral de Alerta de Mora Temprana",
-        "unit": "días",
-        "explanation": "Días de retraso para destacar y priorizar una cuota en la lista de cobranza y gestiones en campo.",
-        "type": "number",
-        "step": "1",
+        "badge": "Recomendado: 30",
     },
     "nombre_empresa": {
         "title": "Nombre Comercial de la Empresa",
@@ -268,7 +214,7 @@ PARAM_METADATA = {
     "moneda_simbolo": {
         "title": "Símbolo de Moneda",
         "unit": "",
-        "explanation": "Símbolo visual utilizado para cifras monetarias en la aplicación (Ej: $, COP, USD).",
+        "explanation": "Símbolo visual utilizado para cifras monetarias en la aplicación (Ej: $, USD).",
         "type": "text",
     },
 }
@@ -293,8 +239,13 @@ def parameters():
         return redirect(url_for("admin.parameters"))
 
     params = Parameter.query.all()
-    # Excluir claves obsoletas de depuración si existieran
-    hidden_keys = {"metodo_interes", "periodicidad_interes"}
+    # Excluir claves obsoletas o eliminadas
+    hidden_keys = {
+        "metodo_interes", "periodicidad_interes",
+        "orden_aplicacion_pago", "tasa_mora_diaria",
+        "dias_proximos_vencer", "dias_alerta_mora",
+        "peso_puntualidad", "peso_cumplimiento", "peso_mora", "umbral_score_regular",
+    }
     visible_params = [p for p in params if p.key not in hidden_keys]
 
     return render_template(
@@ -342,6 +293,7 @@ def audit():
 @permission_required("admin.audit")
 def data_management():
     stats = {
+        "portfolios":  Portfolio.query.count(),
         "clients":     Client.query.count(),
         "loans":       Loan.query.count(),
         "payments":    Payment.query.count(),
@@ -373,13 +325,13 @@ def export_csv():
         except (ValueError, TypeError):
             return str(val)
 
-    def _format_freq(days):
-        if days == 30:
-            return "Mensual (30 días)"
-        elif days == 15:
-            return "Quincenal (15 días)"
-        elif days == 7:
+    def _format_freq(days, freq_type=None, cycle=None):
+        if freq_type == "semanal" or days == 7:
             return "Semanal (7 días)"
+        elif freq_type == "quincenal" or days == 15:
+            return f"Quincenal ({cycle})" if cycle else "Quincenal"
+        elif days == 30:
+            return "Mensual (30 días)"
         elif days == 1:
             return "Diario (1 día)"
         return f"Cada {days} días"
@@ -387,7 +339,9 @@ def export_csv():
     def _format_amort(tipo):
         mapping = {
             "francesa": "Francesa (Cuota fija)",
+            "frances": "Francesa (Cuota fija)",
             "alemana": "Alemana (Capital fijo)",
+            "aleman": "Alemana (Capital fijo)",
             "directo": "Interés Directo",
         }
         return mapping.get((tipo or "").lower(), tipo or "")
@@ -396,6 +350,7 @@ def export_csv():
         mapping = {
             "activo": "Activo",
             "liquidado": "Liquidado",
+            "pagado": "Pagado",
             "castigado": "Castigado",
             "pendiente": "Pendiente",
             "pagada": "Pagada",
@@ -416,13 +371,37 @@ def export_csv():
 
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # 0. Carteras
+        portfolios = Portfolio.query.order_by(Portfolio.id.asc()).all()
+        portfolio_headers = [
+            "Código Cartera", "Nombre Cartera", "Operador Responsable",
+            "Monto Asignado (USD)", "Capital Colocado (USD)", "Saldo en Mora (USD)",
+            "Clientes Registrados", "Préstamos Activos", "Estado", "Fecha de Creación"
+        ]
+        portfolio_rows = []
+        for pf in portfolios:
+            op_name = pf.user.full_name if (pf.user and pf.user.full_name) else (pf.user.username if pf.user else "Sin asignar")
+            portfolio_rows.append([
+                pf.code,
+                pf.name,
+                op_name,
+                _format_money(pf.assigned_capital_usd),
+                _format_money(pf.capital_colocado),
+                _format_money(pf.total_overdue),
+                pf.clients_count,
+                pf.active_loans_count,
+                _format_status(pf.status),
+                _format_date(pf.created_at),
+            ])
+        zf.writestr("carteras.csv", build_csv(portfolio_headers, portfolio_rows))
+
         # 1. Clientes
         clients = Client.query.order_by(Client.id.asc()).all()
         client_headers = [
-            "Código Cliente", "Nombres", "Apellidos", "Nombre Completo",
+            "Código Cliente", "Cartera Asignada", "Nombres", "Apellidos", "Nombre Completo",
             "Tipo Documento", "Número de Documento", "Teléfono", "Correo Electrónico",
             "Dirección", "País", "Banco Desembolso", "Tipo de Cuenta", "Número de Cuenta", "Titular Cuenta",
-            "Empresa", "Cargo", "Salario Mensual", "Dirección Empleo", "Teléfono Empleo",
+            "Empresa", "Cargo", "Ingreso Mensual (USD)", "Dirección Empleo", "Teléfono Empleo",
             "Medio Recaudo", "Canal Recaudo", "Cuenta / Convenio Recaudo", "Titular Recaudo",
             "Créditos Registrados", "Referencias Registradas", "Fecha de Registro"
         ]
@@ -430,6 +409,7 @@ def export_csv():
         for c in clients:
             client_rows.append([
                 c.code,
+                c.portfolio.name if c.portfolio else "Sin cartera",
                 c.first_name,
                 c.last_name,
                 c.full_name,
@@ -461,16 +441,20 @@ def export_csv():
         # 2. Préstamos
         loans = Loan.query.order_by(Loan.id.asc()).all()
         loan_headers = [
-            "Código Préstamo", "Código Cliente", "Nombre del Cliente", "Documento Cliente",
+            "Código Préstamo", "Cartera Asignada", "Código Cliente", "Nombre del Cliente", "Documento Cliente",
             "Banco Desembolso", "N° Cuenta Depósito",
-            "Monto Desembolsado (COP)", "Tasa de Interés Nominal", "N° Cuotas",
-            "Frecuencia de Pago", "Sistema de Amortización", "Fecha de Inicio / Desembolso",
+            "Monto Desembolsado (USD)", "Tasa de Interés Nominal", "N° Cuotas",
+            "Modalidad de Cobro", "Ciclo Quincenal", "Frecuencia de Pago",
+            "Sistema de Amortización", "Fecha de Inicio / Desembolso",
             "Estado del Crédito", "Fecha de Creación"
         ]
         loan_rows = []
         for l in loans:
+            freq_label = (l.frequency_type or "quincenal").capitalize()
+            cycle_label = l.biweekly_cycle or "—"
             loan_rows.append([
                 l.code,
+                l.portfolio.name if l.portfolio else "Sin cartera",
                 l.client.code if l.client else "",
                 l.client.full_name if l.client else "",
                 f"{l.client.identification_type} {l.client.identification_number}" if l.client else "",
@@ -479,7 +463,9 @@ def export_csv():
                 _format_money(l.principal),
                 f"{float(l.annual_rate) * 100:.2f}%" if l.annual_rate is not None else "",
                 l.installments_count,
-                _format_freq(l.frequency_days),
+                freq_label,
+                cycle_label,
+                _format_freq(l.frequency_days, l.frequency_type, l.biweekly_cycle),
                 _format_amort(l.amortization_type),
                 _format_date(l.start_date),
                 _format_status(l.status),
@@ -491,7 +477,7 @@ def export_csv():
         payments = Payment.query.order_by(Payment.id.asc()).all()
         payment_headers = [
             "Código de Pago", "N° de Recibo", "Código Préstamo", "Código Cliente",
-            "Nombre del Cliente", "Monto Pagado (COP)", "Fecha de Pago",
+            "Nombre del Cliente", "Monto Pagado (USD)", "Fecha de Pago",
             "Concepto / Medio", "Estado del Recibo", "Fecha de Registro"
         ]
         payment_rows = []
@@ -514,9 +500,9 @@ def export_csv():
         obligations = Obligation.query.order_by(Obligation.loan_id.asc(), Obligation.number.asc()).all()
         obligation_headers = [
             "Código Préstamo", "Código Cliente", "Nombre del Cliente", "N° Cuota",
-            "Fecha de Vencimiento", "Valor Cuota (COP)", "Capital Programado (COP)",
-            "Interés Programado (COP)", "Capital Pendiente (COP)", "Interés Pendiente (COP)",
-            "Saldo Pendiente Total (COP)", "Estado de la Cuota", "Fecha en que se Pagó"
+            "Fecha de Vencimiento", "Valor Cuota (USD)", "Capital Programado (USD)",
+            "Interés Programado (USD)", "Capital Pendiente (USD)", "Interés Pendiente (USD)",
+            "Saldo Pendiente Total (USD)", "Estado de la Cuota", "Fecha en que se Pagó"
         ]
         obligation_rows = []
         for o in obligations:
@@ -610,6 +596,9 @@ def delete_data():
         OCRResult.query.delete()
         Document.query.delete()
         Reference.query.delete()
+        from ..models import ClientReferral, Notification
+        ClientReferral.query.delete()
+        Notification.query.delete()
         Loan.query.delete()
         Client.query.delete()
         log_audit(current_user.id, "Borrar todos los datos operativos", "Sistema")

@@ -59,6 +59,8 @@ def check(name, condition, detail=""):
 def section(title):
     print(f"\n{'='*70}\n  {title}\n{'='*70}")
 
+import unittest
+
 app = create_app(TestConfig)
 client = app.test_client()
 
@@ -466,5 +468,13 @@ if FAIL:
             print(f"   ❌ {n}  {d}")
 print(f"\n  BD temporal: {tmp}")
 print(f"  Exit: {'OK' if FAIL == 0 else 'CON FALLOS'}")
-import sys
-sys.exit(1 if FAIL else 0)
+
+
+class FullAuditSuiteTest(unittest.TestCase):
+    def test_full_audit_suite(self):
+        self.assertEqual(FAIL, 0, f"{FAIL} checks failed in audit suite")
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(1 if FAIL else 0)

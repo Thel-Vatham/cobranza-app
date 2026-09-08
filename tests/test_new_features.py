@@ -1,4 +1,7 @@
 import io
+import os
+import shutil
+import tempfile
 import unittest
 import zipfile
 from app import create_app
@@ -6,15 +9,28 @@ from app.config import Config
 from app.extensions import db
 from app.models import Client, Loan, Obligation, Payment, User
 
-class TestConfig(Config):
-    TESTING = True
-    WTF_CSRF_ENABLED = False
-    AUTH_DISABLED = True
-    SESSION_COOKIE_SECURE = False
-
 class NewFeaturesTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.db_path = os.path.join(cls.temp_dir, "test_new_features.db")
+        class TestConfig(Config):
+            TESTING = True
+            WTF_CSRF_ENABLED = False
+            AUTH_DISABLED = True
+            SESSION_COOKIE_SECURE = False
+            SQLALCHEMY_DATABASE_URI = "sqlite:///" + cls.db_path
+        cls.test_config = TestConfig
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            shutil.rmtree(cls.temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
     def setUp(self):
-        self.app = create_app(TestConfig)
+        self.app = create_app(self.test_config)
         self.client = self.app.test_client()
 
     def test_dashboard_access(self):
@@ -33,7 +49,7 @@ class NewFeaturesTest(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         html = resp.get_data(as_text=True)
         self.assertIn("Exportar Base de Datos", html)
-        self.assertIn("Eliminar Base Actual", html)
+        self.assertIn("Eliminar Base de Datos Operativa", html)
         self.assertIn('id="delete-modal"', html)
 
     def test_export_csv_zip(self):

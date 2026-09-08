@@ -41,6 +41,7 @@
   <!-- Paneles de Parámetros -->
   <div class="param-content" style="flex: 1; min-width: 320px;">
     <form method="post" id="paramsForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% for cat_key, cat_data in categories.items() %}
         {% if groups.get(cat_key) %}
         <div class="param-panel" id="cat-{{ cat_key }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">

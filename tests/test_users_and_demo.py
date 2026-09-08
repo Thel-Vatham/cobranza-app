@@ -1,3 +1,6 @@
+import os
+import shutil
+import tempfile
 import unittest
 from app import create_app
 from app.config import Config
@@ -6,21 +9,31 @@ from app.models import User, Client, Loan, Payment
 class UserRolesAndTraceabilityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.temp_dir = tempfile.mkdtemp()
+        cls.db_path = os.path.join(cls.temp_dir, "test_users_demo.db")
         class TC(Config):
             TESTING = True
             WTF_CSRF_ENABLED = False
             AUTH_DISABLED = False
             SESSION_COOKIE_SECURE = False
+            SQLALCHEMY_DATABASE_URI = "sqlite:///" + cls.db_path
         cls.app = create_app(TC)
         with cls.app.app_context():
             from app.seed import _seed_demo_data
             _seed_demo_data(force=True)
 
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            shutil.rmtree(cls.temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
     def test_users_exist_and_passwords(self):
         with self.app.app_context():
             users = User.query.all()
             usernames = [u.username for u in users]
-            self.assertEqual(sorted(usernames), ["admin", "user_0"])
+            self.assertEqual(sorted(usernames), ["admin", "consultor_0", "user_0"])
             
             admin = User.query.filter_by(username="admin").first()
             self.assertTrue(admin.check_password("09300"))
@@ -36,6 +49,12 @@ class UserRolesAndTraceabilityTest(unittest.TestCase):
             self.assertTrue(user_0.has_permission("payments.create"))
             self.assertFalse(user_0.has_permission("admin.users"))
             self.assertFalse(user_0.has_permission("admin.audit"))
+
+            consultor_0 = User.query.filter_by(username="consultor_0").first()
+            self.assertTrue(consultor_0.check_password("09300"))
+            self.assertEqual(consultor_0.role.name, "Consulta")
+            self.assertFalse(consultor_0.has_permission("loans.create"))
+            self.assertFalse(consultor_0.has_permission("payments.create"))
 
     def test_admin_full_access(self):
         c = self.app.test_client()

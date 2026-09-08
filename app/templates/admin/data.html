@@ -1,130 +1,180 @@
 {% extends "base.html" %}
-{% block title %}Gestión de Datos · Cartera{% endblock %}
+{% block title %}Gestión y Mantenimiento de Datos · Cartera{% endblock %}
 {% block content %}
-<header class="page-head">
+<header class="page-head" style="margin-bottom: 28px;">
   <div>
-    <h1>Gestión y Mantenimiento de Datos</h1>
-    <p class="muted">Herramientas para exportación de copias de seguridad y purga de base de datos</p>
+    <h1 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0 0 6px 0;">Gestión y Mantenimiento de Datos</h1>
+    <p class="muted" style="margin: 0; font-size: 0.9rem; color: #64748b;">
+      Herramientas para exportación de copias de seguridad y purga controlada de la base de datos
+    </p>
   </div>
 </header>
 
-<div class="data-mgmt-grid">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; align-items: stretch; margin-bottom: 32px;">
 
-  <!-- Exportar -->
-  <div class="card data-card">
-    <div class="data-card-icon export-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="7 10 12 15 17 10"/>
-        <line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
-    </div>
-    <div class="data-card-body">
-      <h2>Exportar Base de Datos</h2>
-      <p class="muted">Descarga un archivo comprimido <code>.ZIP</code> con los datos operativos en formato CSV (codificación UTF-8 BOM compatible con Excel):</p>
-      <ul class="export-list">
-        <li><span class="badge">CSV</span> <strong>clientes.csv</strong> &mdash; {{ stats.clients }} clientes (identificación, contacto, totales)</li>
-        <li><span class="badge">CSV</span> <strong>prestamos.csv</strong> &mdash; {{ stats.loans }} créditos (montos, tasas, amortización, nombres)</li>
-        <li><span class="badge">CSV</span> <strong>pagos.csv</strong> &mdash; {{ stats.payments }} recibos (cliente, crédito, montos, métodos)</li>
-        <li><span class="badge">CSV</span> <strong>obligaciones.csv</strong> &mdash; {{ stats.obligations }} cuotas (plan de pagos, saldos pendientes y estado)</li>
-        <li><span class="badge">CSV</span> <strong>referencias.csv</strong> &mdash; {{ stats.references }} referencias y codeudores</li>
-        <li><span class="badge">CSV</span> <strong>gestiones_cobranza.csv</strong> &mdash; {{ stats.collections }} registros en bitácora de cobranza</li>
+  {# ── TARJETA 1: EXPORTAR BASE DE DATOS ── #}
+  <div class="card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(15,23,42,0.04);">
+    <div>
+      <h2 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">
+        Exportar Base de Datos
+      </h2>
+      <p style="font-size: 0.88rem; color: #64748b; line-height: 1.5; margin: 0 0 18px 0;">
+        Descarga un archivo comprimido <code>.ZIP</code> con los registros operativos en formato CSV (codificación UTF-8 BOM compatible directamente con Microsoft Excel):
+      </p>
+
+      <ul style="list-style: none; padding: 0; margin: 0 0 24px 0; font-size: 0.86rem; display: flex; flex-direction: column; gap: 8px;">
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="color: #334155; font-weight: 600;">carteras.csv</span>
+          <span style="color: #64748b; font-size: 0.8rem;">{{ stats.portfolios }} carteras</span>
+        </li>
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="color: #334155; font-weight: 600;">clientes.csv</span>
+          <span style="color: #64748b; font-size: 0.8rem;">{{ stats.clients }} clientes</span>
+        </li>
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="color: #334155; font-weight: 600;">prestamos.csv</span>
+          <span style="color: #64748b; font-size: 0.8rem;">{{ stats.loans }} créditos</span>
+        </li>
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="color: #334155; font-weight: 600;">pagos.csv</span>
+          <span style="color: #64748b; font-size: 0.8rem;">{{ stats.payments }} recibos</span>
+        </li>
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="color: #334155; font-weight: 600;">obligaciones.csv</span>
+          <span style="color: #64748b; font-size: 0.8rem;">{{ stats.obligations }} cuotas</span>
+        </li>
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+          <span style="color: #334155; font-weight: 600;">referencias.csv</span>
+          <span style="color: #64748b; font-size: 0.8rem;">{{ stats.references }} referencias</span>
+        </li>
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0;">
+          <span style="color: #334155; font-weight: 600;">gestiones_cobranza.csv</span>
+          <span style="color: #64748b; font-size: 0.8rem;">{{ stats.collections }} registros</span>
+        </li>
       </ul>
-      <a class="btn btn-primary" href="{{ url_for('admin.export_csv') }}" id="btn-export">
-        📥 Descargar Copia en ZIP (Excel Compatible)
+    </div>
+
+    <div>
+      <a class="btn btn-primary" href="{{ url_for('admin.export_csv') }}" id="btn-export"
+         style="width: 100%; text-align: center; justify-content: center; padding: 12px; font-weight: 700; font-size: 0.92rem; border-radius: 8px;">
+        Descargar Copia de Seguridad (.ZIP)
       </a>
     </div>
   </div>
 
-  <!-- Eliminar base actual -->
-  <div class="card data-card danger-card">
-    <div class="data-card-icon danger-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-        <path d="M10 11v6"/><path d="M14 11v6"/>
-        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-      </svg>
-    </div>
-    <div class="data-card-body">
-      <h2 style="color: #ef4444;">Eliminar Base Actual</h2>
-      <p class="muted">Elimina permanentemente <strong>todos los clientes, préstamos, pagos, amortizaciones y documentos</strong>. La base de datos queda completamente limpia y vacía. Usuarios y parámetros se conservan.</p>
-      <p class="danger-note">⚠️ Esta acción es <strong>completamente irreversible</strong>. Descarga una copia de seguridad antes de continuar.</p>
-      <button class="btn btn-danger" id="btn-open-delete-modal" type="button">⚠️ Eliminar base actual...</button>
-    </div>
-  </div>
+  {# ── TARJETA 2: ELIMINAR BASE ACTUAL ── #}
+  <div class="card" style="padding: 28px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fecaca; border-radius: 12px; box-shadow: 0 1px 3px rgba(15,23,42,0.04); background: #ffffff;">
+    <div>
+      <h2 style="font-size: 1.15rem; font-weight: 700; color: #dc2626; margin: 0 0 8px 0;">
+        Eliminar Base de Datos Operativa
+      </h2>
+      <p style="font-size: 0.88rem; color: #64748b; line-height: 1.5; margin: 0 0 16px 0;">
+        Elimina permanentemente clientes, préstamos, pagos, amortizaciones, gestiones y documentos subidos.
+      </p>
 
-  <!-- Cargar Cartera Demo (Opcional) -->
-  <div class="card data-card" style="border-left: 3px solid #3b82f6;">
-    <div class="data-card-icon" style="background: #eff6ff; color: #2563eb;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-        <line x1="12" y1="22.08" x2="12" y2="12"/>
-      </svg>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+        <span style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em;">
+          Alcance de la Purga
+        </span>
+        <p style="margin: 0; font-size: 0.84rem; color: #64748b; line-height: 1.45;">
+          Los usuarios del sistema, sus contraseñas, roles asignados y los parámetros de configuración institucional se conservarán intactos.
+        </p>
+      </div>
+
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px; margin-bottom: 24px;">
+        <span style="display: block; font-size: 0.82rem; font-weight: 700; color: #991b1b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em;">
+          Acción Irreversible
+        </span>
+        <p style="margin: 0; font-size: 0.84rem; color: #b91c1c; line-height: 1.45;">
+          Una vez ejecutada la purga, no será posible recuperar los registros borrados. Se recomienda descargar una copia de seguridad antes de proceder.
+        </p>
+      </div>
     </div>
-    <div class="data-card-body">
-      <h2>Cargar Cartera de Prueba</h2>
-      <p class="muted">Genera un conjunto de datos simulado con <strong>10 clientes, $3,000,000 COP en créditos y trazabilidad de cobranza</strong> para pruebas o demostraciones.</p>
-      <form method="post" action="{{ url_for('admin.load_demo') }}" onsubmit="return confirm('¿Desea cargar la cartera demo de prueba? Esto reemplazará los datos operativos actuales.');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-sm" type="submit" style="font-weight: 600; background: #f8fafc;">
-          📦 Cargar 10 Clientes Demo (3M COP)
-        </button>
-      </form>
+
+    <div>
+      <button class="btn btn-danger" id="btn-open-delete-modal" type="button"
+              style="width: 100%; text-align: center; justify-content: center; padding: 12px; font-weight: 700; font-size: 0.92rem; border-radius: 8px; background: #dc2626;">
+        Eliminar Base de Datos Operativa...
+      </button>
     </div>
   </div>
 
 </div>
 
-<!-- Modal de Doble Confirmación Paso 1 y Paso 2 -->
-<div id="delete-modal" class="modal-backdrop" style="display:none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 9999; place-items: center;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-  <div class="modal-box" style="background: var(--surface); max-width: 520px; width: 90%; border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);">
+{# ── MODAL DE DOBLE CONFIRMACIÓN (PASO 1 Y PASO 2) ── #}
+<div id="delete-modal" class="modal-backdrop"
+     style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(3px); z-index: 9999; place-items: center;"
+     role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  
+  <div class="modal-box"
+       style="background: #ffffff; max-width: 500px; width: 92%; border-radius: 12px; padding: 28px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0;">
 
-    <!-- Paso 1: Advertencia -->
+    {# Paso 1: Confirmación de Advertencia #}
     <div id="step-1">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-        <span style="font-size: 32px;">🛑</span>
-        <div>
-          <h2 id="modal-title" style="margin: 0; color: #ef4444; font-size: 1.25rem;">Paso 1 de 2: Confirmar advertencia</h2>
-          <p class="muted" style="margin: 2px 0 0 0; font-size: 0.85rem;">Eliminación total de registros operativos</p>
-        </div>
+      <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+        <h2 id="modal-title" style="margin: 0; color: #0f172a; font-size: 1.2rem; font-weight: 800;">
+          Confirmación de Seguridad (Paso 1 de 2)
+        </h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.84rem; color: #64748b;">
+          Validación preliminar para el vaciado de registros operativos
+        </p>
       </div>
-      <p style="font-size: 0.92rem; line-height: 1.5; color: var(--text-soft);">
-        Está a punto de vaciar la base de datos operativa. Esta acción borrará todas las transacciones, recibos, clientes y documentos subidos.
+
+      <p style="font-size: 0.88rem; line-height: 1.5; color: #475569; margin: 0 0 16px 0;">
+        Está a punto de vaciar la totalidad de los datos operativos del sistema. Esta operación no se puede deshacer.
       </p>
-      <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 12px; border-radius: var(--radius-sm); margin: 16px 0;">
-        <label style="display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 0.88rem; color: #991b1b;">
-          <input type="checkbox" id="check-step-1" style="margin-top: 3px;">
-          <span>Entiendo que los datos se borrarán definitivamente y que he descargado una copia de respaldo si la requería.</span>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px; margin-bottom: 24px;">
+        <label style="display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 0.86rem; color: #1e293b; font-weight: 500; line-height: 1.4; margin: 0;">
+          <input type="checkbox" id="check-step-1" style="margin-top: 2px; width: 16px; height: 16px; cursor: pointer;">
+          <span>Confirmo que he descargado un respaldo o que no requiero conservar la información operativa actual.</span>
         </label>
       </div>
+
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
-        <button type="button" class="btn" id="btn-cancel-modal">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="btn-goto-step-2" disabled>Continuar al paso final →</button>
+        <button type="button" class="btn" id="btn-cancel-modal"
+                style="padding: 9px 18px; font-size: 0.88rem; font-weight: 600; color: #64748b; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer;">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-danger" id="btn-goto-step-2" disabled
+                style="padding: 9px 20px; font-size: 0.88rem; font-weight: 700; border-radius: 6px; background: #dc2626;">
+          Continuar al Paso Final
+        </button>
       </div>
     </div>
 
-    <!-- Paso 2: Palabra de Seguridad -->
+    {# Paso 2: Palabra de Seguridad #}
     <div id="step-2" style="display: none;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-        <span style="font-size: 32px;">⚠️</span>
-        <div>
-          <h2 style="margin: 0; color: #ef4444; font-size: 1.25rem;">Paso 2 de 2: Verificación de seguridad</h2>
-          <p class="muted" style="margin: 2px 0 0 0; font-size: 0.85rem;">Escriba la palabra de confirmación</p>
-        </div>
+      <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+        <h2 style="margin: 0; color: #dc2626; font-size: 1.2rem; font-weight: 800;">
+          Verificación de Seguridad (Paso 2 de 2)
+        </h2>
+        <p style="margin: 4px 0 0 0; font-size: 0.84rem; color: #64748b;">
+          Autorización definitiva requerida
+        </p>
       </div>
-      <p style="font-size: 0.9rem; color: var(--text-soft);">Para ejecutar el borrado, escriba exactamente <code style="font-size: 1.1rem; color: #ef4444; font-weight: 800;">ELIMINAR</code> en el campo:</p>
+
+      <p style="font-size: 0.88rem; color: #475569; line-height: 1.5; margin: 0 0 14px 0;">
+        Para confirmar el vaciado permanente, escriba exactamente <strong style="color: #dc2626; letter-spacing: 0.04em;">ELIMINAR</strong> en el siguiente campo:
+      </p>
+
       <form method="post" action="{{ url_for('admin.delete_data') }}" id="delete-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" id="confirm-input" name="confirm" placeholder="ELIMINAR"
-               autocomplete="off" class="confirm-input" spellcheck="false" style="width: 100%; padding: 10px 14px; font-size: 1.05rem; font-weight: 700; border-radius: var(--radius-sm); border: 2px solid #ef4444; margin-bottom: 20px; text-transform: uppercase;">
+               autocomplete="off" spellcheck="false"
+               style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 1rem; font-weight: 700; border-radius: 7px; border: 1.5px solid #cbd5e1; margin-bottom: 22px; text-transform: uppercase; outline: none;"
+               onfocus="this.style.borderColor='#dc2626';"
+               onblur="this.style.borderColor='#cbd5e1';">
+
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <button type="button" class="btn" id="btn-back-to-step-1">← Volver</button>
-          <button type="submit" class="btn btn-danger" id="btn-confirm-delete" disabled style="font-weight: 800; background: #dc2626;">🔥 Eliminar base actual definitivamente</button>
+          <button type="button" class="btn" id="btn-back-to-step-1"
+                  style="padding: 9px 16px; font-size: 0.88rem; font-weight: 600; color: #64748b; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer;">
+            Volver
+          </button>
+          <button type="submit" class="btn btn-danger" id="btn-confirm-delete" disabled
+                  style="padding: 10px 22px; font-size: 0.88rem; font-weight: 700; border-radius: 6px; background: #dc2626;">
+            Eliminar Base de Datos Definitivamente
+          </button>
         </div>
       </form>
     </div>
@@ -153,8 +203,12 @@
     step2.style.display = 'none';
     checkStep1.checked = false;
     gotoStep2.disabled = true;
+    gotoStep2.style.opacity = '0.5';
+    gotoStep2.style.cursor = 'not-allowed';
     input.value = '';
     submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.cursor = 'not-allowed';
   }
 
   function closeModal() {
@@ -165,7 +219,10 @@
   cancelBtn.addEventListener('click', closeModal);
 
   checkStep1.addEventListener('change', function() {
-    gotoStep2.disabled = !checkStep1.checked;
+    var isChecked = checkStep1.checked;
+    gotoStep2.disabled = !isChecked;
+    gotoStep2.style.opacity = isChecked ? '1' : '0.5';
+    gotoStep2.style.cursor = isChecked ? 'pointer' : 'not-allowed';
   });
 
   gotoStep2.addEventListener('click', function() {
@@ -173,6 +230,8 @@
     step2.style.display = 'block';
     input.value = '';
     submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.cursor = 'not-allowed';
     input.focus();
   });
 
@@ -181,14 +240,21 @@
     step1.style.display = 'block';
   });
 
-  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
 
   input.addEventListener('input', function () {
     var val = input.value.trim().toUpperCase();
-    submitBtn.disabled = (val !== 'ELIMINAR' && val !== 'BORRAR');
+    var isValid = (val === 'ELIMINAR' || val === 'BORRAR');
+    submitBtn.disabled = !isValid;
+    submitBtn.style.opacity = isValid ? '1' : '0.5';
+    submitBtn.style.cursor = isValid ? 'pointer' : 'not-allowed';
   });
 
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeModal();
+  });
 })();
 </script>
 {% endblock %}
