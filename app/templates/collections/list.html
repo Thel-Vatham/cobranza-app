@@ -11,14 +11,90 @@
   </div>
 </header>
 
-{# Barra de búsqueda y filtros #}
-<form class="search-bar" method="get">
-  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por cliente, cédula o préstamo…">
-  <button class="btn btn-primary" type="submit">Buscar</button>
-  {% if q %}
-  <a class="btn" href="{{ url_for('collections.list_collections') }}">Limpiar</a>
-  {% endif %}
-</form>
+{# Barra de búsqueda y filtros ejecutivos #}
+<div class="card" style="padding: 16px 20px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+  <form class="search-bar" method="get" style="margin-bottom: 12px; gap: 10px;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por cliente, cédula o préstamo…" style="flex: 1; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1;">
+    <input type="hidden" name="timing" value="{{ timing }}">
+    <input type="hidden" name="freq" value="{{ freq }}">
+    <input type="hidden" name="cycle" value="{{ cycle }}">
+    {% if amount %}<input type="hidden" name="amount" value="{{ amount }}">{% endif %}
+    <button class="btn btn-primary" type="submit" style="padding: 8px 18px;">Buscar</button>
+    {% if q or timing != 'vencidas' or freq or cycle or amount %}
+    <a class="btn" href="{{ url_for('collections.list_collections') }}" style="padding: 8px 14px;">Restablecer</a>
+    {% endif %}
+  </form>
+
+  <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+    {# 1. Temporalidad #}
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <span style="color: #64748b; font-weight: 700; width: 110px;">Horizonte:</span>
+      <a href="{{ url_for('collections.list_collections', q=q, timing='vencidas', freq=freq, cycle=cycle, amount=amount) }}"
+         class="btn btn-sm {% if timing == 'vencidas' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Vencidas
+      </a>
+      <a href="{{ url_for('collections.list_collections', q=q, timing='hoy', freq=freq, cycle=cycle, amount=amount) }}"
+         class="btn btn-sm {% if timing == 'hoy' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Cobro de Hoy
+      </a>
+      <a href="{{ url_for('collections.list_collections', q=q, timing='semana', freq=freq, cycle=cycle, amount=amount) }}"
+         class="btn btn-sm {% if timing == 'semana' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Próximos 7 días
+      </a>
+      <a href="{{ url_for('collections.list_collections', q=q, timing='todas', freq=freq, cycle=cycle, amount=amount) }}"
+         class="btn btn-sm {% if timing == 'todas' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Todas las pendientes
+      </a>
+    </div>
+
+    {# 2. Modalidad y Ciclo #}
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <span style="color: #64748b; font-weight: 700; width: 110px;">Modalidad:</span>
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq='', cycle=cycle, amount=amount) }}"
+         class="btn btn-sm {% if not freq %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Todas
+      </a>
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq='semanal', cycle='', amount=amount) }}"
+         class="btn btn-sm {% if freq == 'semanal' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Semanales (7 días)
+      </a>
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq='quincenal', cycle=cycle, amount=amount) }}"
+         class="btn btn-sm {% if freq == 'quincenal' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Quincenales
+      </a>
+
+      <span style="color: #94a3b8; margin: 0 4px;">|</span>
+      <span style="color: #64748b; font-weight: 600;">Cortes Quincena:</span>
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq='quincenal', cycle='5-20', amount=amount) }}"
+         class="btn btn-sm {% if cycle == '5-20' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 8px;">
+        5–20
+      </a>
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq='quincenal', cycle='10-25', amount=amount) }}"
+         class="btn btn-sm {% if cycle == '10-25' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 8px;">
+        10–25
+      </a>
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq='quincenal', cycle='15-30', amount=amount) }}"
+         class="btn btn-sm {% if cycle == '15-30' %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 8px;">
+        15–30
+      </a>
+    </div>
+
+    {# 3. Montos Rápidos #}
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <span style="color: #64748b; font-weight: 700; width: 110px;">Monto Crédito:</span>
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq=freq, cycle=cycle, amount='') }}"
+         class="btn btn-sm {% if not amount %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 10px;">
+        Todos
+      </a>
+      {% for m in montos_disponibles %}
+      <a href="{{ url_for('collections.list_collections', q=q, timing=timing, freq=freq, cycle=cycle, amount=m) }}"
+         class="btn btn-sm {% if amount|string == m %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 8px;">
+        ${{ m }} USD
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
 
 {# Barra de Acciones Masivas WhatsApp #}
 {% if overdue %}
@@ -83,9 +159,20 @@
             </div>
           </td>
           <td data-label="Préstamo">
-            <a href="{{ url_for('loans.detail', loan_id=o.loan.id) }}" class="badge" style="text-decoration: none; font-weight: 700;">
-              {{ o.loan.code }}
-            </a>
+            <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+              <a href="{{ url_for('loans.detail', loan_id=o.loan.id) }}" class="badge" style="text-decoration: none; font-weight: 700;">
+                {{ o.loan.code }}
+              </a>
+              {% if o.loan.frequency_type == 'semanal' or o.loan.frequency_days == 7 %}
+              <span class="badge" style="background: #eef2ff; color: #3730a3; font-size: 0.7rem; padding: 2px 6px;">
+                Semanal
+              </span>
+              {% else %}
+              <span class="badge" style="background: #f0fdf4; color: #166534; font-size: 0.7rem; padding: 2px 6px;">
+                Q: {{ o.loan.biweekly_cycle or '15d' }}
+              </span>
+              {% endif %}
+            </div>
           </td>
           <td data-label="Cuota"><strong>#{{ o.number }}</strong> de {{ o.loan.installments_count }}</td>
           <td data-label="Venció">{{ o.due_date|d }}</td>

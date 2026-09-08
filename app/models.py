@@ -59,10 +59,73 @@ class User(UserMixin, db.Model):
         return self.role.has_permission(code)
 
 
+class Portfolio(db.Model):
+    __tablename__ = "portfolios"
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(30), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.String(255), nullable=True)
+    assigned_capital_usd = db.Column(db.Numeric(14, 2), default=0.0, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    status = db.Column(db.String(20), default="activa")  # activa | inactiva | cerrada
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship("User", backref=db.backref("portfolios", lazy="selectin"))
+    clients = db.relationship("Client", back_populates="portfolio", lazy="selectin")
+    loans = db.relationship("Loan", back_populates="portfolio", lazy="selectin")
+
+    @property
+    def capital_colocado(self):
+        """Total de principal desembolsado en préstamos de esta cartera."""
+        return sum((float(l.principal or 0) for l in self.loans), 0.0)
+
+    @property
+    def capital_activo(self):
+        """Saldo de capital pendiente de cobro en préstamos activos/en mora."""
+        total = 0.0
+        for l in self.loans:
+            if l.status in ("activo", "mora"):
+                total += sum((float(o.pending_capital or 0) for o in l.obligations if o.status != "pagada"), 0.0)
+        return total
+
+    @property
+    def capital_disponible(self):
+        """Capital asignado en USD menos el capital colocado activo."""
+        assigned = float(self.assigned_capital_usd or 0)
+        return max(0.0, assigned - self.capital_activo)
+
+    @property
+    def total_outstanding(self):
+        """Saldo total pendiente (capital + interés)."""
+        return sum((float(l.outstanding_balance or 0) for l in self.loans), 0.0)
+
+    @property
+    def total_overdue(self):
+        """Saldo en mora de las obligaciones vencidas."""
+        today = datetime.utcnow().date()
+        total = 0.0
+        for l in self.loans:
+            if l.status in ("activo", "mora"):
+                for o in l.obligations:
+                    if o.status != "pagada" and o.due_date < today:
+                        total += float(o.pending_balance or 0)
+        return total
+
+    @property
+    def clients_count(self):
+        return len(self.clients)
+
+    @property
+    def active_loans_count(self):
+        return sum(1 for l in self.loans if l.status in ("activo", "mora"))
+
+
 class Client(db.Model):
     __tablename__ = "clients"
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(30), unique=True, nullable=False, index=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey("portfolios.id"), nullable=True)
     first_name = db.Column(db.String(120), nullable=False)
     last_name = db.Column(db.String(120), nullable=False)
     identification_type = db.Column(db.String(30), default="CC")
@@ -91,15 +154,38 @@ class Client(db.Model):
     collection_account_number = db.Column(db.String(60), nullable=True) # Número / Convenio / Referencia
     collection_account_holder = db.Column(db.String(160), nullable=True)# Titular / Instrucción de recaudo
 
+    # Estado de remisión a asesor
+    referred_to_advisor = db.Column(db.Boolean, default=False, nullable=False)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    portfolio = db.relationship("Portfolio", back_populates="clients", lazy="selectin")
     references = db.relationship("Reference", backref="client", lazy="selectin", cascade="all, delete-orphan")
     loans = db.relationship("Loan", backref="client", lazy="selectin")
+    referrals = db.relationship("ClientReferral", back_populates="client", lazy="selectin", cascade="all, delete-orphan", order_by="ClientReferral.created_at.desc()")
 
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def total_outstanding(self):
+        return sum((float(l.outstanding_balance or 0) for l in self.loans), 0.0)
+
+    @property
+    def total_overdue(self):
+        today = datetime.utcnow().date()
+        total = 0.0
+        for l in self.loans:
+            for o in l.obligations:
+                if o.status != "pagada" and o.due_date < today:
+                    total += float(o.pending_balance or 0)
+        return total
+
+    @property
+    def is_in_overdue(self):
+        return self.total_overdue > 0
 
     def get_document(self, doc_type):
         """Retorna el documento más reciente del tipo especificado."""
@@ -137,20 +223,55 @@ class Reference(db.Model):
     address = db.Column(db.String(255))
 
 
+class ClientReferral(db.Model):
+    __tablename__ = "client_referrals"
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
+    referred_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    advisor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    reason = db.Column(db.String(120), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    advisor_notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default="pendiente")  # pendiente | revisado | en_gestion | cerrado
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    client = db.relationship("Client", back_populates="referrals", lazy="selectin")
+    referred_by = db.relationship("User", foreign_keys=[referred_by_id], lazy="selectin")
+    advisor = db.relationship("User", foreign_keys=[advisor_id], lazy="selectin")
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    title = db.Column(db.String(160), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    link = db.Column(db.String(255), nullable=True)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref=db.backref("notifications", lazy="selectin", order_by="Notification.created_at.desc()"))
+
+
 class Loan(db.Model):
     __tablename__ = "loans"
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(30), unique=True, nullable=False, index=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey("portfolios.id"), nullable=True)
     client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
     principal = db.Column(db.Numeric(14, 2), nullable=False)
     annual_rate = db.Column(db.Numeric(8, 4), nullable=False, default=0)  # e.g. 0.24 = 24%
     installments_count = db.Column(db.Integer, nullable=False)
-    frequency_days = db.Column(db.Integer, default=30)
+    frequency_days = db.Column(db.Integer, default=15)
+    frequency_type = db.Column(db.String(20), default="quincenal")  # semanal | quincenal
+    biweekly_cycle = db.Column(db.String(20), nullable=True)  # 5-20 | 10-25 | 15-30
     amortization_type = db.Column(db.String(20), default="frances")  # frances | aleman
     start_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), default="activo")  # activo | pagado | mora | cancelado
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    portfolio = db.relationship("Portfolio", back_populates="loans", lazy="selectin")
     obligations = db.relationship(
         "Obligation", backref="loan", lazy="selectin",
         order_by="Obligation.number", cascade="all, delete-orphan",

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
 from ..extensions import db
@@ -22,7 +22,19 @@ def _generate_code():
 @permission_required("payments.view")
 def list_payments():
     q = request.args.get("q", "").strip()
+    is_admin = bool(current_user.role and current_user.role.name == "Administrador")
+    active_portfolio_id = session.get("active_portfolio_id")
+
     query = Payment.query
+    if not is_admin:
+        if active_portfolio_id:
+            query = query.join(Loan).filter(Loan.portfolio_id == active_portfolio_id)
+        else:
+            query = query.filter(Payment.id == -1)
+    else:
+        if active_portfolio_id:
+            query = query.join(Loan).filter(Loan.portfolio_id == active_portfolio_id)
+
     if q:
         like = f"%{q}%"
         query = query.join(Client).filter(
@@ -40,7 +52,20 @@ def list_payments():
 @login_required
 @permission_required("payments.create")
 def create():
-    loans = Loan.query.join(Client).order_by(Client.first_name).all()
+    is_admin = bool(current_user.role and current_user.role.name == "Administrador")
+    active_portfolio_id = session.get("active_portfolio_id")
+
+    loan_query = Loan.query.join(Client)
+    if not is_admin:
+        if active_portfolio_id:
+            loan_query = loan_query.filter(Loan.portfolio_id == active_portfolio_id)
+        else:
+            loan_query = loan_query.filter(Loan.id == -1)
+    else:
+        if active_portfolio_id:
+            loan_query = loan_query.filter(Loan.portfolio_id == active_portfolio_id)
+
+    loans = loan_query.order_by(Client.first_name).all()
     selected_loan = None
 
     if request.method == "POST":

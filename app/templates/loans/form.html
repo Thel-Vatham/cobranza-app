@@ -1,18 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Nuevo préstamo · Cartera{% endblock %}
+{% block title %}Nuevo crédito · Cartera{% endblock %}
 {% block content %}
 <header class="page-head">
   <div>
-    <h1>Nuevo préstamo</h1>
-    <p class="muted">Configuración de valor, cuotas y fecha de inicio · La tasa de interés se fija en Parámetros</p>
+    <h1>Nuevo Crédito (USD)</h1>
+    <p class="muted">Configuración de capital, tasa fija por período y calendario de cobro (Semanal o Quincenal)</p>
   </div>
-  <a class="btn" href="{{ url_for('loans.list_loans') }}">← Volver</a>
+  <a class="btn" href="{{ url_for('loans.list_loans') }}">← Volver a Créditos</a>
 </header>
 
-<form class="card form" method="post" enctype="multipart/form-data">
-  <div class="grid grid-3">
-    <label class="span-3">Cliente *
-      <select name="client_id" id="client_select" required onchange="updateClientBankInfo()">
+<form class="card form" method="post" enctype="multipart/form-data" id="loanForm" style="max-width: 960px; margin: 0 auto;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="grid grid-3" style="gap: 20px;">
+    {# 1. Selección de Cliente #}
+    <div class="span-3">
+      <label style="font-weight: 700; margin-bottom: 6px; display: block;">Cliente Titular *</label>
+      <select name="client_id" id="client_select" required onchange="updateClientBankInfo()" style="width: 100%;">
         <option value="">Seleccione un cliente…</option>
         {% for c in clients %}
         <option value="{{ c.id }}"
@@ -22,75 +26,284 @@
                 data-holder="{{ c.account_holder or '' }}"
                 data-name="{{ c.full_name }}"
                 {% if (loan and loan.client_id == c.id) or request.args.get('client_id') == c.id|string %}selected{% endif %}>
-          {{ c.full_name }} ({{ c.identification_number }})
+          {{ c.full_name }} — {{ c.identification_type }}: {{ c.identification_number }}
         </option>
         {% endfor %}
       </select>
-    </label>
+    </div>
 
-    {# Tarjeta interactiva de Cuenta Bancaria para Desembolso #}
-    <div class="span-3" id="client_bank_box" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 8px;">
+    {# Tarjeta de Cuenta Bancaria para Desembolso #}
+    <div class="span-3" id="client_bank_box" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #10b981; border-radius: 8px; padding: 14px 18px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #166534; letter-spacing: 0.5px;">
-          🏦 Datos para el Depósito / Transferencia
+        <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #047857; letter-spacing: 0.5px;">
+          Datos Registrados para Desembolso / Transferencia
         </span>
-        <span id="bank_badge" class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600;"></span>
+        <span id="bank_badge" class="badge" style="background: #e6fcf5; color: #047857; font-weight: 600;"></span>
       </div>
-      <div id="bank_details_content" style="margin-top: 6px; font-size: 0.95rem; color: #14532d;">
-        <!-- Se llena con JS -->
+      <div id="bank_details_content" style="margin-top: 6px; font-size: 0.92rem; color: #1e293b;">
+        <!-- Llenado vía JS -->
       </div>
     </div>
 
-    <label>Valor principal *
-      <input type="number" step="0.01" min="0" name="principal" required placeholder="1000000">
-    </label>
-    <label>Tasa de interés por cuota (fija)
-      <input type="text" value="{{ tasa_actual }}% por cuota" readonly style="background: var(--bg); color: var(--text-soft); cursor: not-allowed; border-color: var(--border);">
-      <small class="muted" style="font-size: 0.78rem;">
-        Se aplica <strong>{{ tasa_actual }}%</strong> sobre el saldo en cada cuota.
-        Configurable en <a href="{{ url_for('admin.parameters') }}" style="color: var(--accent);">Parámetros del Sistema</a>.
-      </small>
-    </label>
-    <label>Número de cuotas *
-      <input type="number" min="1" name="installments_count" required value="12">
-    </label>
-    <label>Frecuencia de pago *
-      <select name="frequency_days" required>
-        <option value="15" selected>Quincenal (15 días)</option>
-        <option value="30">Mensual (30 días)</option>
-        <option value="7">Semanal (7 días)</option>
-        <option value="1">Diario (1 día)</option>
-      </select>
-    </label>
-    <label>Amortización *
-      <select name="amortization_type" required>
-        <option value="frances" selected>Francés (Cuota fija, Interés decr.)</option>
-        <option value="aleman">Alemán (Capital fijo, Pago total decr.)</option>
-      </select>
-    </label>
-    <label>Fecha de inicio *
-      <input type="date" name="start_date" required>
-    </label>
-
-    {# Campo de comprobante de envío de dinero #}
-    <div class="span-3" style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 16px; margin-top: 8px;">
-      <label style="margin: 0; font-weight: 700; color: var(--text);">
-        📄 Comprobante de Envío de Dinero / Desembolso (Soporte)
-        <input type="file" name="disbursement_voucher" id="disbursement_voucher" accept=".pdf,.png,.jpg,.jpeg,.webp" style="margin-top: 8px;">
+    {# 2. Monto Principal en USD #}
+    <div class="span-3" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+      <label style="font-weight: 700; display: block; margin-bottom: 6px;">
+        Monto del Préstamo (USD $) *
       </label>
-      <p class="hint" style="margin: 6px 0 0 0; font-size: 0.82rem; color: var(--text-soft);">
-        Cargue la imagen o PDF del comprobante de transferencia bancaria realizada al cliente para que quede adjunto al préstamo como soporte oficial.
+
+      {# Selector ágil de chips de montos predefinidos #}
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+        <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;">Opciones rápidas:</span>
+        {% for m in montos_disponibles %}
+        <button type="button" class="btn btn-sm btn-amount-chip" onclick="setPresetAmount('{{ m }}')" style="border-radius: 20px; font-weight: 700; padding: 6px 14px; border: 1px solid #cbd5e1; background: white; color: #1e293b; cursor: pointer; transition: all 0.2s ease;">
+          ${{ m }} USD
+        </button>
+        {% endfor %}
+      </div>
+
+      <div style="position: relative; max-width: 320px;">
+        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 700; color: #64748b; font-size: 1.1rem;">$</span>
+        <input type="number" step="0.01" min="1" name="principal" id="principal_input" required placeholder="100.00" style="padding-left: 28px; font-size: 1.15rem; font-weight: 700;" oninput="recalculateSimulation()">
+      </div>
+      <small class="muted" style="display: block; margin-top: 4px;">
+        Montos configurables por el Administrador en <a href="{{ url_for('admin.parameters') }}" style="color: var(--primary);">Parámetros del Sistema</a>.
+      </small>
+    </div>
+
+    {# 3. Modalidad de Cobro: Semanal vs Quincenal #}
+    <div class="span-3" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+      <label style="font-weight: 700; display: block; margin-bottom: 8px;">Modalidad de Pago y Cobranza *</label>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+        <label style="display: flex; align-items: flex-start; gap: 10px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; cursor: pointer; background: white;" id="label_semanal">
+          <input type="radio" name="frequency_type" value="semanal" onchange="onFrequencyChange()" style="margin-top: 4px;">
+          <div>
+            <strong style="display: block; color: #1e293b;">Semanal</strong>
+            <small class="muted" style="font-size: 0.8rem;">Cobro cada 7 días continuos a partir del día de desembolso.</small>
+          </div>
+        </label>
+
+        <label style="display: flex; align-items: flex-start; gap: 10px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; cursor: pointer; background: white;" id="label_quincenal">
+          <input type="radio" name="frequency_type" value="quincenal" checked onchange="onFrequencyChange()" style="margin-top: 4px;">
+          <div>
+            <strong style="display: block; color: #1e293b;">Quincenal</strong>
+            <small class="muted" style="font-size: 0.8rem;">Cortes según ciclo mensual establecido (5-20, 10-25, 15-30).</small>
+          </div>
+        </label>
+      </div>
+
+      {# Sub-bloque: Selección de Ciclo Quincenal #}
+      <div id="cycle_container" style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed #cbd5e1;">
+        <label style="font-weight: 700; font-size: 0.88rem; display: block; margin-bottom: 6px; color: #334155;">
+          Ciclo Quincenal Asignado *
+        </label>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <label class="cycle-option" style="display: flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 6px; cursor: pointer; background: white;">
+            <input type="radio" name="biweekly_cycle" value="5-20" onchange="recalculateSimulation()">
+            <span style="font-weight: 600;">Corte 5 – 20</span>
+            <small class="muted">(Días 5 y 20)</small>
+          </label>
+          <label class="cycle-option" style="display: flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 6px; cursor: pointer; background: white;">
+            <input type="radio" name="biweekly_cycle" value="10-25" onchange="recalculateSimulation()">
+            <span style="font-weight: 600;">Corte 10 – 25</span>
+            <small class="muted">(Días 10 y 25)</small>
+          </label>
+          <label class="cycle-option" style="display: flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 6px; cursor: pointer; background: white;">
+            <input type="radio" name="biweekly_cycle" value="15-30" onchange="recalculateSimulation()">
+            <span style="font-weight: 600;">Corte 15 – 30</span>
+            <small class="muted">(Días 15 y 30)</small>
+          </label>
+        </div>
+        <small class="muted" style="display: block; margin-top: 6px; font-size: 0.78rem;">
+          Al seleccionar la fecha de inicio, el sistema preselecciona automáticamente el ciclo que mejor coincide.
+        </small>
+      </div>
+    </div>
+
+    {# 4. Fecha de Inicio, Cuotas y Tasa Fija #}
+    <div>
+      <label style="font-weight: 700; margin-bottom: 4px; display: block;">Fecha de Desembolso / Solicitud *</label>
+      <input type="date" name="start_date" id="start_date_input" required onchange="onDateChange()" style="width: 100%;">
+    </div>
+
+    <div>
+      <label style="font-weight: 700; margin-bottom: 4px; display: block;">Número de Cuotas / Períodos *</label>
+      <input type="number" min="1" max="52" name="installments_count" id="installments_input" required value="1" oninput="recalculateSimulation()" style="width: 100%;">
+      <small class="muted" style="font-size: 0.78rem;">Default: 1 período (abono o liquidación total al corte)</small>
+    </div>
+
+    <div>
+      <label style="font-weight: 700; margin-bottom: 4px; display: block;">Tasa de Interés por Período</label>
+      <input type="text" value="{{ tasa_actual }}% fijo" readonly style="width: 100%; background: #f1f5f9; color: #475569; cursor: not-allowed; font-weight: 700;">
+      <small class="muted" style="font-size: 0.78rem;">Tasa fija del {{ tasa_actual }}% definida en Parámetros.</small>
+    </div>
+
+    {# Tipo de amortización oculto/técnico #}
+    <input type="hidden" name="amortization_type" value="frances">
+
+    {# 5. Panel de Simulación Ejecutiva en Tiempo Real #}
+    <div class="span-3" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 18px;">
+      <h3 style="margin: 0 0 12px 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: #334155; font-weight: 700;">
+        Resumen Financiero y Proyección de Cobro
+      </h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px;">
+          <span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block;">Capital Prestado</span>
+          <span id="sim_principal" style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">$0.00 USD</span>
+        </div>
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px;">
+          <span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block;">Interés Fijo ({{ tasa_actual }}%)</span>
+          <span id="sim_interest" style="font-size: 1.25rem; font-weight: 800; color: #2563eb;">$0.00 USD</span>
+        </div>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px;">
+          <span style="font-size: 0.75rem; color: #1e40af; text-transform: uppercase; font-weight: 700; display: block;">Total Exigible al Vencimiento</span>
+          <span id="sim_total" style="font-size: 1.35rem; font-weight: 800; color: #1e3a8a;">$0.00 USD</span>
+        </div>
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px;">
+          <span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block;">Fecha Estimada 1° Cobro</span>
+          <span id="sim_due_date" style="font-size: 1.15rem; font-weight: 700; color: #047857;">—</span>
+        </div>
+      </div>
+    </div>
+
+    {# 6. Comprobante de Desembolso / Transferencia #}
+    <div class="span-3" style="background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 16px;">
+      <label style="margin: 0 0 8px 0; font-weight: 700; color: #1e293b; display: block; font-size: 0.9rem;">
+        Comprobante de Envío de Dinero / Desembolso (Opcional)
+      </label>
+      <input type="file" name="disbursement_voucher" id="disbursement_voucher" accept=".pdf,image/*" style="display: none;">
+
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button type="button" class="btn btn-sm" onclick="triggerCameraCapture('disbursement_voucher', 'environment')"
+                style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 14px; color: #0f172a; cursor: pointer;">
+          {{ icon('camera', 16) }} <span>Tomar Foto con Cámara</span>
+        </button>
+        <button type="button" class="btn btn-sm" onclick="triggerFileGallery('disbursement_voucher')"
+                style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 14px; color: #475569; cursor: pointer;">
+          {{ icon('image', 16) }} <span>Subir Screenshot o Archivo</span>
+        </button>
+      </div>
+      <p class="hint" style="margin: 8px 0 0 0; font-size: 0.8rem; color: #64748b;">
+        En dispositivos móviles puede capturar el comprobante físico directamente con la cámara o seleccionar screenshots de transferencias.
       </p>
     </div>
   </div>
 
-  <div class="form-actions" style="margin-top: 20px;">
-    <button type="submit" class="btn btn-primary">Generar obligaciones y Desembolsar</button>
-    <a class="btn" href="{{ url_for('loans.list_loans') }}">Cancelar</a>
+  <div class="form-actions" style="margin-top: 24px; display: flex; gap: 12px;">
+    <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700;">
+      Aprobar y Desembolsar Crédito
+    </button>
+    <a class="btn" href="{{ url_for('loans.list_loans') }}" style="padding: 10px 18px;">Cancelar</a>
   </div>
 </form>
 
 <script>
+const RATE_PCT = parseFloat("{{ tasa_actual }}") || 20.0;
+
+function setPresetAmount(val) {
+  const input = document.getElementById('principal_input');
+  input.value = parseFloat(val).toFixed(2);
+  document.querySelectorAll('.btn-amount-chip').forEach(btn => {
+    if (btn.innerText.includes(val)) {
+      btn.style.background = '#2563eb';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#1d4ed8';
+    } else {
+      btn.style.background = '#ffffff';
+      btn.style.color = '#1e293b';
+      btn.style.borderColor = '#cbd5e1';
+    }
+  });
+  recalculateSimulation();
+}
+
+function onFrequencyChange() {
+  const freq = document.querySelector('input[name="frequency_type"]:checked').value;
+  const cycleContainer = document.getElementById('cycle_container');
+  const labelSem = document.getElementById('label_semanal');
+  const labelQuin = document.getElementById('label_quincenal');
+
+  if (freq === 'semanal') {
+    cycleContainer.style.display = 'none';
+    labelSem.style.borderColor = '#2563eb';
+    labelSem.style.background = '#eff6ff';
+    labelQuin.style.borderColor = '#cbd5e1';
+    labelQuin.style.background = '#ffffff';
+  } else {
+    cycleContainer.style.display = 'block';
+    labelQuin.style.borderColor = '#2563eb';
+    labelQuin.style.background = '#eff6ff';
+    labelSem.style.borderColor = '#cbd5e1';
+    labelSem.style.background = '#ffffff';
+  }
+  recalculateSimulation();
+}
+
+function onDateChange() {
+  const dateVal = document.getElementById('start_date_input').value;
+  if (!dateVal) return;
+  const d = new Date(dateVal + 'T00:00:00');
+  const day = d.getDate();
+
+  let suggested = '15-30';
+  if ((day >= 1 && day <= 5) || (day >= 16 && day <= 20)) {
+    suggested = '5-20';
+  } else if ((day >= 6 && day <= 10) || (day >= 21 && day <= 25)) {
+    suggested = '10-25';
+  }
+
+  const radio = document.querySelector(`input[name="biweekly_cycle"][value="${suggested}"]`);
+  if (radio) {
+    radio.checked = true;
+  }
+  recalculateSimulation();
+}
+
+function recalculateSimulation() {
+  const principal = parseFloat(document.getElementById('principal_input').value) || 0;
+  const interest = principal * (RATE_PCT / 100.0);
+  const total = principal + interest;
+
+  document.getElementById('sim_principal').innerText = `$${principal.toFixed(2)} USD`;
+  document.getElementById('sim_interest').innerText = `$${interest.toFixed(2)} USD`;
+  document.getElementById('sim_total').innerText = `$${total.toFixed(2)} USD`;
+
+  const dateVal = document.getElementById('start_date_input').value;
+  const simDue = document.getElementById('sim_due_date');
+  if (!dateVal) {
+    simDue.innerText = '—';
+    return;
+  }
+
+  const freq = document.querySelector('input[name="frequency_type"]:checked').value;
+  const baseDate = new Date(dateVal + 'T00:00:00');
+
+  if (freq === 'semanal') {
+    const due = new Date(baseDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    simDue.innerText = due.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  } else {
+    const cycleRadio = document.querySelector('input[name="biweekly_cycle"]:checked');
+    const cycle = cycleRadio ? cycleRadio.value : '5-20';
+    let cutDay1 = 5, cutDay2 = 20;
+    if (cycle === '10-25') { cutDay1 = 10; cutDay2 = 25; }
+    else if (cycle === '15-30') { cutDay1 = 15; cutDay2 = 30; }
+
+    const day = baseDate.getDate();
+    let y = baseDate.getFullYear();
+    let m = baseDate.getMonth();
+
+    let targetDate = null;
+    if (day < cutDay1 - 3) {
+      targetDate = new Date(y, m, cutDay1);
+    } else if (day < cutDay2 - 3) {
+      targetDate = new Date(y, m, cutDay2);
+    } else {
+      targetDate = new Date(y, m + 1, cutDay1);
+    }
+    simDue.innerText = targetDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+}
+
 function updateClientBankInfo() {
   const select = document.getElementById('client_select');
   const box = document.getElementById('client_bank_box');
@@ -116,22 +329,29 @@ function updateClientBankInfo() {
     content.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div>
-          <strong>${bank || 'Banco'}</strong>: <code style="background:white; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:1rem; border:1px solid #86efac;">${accNum || 'Sin número registrado'}</code>
-          ${holder ? `<small style="display:block; color:#166534; margin-top:2px;">Titular: ${holder}</small>` : ''}
+          <strong>${bank || 'Banco'}</strong>: <code style="background:white; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:1rem; border:1px solid #cbd5e1;">${accNum || 'Sin número registrado'}</code>
+          ${holder ? `<small style="display:block; color:#475569; margin-top:2px;">Titular: ${holder}</small>` : ''}
         </div>
-        ${accNum ? `<button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText('${accNum}'); this.innerText='¡Copiado!'; setTimeout(()=>this.innerText='Copiar', 2000);" style="background:white; border-color:#86efac; color:#15803d; font-size:0.75rem; padding:4px 8px;">Copiar Cuenta</button>` : ''}
+        ${accNum ? `<button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText('${accNum}'); this.innerText='¡Copiado!'; setTimeout(()=>this.innerText='Copiar', 2000);" style="background:white; border-color:#cbd5e1; color:#0f172a; font-size:0.75rem; padding:4px 8px;">Copiar Cuenta</button>` : ''}
       </div>
     `;
   } else {
     badge.style.display = 'none';
     content.innerHTML = `
-      <span style="color:#b45309;">⚠️ El cliente <strong>${name}</strong> no tiene cuenta bancaria registrada en su perfil.</span>
-      <a href="/clientes/${opt.value}/editar" target="_blank" style="font-size:0.82rem; margin-left:8px; color:#2563eb; text-decoration:underline;">Editar perfil del cliente ↗</a>
+      <span style="color:#b45309;">El titular <strong>${name}</strong> no tiene cuenta bancaria registrada para desembolso directo.</span>
+      <a href="/clientes/${opt.value}/editar" target="_blank" style="font-size:0.82rem; margin-left:8px; color:#2563eb; text-decoration:underline;">Completar expediente ↗</a>
     `;
   }
 }
 
-// Ejecutar al cargar la página si ya viene preseleccionado un cliente
-document.addEventListener('DOMContentLoaded', updateClientBankInfo);
+document.addEventListener('DOMContentLoaded', () => {
+  const dateInput = document.getElementById('start_date_input');
+  if (!dateInput.value) {
+    dateInput.valueAsDate = new Date();
+  }
+  onFrequencyChange();
+  onDateChange();
+  updateClientBankInfo();
+});
 </script>
 {% endblock %}

@@ -1,41 +1,72 @@
 {% extends "base.html" %}
-{% block title %}Préstamos · Cartera{% endblock %}
+{% block title %}Créditos (USD) · Cartera{% endblock %}
 {% block content %}
 <header class="page-head">
   <div>
-    <h1>Préstamos y Créditos</h1>
-    <p class="muted">Listado consolidado de créditos otorgados y planes de amortización</p>
+    <h1>Créditos y Préstamos (USD)</h1>
+    <p class="muted">Gestión de créditos activos, modalidades semanales y ciclos quincenales</p>
   </div>
   {% if current_user.has_permission('loans.create') %}
-  <a class="btn btn-primary" href="{{ url_for('loans.create') }}">+ Nuevo Préstamo</a>
+  <a class="btn btn-primary" href="{{ url_for('loans.create') }}">+ Nuevo Crédito</a>
   {% endif %}
 </header>
 
-<div class="card" style="padding: 16px 20px; margin-bottom: 20px;">
-  <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+{# Barra de Filtros Multifuncional #}
+<div class="card" style="padding: 18px 20px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+  <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 14px;">
     <div style="display: flex; gap: 12px; align-items: center; flex: 1; min-width: 280px;">
-      <input type="text" id="loan-search" placeholder="Buscar por código, cliente, identificación, valor o estado…" style="flex: 1; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 14px;">
+      <input type="text" id="loan-search" placeholder="Buscar por código, cliente, identificación o valor…" style="flex: 1; padding: 9px 14px; border-radius: var(--radius-sm); border: 1px solid #cbd5e1; font-size: 14px;">
     </div>
-    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-      <button type="button" class="btn btn-sm status-filter active" data-status="all" style="font-weight: 600;">Todos</button>
+    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+      <span class="muted" style="font-size: 0.8rem; font-weight: 600; margin-right: 4px;">Estado:</span>
+      <button type="button" class="btn btn-sm status-filter active" data-status="all">Todos</button>
       <button type="button" class="btn btn-sm status-filter" data-status="activo">Activos</button>
       <button type="button" class="btn btn-sm status-filter" data-status="mora" style="color: #ef4444;">En Mora</button>
       <button type="button" class="btn btn-sm status-filter" data-status="pagado" style="color: #10b981;">Pagados</button>
-      <span class="badge badge-info" id="loan-count" style="margin-left: 8px;">{{ loans|length }} préstamos</span>
+      <span class="badge badge-info" id="loan-count" style="margin-left: 8px;">{{ loans|length }} créditos</span>
+    </div>
+  </div>
+
+  {# Filtros de Modalidad, Ciclo Quincenal y Monto #}
+  <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #f1f5f9; font-size: 0.85rem;">
+    {# Modalidad #}
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <span style="color: #64748b; font-weight: 600;">Modalidad:</span>
+      <button type="button" class="btn btn-sm freq-filter active" data-freq="all" style="padding: 4px 10px; font-size: 0.78rem;">Todas</button>
+      <button type="button" class="btn btn-sm freq-filter" data-freq="semanal" style="padding: 4px 10px; font-size: 0.78rem;">Semanales</button>
+      <button type="button" class="btn btn-sm freq-filter" data-freq="quincenal" style="padding: 4px 10px; font-size: 0.78rem;">Quincenales</button>
+    </div>
+
+    {# Ciclo Quincenal #}
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <span style="color: #64748b; font-weight: 600;">Corte Quincenal:</span>
+      <button type="button" class="btn btn-sm cycle-filter active" data-cycle="all" style="padding: 4px 10px; font-size: 0.78rem;">Todos</button>
+      <button type="button" class="btn btn-sm cycle-filter" data-cycle="5-20" style="padding: 4px 10px; font-size: 0.78rem;">5–20</button>
+      <button type="button" class="btn btn-sm cycle-filter" data-cycle="10-25" style="padding: 4px 10px; font-size: 0.78rem;">10–25</button>
+      <button type="button" class="btn btn-sm cycle-filter" data-cycle="15-30" style="padding: 4px 10px; font-size: 0.78rem;">15–30</button>
+    </div>
+
+    {# Montos Rápidos #}
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <span style="color: #64748b; font-weight: 600;">Monto:</span>
+      <button type="button" class="btn btn-sm amount-filter active" data-amount="all" style="padding: 4px 10px; font-size: 0.78rem;">Todos</button>
+      {% for m in montos_disponibles %}
+      <button type="button" class="btn btn-sm amount-filter" data-amount="{{ m }}" style="padding: 4px 10px; font-size: 0.78rem;">${{ m }}</button>
+      {% endfor %}
     </div>
   </div>
 </div>
 
-<div class="card">
+<div class="card" style="border: 1px solid #e2e8f0;">
   <table id="loans-table">
     <thead>
       <tr>
         <th>Código</th>
-        <th>Cliente</th>
+        <th>Cliente Titular</th>
         <th>Fecha Inicio</th>
-        <th>Capital Inicial</th>
-        <th>Interés</th>
-        <th>Frecuencia</th>
+        <th>Capital Prestado</th>
+        <th>Modalidad & Ciclo</th>
+        <th>Tasa</th>
         <th>Cuotas</th>
         <th>Saldo Pendiente</th>
         <th>Estado</th>
@@ -43,15 +74,38 @@
     </thead>
     <tbody id="loans-tbody">
       {% for l in loans %}
-      <tr class="clickable-row loan-row" data-status="{{ l.status }}" onclick="window.location='{{ url_for('loans.detail', loan_id=l.id) }}';" style="cursor: pointer;">
+      <tr class="clickable-row loan-row"
+          data-status="{{ l.status }}"
+          data-freq="{{ l.frequency_type or ('semanal' if l.frequency_days == 7 else 'quincenal') }}"
+          data-cycle="{{ l.biweekly_cycle or '' }}"
+          data-amount="{{ l.principal|int }}"
+          onclick="window.location='{{ url_for('loans.detail', loan_id=l.id) }}';"
+          style="cursor: pointer;">
         <td><strong>{{ l.code }}</strong></td>
-        <td>{{ l.client.full_name }}</td>
+        <td>
+          <div style="font-weight: 600; color: #1e293b;">{{ l.client.full_name }}</div>
+          <small class="muted">{{ l.client.identification_type }}: {{ l.client.identification_number }}</small>
+        </td>
         <td>{{ l.start_date|d }}</td>
         <td><strong>{{ l.principal|money }}</strong></td>
+        <td>
+          {% if l.frequency_type == 'semanal' or l.frequency_days == 7 %}
+          <span class="badge" style="background: #eef2ff; color: #3730a3; font-weight: 600; border: 1px solid #c7d2fe;">
+            Semanal (7 días)
+          </span>
+          {% else %}
+          <span class="badge" style="background: #f0fdf4; color: #166534; font-weight: 600; border: 1px solid #bbf7d0;">
+            Q: {{ l.biweekly_cycle or 'Estándar' }}
+          </span>
+          {% endif %}
+        </td>
         <td>{{ (l.annual_rate * 100)|round(1) }}%</td>
-        <td><span class="badge">{{ 'Quincenal' if l.frequency_days == 15 else 'Mensual' if l.frequency_days == 30 else (l.frequency_days ~ ' días') }}</span></td>
         <td>{{ l.installments_count }}</td>
-        <td><strong style="color: {% if l.outstanding_balance > 0 %}#2563eb{% else %}#10b981{% endif %};">{{ l.outstanding_balance|money }}</strong></td>
+        <td>
+          <strong style="color: {% if l.outstanding_balance > 0 %}#2563eb{% else %}#10b981{% endif %}; font-size: 0.95rem;">
+            {{ l.outstanding_balance|money }}
+          </strong>
+        </td>
         <td>
           <span class="badge {% if l.status == 'pagado' %}badge-success{% elif l.status == 'mora' %}badge-danger{% else %}badge-info{% endif %}">
             {{ l.status|capitalize }}
@@ -59,7 +113,7 @@
         </td>
       </tr>
       {% else %}
-      <tr id="empty-row"><td colspan="9" class="muted center" style="padding: 30px 0;">No hay préstamos registrados.</td></tr>
+      <tr id="empty-row"><td colspan="9" class="muted center" style="padding: 30px 0;">No hay créditos registrados.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -70,20 +124,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('loan-search');
   const countBadge = document.getElementById('loan-count');
   const rows = Array.from(document.querySelectorAll('.loan-row'));
-  const filterBtns = Array.from(document.querySelectorAll('.status-filter'));
-  let currentStatus = 'all';
 
-  function filterLoans() {
+  let currentStatus = 'all';
+  let currentFreq = 'all';
+  let currentCycle = 'all';
+  let currentAmount = 'all';
+
+  function applyFilters() {
     const q = (searchInput?.value || '').toLowerCase().trim();
     let visible = 0;
 
     rows.forEach(r => {
       const text = r.textContent.toLowerCase();
       const status = r.dataset.status || '';
-      const matchesSearch = !q || text.includes(q);
-      const matchesStatus = currentStatus === 'all' || status === currentStatus;
+      const freq = r.dataset.freq || '';
+      const cycle = r.dataset.cycle || '';
+      const amount = r.dataset.amount || '';
 
-      if (matchesSearch && matchesStatus) {
+      const matchQ = !q || text.includes(q);
+      const matchStatus = currentStatus === 'all' || status === currentStatus;
+      const matchFreq = currentFreq === 'all' || freq === currentFreq;
+      const matchCycle = currentCycle === 'all' || cycle === currentCycle;
+      const matchAmount = currentAmount === 'all' || amount === currentAmount;
+
+      if (matchQ && matchStatus && matchFreq && matchCycle && matchAmount) {
         r.style.display = '';
         visible++;
       } else {
@@ -92,21 +156,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (countBadge) {
-      countBadge.textContent = `${visible} préstamo${visible !== 1 ? 's' : ''}`;
+      countBadge.innerText = `${visible} crédito(s)`;
     }
   }
 
-  filterBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      filterBtns.forEach(b => b.classList.remove('active', 'btn-primary'));
-      btn.classList.add('active', 'btn-primary');
+  // Event Listeners
+  searchInput?.addEventListener('input', applyFilters);
+
+  document.querySelectorAll('.status-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.status-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
       currentStatus = btn.dataset.status;
-      filterLoans();
+      applyFilters();
     });
   });
 
-  searchInput?.addEventListener('input', filterLoans);
+  document.querySelectorAll('.freq-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.freq-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFreq = btn.dataset.freq;
+      applyFilters();
+    });
+  });
+
+  document.querySelectorAll('.cycle-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cycle-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCycle = btn.dataset.cycle;
+      applyFilters();
+    });
+  });
+
+  document.querySelectorAll('.amount-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.amount-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentAmount = btn.dataset.amount;
+      applyFilters();
+    });
+  });
 });
 </script>
 {% endblock %}

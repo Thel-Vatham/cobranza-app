@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
 from ..extensions import db
@@ -17,24 +17,69 @@ bp = Blueprint("collections", __name__, url_prefix="/cobranza")
 def list_collections():
     today = datetime.utcnow().date()
     q = request.args.get("q", "").strip()
+    timing = request.args.get("timing", "vencidas").strip()
+    freq = request.args.get("freq", "").strip()
+    cycle = request.args.get("cycle", "").strip()
+    amount = request.args.get("amount", type=float)
 
-    overdue = []
-    obligations = Obligation.query.join(Loan).join(Client).all()
-    for o in obligations:
-        if o.status != "pagada" and o.due_date < today:
-            overdue.append(o)
+    is_admin = bool(current_user.role and current_user.role.name == "Administrador")
+    active_portfolio_id = session.get("active_portfolio_id")
+
+    query = Obligation.query.join(Loan).join(Client).filter(Obligation.status != "pagada")
+
+    if not is_admin:
+        if active_portfolio_id:
+            query = query.filter(Loan.portfolio_id == active_portfolio_id)
+        else:
+            query = query.filter(Obligation.id == -1)
+    else:
+        if active_portfolio_id:
+            query = query.filter(Loan.portfolio_id == active_portfolio_id)
+
+    if timing == "vencidas":
+        query = query.filter(Obligation.due_date < today)
+    elif timing == "hoy":
+        query = query.filter(Obligation.due_date == today)
+    elif timing == "semana":
+        next_week = today + timedelta(days=7)
+        query = query.filter(Obligation.due_date >= today, Obligation.due_date <= next_week)
+    elif timing == "todas":
+        pass  # Todas las cuotas pendientes
+
+    if freq:
+        query = query.filter(Loan.frequency_type == freq)
+    if cycle:
+        query = query.filter(Loan.biweekly_cycle == cycle)
+    if amount is not None:
+        query = query.filter(Loan.principal == amount)
 
     if q:
         like = f"%{q}%"
-        overdue = [
-            o for o in overdue
-            if like.strip("%") in (o.loan.client.full_name.lower() if o.loan.client else "")
-            or like.strip("%") in (o.loan.client.identification_number.lower() if o.loan.client else "")
-            or like.strip("%") in (o.loan.code.lower() if o.loan else "")
-        ]
+        query = query.filter(
+            (Client.first_name.ilike(like))
+            | (Client.last_name.ilike(like))
+            | (Client.identification_number.ilike(like))
+            | (Loan.code.ilike(like))
+        )
 
-    overdue.sort(key=lambda o: o.due_date)
-    return render_template("collections/list.html", overdue=overdue, today=today, q=q)
+    overdue = query.order_by(Obligation.due_date.asc(), Obligation.number.asc()).all()
+
+    # Montos configurados en parámetros
+    from ..models import Parameter
+    montos_raw = Parameter.get("montos_prestamo_disponibles", "75, 100, 125, 150")
+    montos_disponibles = [m.strip() for m in montos_raw.split(",") if m.strip()]
+
+    return render_template(
+        "collections/list.html",
+        overdue=overdue,
+        today=today,
+        q=q,
+        timing=timing,
+        freq=freq,
+        cycle=cycle,
+        amount=amount,
+        montos_disponibles=montos_disponibles,
+    )
 
 
 @bp.route("/gestion/<int:obligation_id>", methods=["GET", "POST"])

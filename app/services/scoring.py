@@ -29,21 +29,16 @@ def compute_score(client):
     max_days_late = max((o.days_late for o in obligations if o.status != "pagada"), default=0)
     overdue_count = sum(1 for o in obligations if o.status != "pagada" and o.days_late > 0)
 
-    # Pesos parametrizables leídos de Parámetros del Sistema (en porcentaje o decimal)
-    w_punctuality = Parameter.get_float("peso_puntualidad", 45.0)
-    w_compliance = Parameter.get_float("peso_cumplimiento", 35.0)
-    w_overdue = Parameter.get_float("peso_mora", 20.0)
-    dias_max = Parameter.get_float("dias_max_mora_score", 90.0)
+    # Tolerancia máxima de mora leída de los parámetros intuitivos (por defecto 30 días)
+    dias_max = Parameter.get_float("dias_max_mora_score", 30.0)
 
-    # Normalizar para admitir valores como 45% o 0.45
-    sum_w = w_punctuality + w_compliance + w_overdue
-    if sum_w > 0:
-        w_punctuality = w_punctuality / sum_w
-        w_compliance = w_compliance / sum_w
-        w_overdue = w_overdue / sum_w
+    # Ponderaciones estandarizadas de producción (45% puntualidad, 35% cumplimiento, 20% mora)
+    w_punctuality = 0.45
+    w_compliance = 0.35
+    w_overdue = 0.20
 
     # Penalización por mora: 100 -> 0 conforme aumentan los días (máx dias_max)
-    overdue_score = max(0.0, 1 - (max_days_late / max(1.0, dias_max)))
+    overdue_score = max(0.0, 1.0 - (max_days_late / max(1.0, dias_max)))
     # Ajuste adicional por cantidad de obligaciones vencidas
     overdue_score = max(0.0, overdue_score - (overdue_count * 0.05))
 
@@ -55,15 +50,15 @@ def compute_score(client):
 
     score = max(0, min(100, round(score)))
 
-    # Umbrales parametrizables
+    # Umbrales intuitivos parametrizables por el administrador
     u_excelente = Parameter.get_float("umbral_score_excelente", 80.0)
     u_bueno = Parameter.get_float("umbral_score_bueno", 60.0)
-    u_regular = Parameter.get_float("umbral_score_regular", 40.0)
+    u_regular = max(30.0, u_bueno - 20.0)
 
     if score >= u_excelente:
-        band = "Excelente (Riesgo Bajo)"
+        band = "Excelente"
     elif score >= u_bueno:
-        band = "Bueno (Riesgo Medio)"
+        band = "Bueno"
     elif score >= u_regular:
         band = "Regular"
     else:

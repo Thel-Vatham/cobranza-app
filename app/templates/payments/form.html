@@ -31,10 +31,26 @@
     <label>Número de recibo
       <input type="text" name="receipt_number" placeholder="Opcional">
     </label>
-    <label class="span-3">Comprobante del pago (imagen o archivo)
-      <input type="file" name="comprobante" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.txt,.csv">
-      <small class="muted">Adjunte el soporte documental de este pago.</small>
-    </label>
+    <div class="span-3" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-top: 4px;">
+      <label style="display: block; font-size: 0.84rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">
+        Comprobante o Soporte del Pago (Imagen, Screenshot o PDF)
+      </label>
+      <input type="file" name="comprobante" id="comprobante" accept=".pdf,image/*" style="display: none;">
+      
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button type="button" class="btn btn-sm" onclick="triggerCameraCapture('comprobante', 'environment')"
+                style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 14px; color: #0f172a; cursor: pointer;">
+          {{ icon('camera', 16) }} <span>Tomar Foto con Cámara</span>
+        </button>
+        <button type="button" class="btn btn-sm" onclick="triggerFileGallery('comprobante')"
+                style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 14px; color: #475569; cursor: pointer;">
+          {{ icon('image', 16) }} <span>Subir Screenshot o Archivo</span>
+        </button>
+      </div>
+      <small style="display: block; margin-top: 6px; font-size: 0.78rem; color: #64748b;">
+        En dispositivos móviles puede capturar el recibo físico directamente con la cámara o seleccionar capturas de pantalla de transferencias.
+      </small>
+    </div>
   </div>
   <div class="form-actions">
     <button type="submit" class="btn btn-primary">Aplicar pago</button>
