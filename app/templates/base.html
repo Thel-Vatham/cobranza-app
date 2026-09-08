@@ -51,6 +51,19 @@
       </div>
 
       <nav class="nav">
+        {% if current_user.role and current_user.role.name == "Consulta" %}
+        {# ── MENÚ EXCLUSIVO ASESORÍA / CONSULTORÍA ── #}
+        <a href="{{ url_for('advisor.index') }}" title="Panel Asesoría" class="{% if request.blueprint == 'advisor' and request.endpoint == 'advisor.index' %}active{% endif %}">
+          {{ icon('dashboard', 18) }}<span class="nav-label">Panel Asesoría</span>
+        </a>
+        <a href="{{ url_for('advisor.notifications') }}" title="Notificaciones" class="{% if request.endpoint == 'advisor.notifications' %}active{% endif %}">
+          {{ icon('clipboard', 18) }}<span class="nav-label">Notificaciones</span>
+          {% if unread_notifs_count > 0 %}
+          <span class="badge badge-danger" style="margin-left: auto; font-size: 0.7rem;">{{ unread_notifs_count }}</span>
+          {% endif %}
+        </a>
+        {% else %}
+        {# ── MENÚ ESTÁNDAR: ADMINISTRADOR Y GESTIÓN ── #}
         {% if current_user.has_permission('dashboard.view') %}
         <a href="{{ url_for('dashboard.index') }}" title="Panel principal" class="{% if request.endpoint == 'dashboard.index' %}active{% endif %}">{{ icon('dashboard', 18) }}<span class="nav-label">Panel principal</span></a>
         {% endif %}
@@ -58,6 +71,7 @@
         <div class="nav-section open">
           <button class="nav-section-btn" type="button" aria-expanded="true">Gestión {{ icon('chevron', 14, 'chevron') }}</button>
           <div class="nav-section-body">
+            <a href="{{ url_for('portfolios.list_portfolios') }}" title="Carteras" class="{% if request.blueprint == 'portfolios' %}active{% endif %}">{{ icon('folder', 18) }}<span class="nav-label">Carteras</span></a>
             {% if current_user.has_permission('clients.view') %}
             <a href="{{ url_for('clients.list_clients') }}" title="Clientes" class="{% if request.blueprint == 'clients' %}active{% endif %}">{{ icon('users', 18) }}<span class="nav-label">Clientes</span></a>
             {% endif %}
@@ -108,6 +122,7 @@
           </div>
         </div>
         {% endif %}
+        {% endif %}
       </nav>
 
       <div class="sidebar-footer">
@@ -123,6 +138,72 @@
     </aside>
 
     <main class="content">
+      {# Barra Superior de Selección y Alternancia de Cartera #}
+      {% if not (current_user.role and current_user.role.name == "Consulta") %}
+      <div class="portfolio-switcher-bar" style="margin-bottom: 24px; padding: 10px 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(15,23,42,0.04);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: #eff6ff; color: #2563eb; border-radius: 8px;">
+            {{ icon('folder', 15) }}
+          </span>
+          <span style="color: #64748b; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Cartera:</span>
+          <div style="position: relative; display: inline-block;">
+            <button class="btn btn-sm" id="portfolioDropdownBtn" type="button" style="padding: 6px 14px; font-size: 0.84rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; color: #0f172a; cursor: pointer; transition: all 0.15s ease;">
+              {% if active_portfolio %}
+                <span style="display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+                <span>{{ active_portfolio.name }}</span>
+                <span style="color: #64748b; font-weight: 500; font-size: 0.8rem;">(${{ "%.2f"|format(active_portfolio.assigned_capital_usd|float) }} USD)</span>
+              {% elif current_user.role and current_user.role.name == "Administrador" %}
+                <span style="display: inline-block; width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></span>
+                <span>Vista Consolidada (Global)</span>
+              {% else %}
+                <span style="display: inline-block; width: 8px; height: 8px; background: #f59e0b; border-radius: 50%;"></span>
+                <span style="color: #64748b;">Sin cartera asignada</span>
+              {% endif %}
+              <span style="color: #94a3b8; display: inline-flex; align-items: center;">{{ icon('chevron', 12) }}</span>
+            </button>
+            <div id="portfolioDropdownMenu" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 9999; min-width: 280px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05); padding: 6px; animation: fadeIn 0.15s ease;">
+              {% if current_user.role and current_user.role.name == "Administrador" %}
+              <a href="{{ url_for('portfolios.switch', portfolio_id=0) }}" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #0f172a; text-decoration: none; font-size: 0.82rem; font-weight: {% if not active_portfolio %}600{% else %}400{% endif %}; border-radius: 6px; background: {% if not active_portfolio %}#eff6ff{% else %}transparent{% endif %};">
+                <span style="color: #3b82f6;">{{ icon('globe', 14) }}</span>
+                <span>Vista Consolidada (Todas las carteras)</span>
+              </a>
+              <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
+              {% endif %}
+              {% for p in available_portfolios %}
+              <a href="{{ url_for('portfolios.switch', portfolio_id=p.id) }}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; color: #0f172a; text-decoration: none; font-size: 0.82rem; font-weight: {% if active_portfolio and active_portfolio.id == p.id %}600{% else %}400{% endif %}; border-radius: 6px; background: {% if active_portfolio and active_portfolio.id == p.id %}#eff6ff{% else %}transparent{% endif %};">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #64748b;">{{ icon('folder', 14) }}</span>
+                  <span>{{ p.name }}</span>
+                </div>
+                <span style="font-size: 0.76rem; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${{ "%.0f"|format(p.assigned_capital_usd|float) }}</span>
+              </a>
+              {% endfor %}
+              {% if current_user.role and current_user.role.name == "Administrador" %}
+              <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
+              <a href="{{ url_for('portfolios.create') }}" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #2563eb; text-decoration: none; font-size: 0.82rem; font-weight: 600; border-radius: 6px;">
+                <span>{{ icon('plus', 14) }}</span>
+                <span>Nueva Cartera</span>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% if active_portfolio %}
+        <div style="display: flex; align-items: center; gap: 14px; font-size: 0.82rem; background: #f8fafc; padding: 5px 12px; border-radius: 8px; border: 1px solid #f1f5f9;">
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <span style="color: #64748b;">Presupuesto:</span>
+            <span style="font-weight: 700; color: #0f172a;">${{ "%.2f"|format(active_portfolio.assigned_capital_usd|float) }} USD</span>
+          </div>
+          <span style="color: #cbd5e1;">|</span>
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <span style="color: #64748b;">Disponible:</span>
+            <span style="font-weight: 700; color: #059669; background: #ecfdf5; padding: 2px 8px; border-radius: 6px;">${{ "%.2f"|format(active_portfolio.capital_disponible|float) }} USD</span>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           <div class="flash-stack">
@@ -138,6 +219,20 @@
 
   {# Bottom Navigation Bar fija (tipo App Nativa en móvil) #}
   <nav class="mobile-bottom-nav">
+    {% if current_user.role and current_user.role.name == "Consulta" %}
+    <a href="{{ url_for('advisor.index') }}" class="bottom-nav-item {% if request.blueprint == 'advisor' and request.endpoint == 'advisor.index' %}active{% endif %}">
+      {{ icon('dashboard', 20) }}
+      <span>Asesoría</span>
+    </a>
+    <a href="{{ url_for('advisor.notifications') }}" class="bottom-nav-item {% if request.endpoint == 'advisor.notifications' %}active{% endif %}">
+      {{ icon('clipboard', 20) }}
+      <span>Avisos</span>
+    </a>
+    <a href="{{ url_for('auth.logout') }}" class="bottom-nav-item">
+      {{ icon('logout', 20) }}
+      <span>Salir</span>
+    </a>
+    {% else %}
     <a href="{{ url_for('dashboard.index') }}" class="bottom-nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
       {{ icon('dashboard', 20) }}
       <span>Inicio</span>
@@ -160,6 +255,7 @@
       {{ icon('banknote', 20) }}
       <span>Pagos</span>
     </a>
+    {% endif %}
     {% endif %}
   </nav>
 
@@ -295,6 +391,24 @@
   {% block auth %}{% endblock %}
   {% endif %}
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/camera-uploader.js') }}"></script>
+  <script>
+    (function() {
+      const portBtn = document.getElementById('portfolioDropdownBtn');
+      const portMenu = document.getElementById('portfolioDropdownMenu');
+      if (portBtn && portMenu) {
+        portBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          portMenu.style.display = portMenu.style.display === 'none' ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+          if (!portMenu.contains(e.target) && e.target !== portBtn) {
+            portMenu.style.display = 'none';
+          }
+        });
+      }
+    })();
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

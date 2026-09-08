@@ -1,8 +1,8 @@
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
 from ..extensions import db
-from ..models import Client, Document, Reference
+from ..models import Client, ClientReferral, Document, Notification, Portfolio, Reference, User
 from ..services.decorators import permission_required
 from ..services.documents import allowed, create_document
 from ..services.financial import log_audit
@@ -23,6 +23,22 @@ def _generate_code():
 def list_clients():
     q = request.args.get("q", "").strip()
     query = Client.query
+
+    is_admin = bool(current_user.role and current_user.role.name == "Administrador")
+    active_portfolio_id = session.get("active_portfolio_id")
+
+    # Aislamiento de cartera: el operador solo ve clientes de su cartera activa
+    if not is_admin:
+        if active_portfolio_id:
+            query = query.filter_by(portfolio_id=active_portfolio_id)
+        else:
+            # Si el operador no tiene ninguna cartera activa seleccionada, no mostrar clientes de otros
+            query = query.filter(Client.id == -1)
+    else:
+        # El admin por defecto ve todo, o filtra por cartera activa si seleccionó una específica
+        if active_portfolio_id:
+            query = query.filter_by(portfolio_id=active_portfolio_id)
+
     if q:
         like = f"%{q}%"
         query = query.filter(
@@ -32,7 +48,7 @@ def list_clients():
             | (Client.code.ilike(like))
         )
     clients = query.order_by(Client.created_at.desc()).all()
-    return render_template("clients/list.html", clients=clients, q=q)
+    return render_template("clients/list.html", clients=clients, q=q, is_admin=is_admin)
 
 
 @bp.route("/ocr", methods=["POST"])
@@ -85,8 +101,21 @@ def create():
         last_name = request.form.get("last_name", "").strip()
         identification_number = request.form.get("identification_number", "").strip()
 
+        is_admin = bool(current_user.role and current_user.role.name == "Administrador")
+        portfolio_id = None
+        if not is_admin:
+            portfolio_id = session.get("active_portfolio_id")
+        else:
+            portfolio_id = request.form.get("portfolio_id", type=int) or session.get("active_portfolio_id")
+
+        if not portfolio_id:
+            first_p = Portfolio.query.first()
+            if first_p:
+                portfolio_id = first_p.id
+
         client = Client(
             code=_generate_code(),
+            portfolio_id=portfolio_id,
             first_name=first_name,
             last_name=last_name,
             identification_type=request.form.get("identification_type", "CC"),
@@ -116,12 +145,14 @@ def create():
 
         if not client.first_name or not client.identification_number:
             flash("Nombre e identificación son obligatorios.", "danger")
-            return render_template("clients/form.html", client=client)
+            portfolios = Portfolio.query.filter_by(status="activa").all()
+            return render_template("clients/form.html", client=client, portfolios=portfolios, is_admin=is_admin)
 
         ref_names = [n.strip() for n in request.form.getlist("ref_name") if n.strip()]
         if len(ref_names) != 2:
             flash("Debe ingresar exactamente dos (2) referencias o codeudores (mínimo y máximo 2).", "danger")
-            return render_template("clients/form.html", client=client)
+            portfolios = Portfolio.query.filter_by(status="activa").all()
+            return render_template("clients/form.html", client=client, portfolios=portfolios, is_admin=is_admin)
 
         db.session.add(client)
         db.session.flush()
@@ -131,7 +162,10 @@ def create():
         db.session.commit()
         flash(f"Cliente {client.full_name} creado con éxito.", "success")
         return redirect(url_for("clients.detail", client_id=client.id))
-    return render_template("clients/form.html", client=None)
+
+    is_admin = bool(current_user.role and current_user.role.name == "Administrador")
+    portfolios = Portfolio.query.filter_by(status="activa").all()
+    return render_template("clients/form.html", client=None, portfolios=portfolios, is_admin=is_admin)
 
 
 def _save_client_documents(client):
@@ -140,34 +174,32 @@ def _save_client_documents(client):
         ("debtor_photo", "foto_deudor"),
         ("work_photo", "foto_trabajo"),
         ("facade_photo", "fachada"),
-        ("address_photo", "fachada"),  # alias de compatibilidad
+        ("id_doc", "identificacion"),
         ("id_document", "identificacion"),
     ]
     for field_name, doc_type in uploads:
         file = request.files.get(field_name)
-        if file and file.filename and allowed(file.filename):
+        if file and getattr(file, "filename", None):
             create_document("cliente", client.id, doc_type, file, current_user.id)
 
 
-@bp.route("/<int:client_id>/documentos", methods=["POST"])
-@login_required
-@permission_required("clients.edit")
-def add_document(client_id):
-    client = Client.query.get_or_404(client_id)
-    doc_type = request.form.get("doc_type", "otro")
-    file = request.files.get("file")
-
-    if not file or not file.filename:
-        flash("Debe seleccionar un archivo.", "danger")
-    elif not allowed(file.filename):
-        flash("Formato de archivo no permitido.", "danger")
-    else:
-        create_document("cliente", client.id, doc_type, file, current_user.id)
-        log_audit(current_user.id, "Cargar documento de cliente", "Documento", None, f"Cliente {client.full_name}: {file.filename}")
-        db.session.commit()
-        flash("Documento asociado al cliente.", "success")
-
-    return redirect(url_for("clients.detail", client_id=client.id))
+def _update_client_documents(client):
+    """Actualiza o reemplaza documentos fotográficos del expediente si se subieron nuevos archivos."""
+    uploads = [
+        ("debtor_photo", "foto_deudor"),
+        ("work_photo", "foto_trabajo"),
+        ("facade_photo", "fachada"),
+        ("id_doc", "identificacion"),
+        ("id_document", "identificacion"),
+    ]
+    for field_name, doc_type in uploads:
+        file = request.files.get(field_name)
+        if file and getattr(file, "filename", None):
+            old_docs = Document.query.filter_by(entity_type="cliente", entity_id=client.id, doc_type=doc_type).all()
+            for old in old_docs:
+                db.session.delete(old)
+            db.session.flush()
+            create_document("cliente", client.id, doc_type, file, current_user.id)
 
 
 def _save_references(client):
@@ -197,7 +229,7 @@ def detail(client_id):
     score = compute_score(client)
     all_docs = Document.query.filter_by(entity_type="cliente", entity_id=client.id).order_by(Document.uploaded_at.desc()).all()
 
-    # Clasificación específica para la Hoja de Vida
+    # Clasificación de evidencias fotográficas para el expediente
     debtor_photo = next((d for d in all_docs if d.doc_type in ("foto_deudor", "perfil")), None)
     work_photo = next((d for d in all_docs if d.doc_type in ("foto_trabajo", "trabajo")), None)
     facade_photo = next((d for d in all_docs if d.doc_type in ("fachada", "domicilio")), None)
@@ -209,6 +241,14 @@ def detail(client_id):
     total_principal = sum(float(l.principal) for l in client.loans)
     total_balance = sum(float(l.outstanding_balance) for l in client.loans)
     total_paid = max(0.0, total_principal - total_balance)
+
+    # Asesores disponibles para remisión (usuarios con rol Consulta o activos)
+    advisors = User.query.filter(User.role.has(name="Consulta"), User.active == True).all()
+    if not advisors:
+        advisors = User.query.filter_by(active=True).all()
+
+    referrals = client.referrals
+
     return render_template(
         "clients/detail.html",
         client=client,
@@ -222,7 +262,66 @@ def detail(client_id):
         total_principal=total_principal,
         total_balance=total_balance,
         total_paid=total_paid,
+        advisors=advisors,
+        referrals=referrals,
     )
+
+
+@bp.route("/<int:client_id>/enviar-asesor", methods=["POST"])
+@login_required
+def send_to_advisor(client_id):
+    client = Client.query.get_or_404(client_id)
+    advisor_id = request.form.get("advisor_id", type=int)
+    reason = request.form.get("reason", "").strip() or "Evaluación y Asesoría de Crédito"
+    notes = request.form.get("notes", "").strip()
+
+    advisor = User.query.get(advisor_id) if advisor_id else None
+    if not advisor:
+        advisor = User.query.filter(User.role.has(name="Consulta"), User.active == True).first()
+
+    referral = ClientReferral(
+        client_id=client.id,
+        referred_by_id=current_user.id,
+        advisor_id=advisor.id if advisor else None,
+        reason=reason,
+        notes=notes,
+        status="pendiente",
+    )
+    client.referred_to_advisor = True
+    db.session.add(referral)
+
+    if advisor:
+        notif = Notification(
+            user_id=advisor.id,
+            title=f"Nuevo cliente remitido: {client.full_name}",
+            message=f"{current_user.full_name or current_user.username} te ha remitido al cliente {client.full_name}. Motivo: {reason}. {notes}",
+            link=url_for("advisor.client_detail", client_id=client.id),
+        )
+        db.session.add(notif)
+
+    db.session.commit()
+    log_audit(current_user.id, "Remitir a asesor", "Cliente", client.id, f"{client.full_name} -> {advisor.full_name if advisor else 'Asesor'}")
+    db.session.commit()
+
+    flash(f"Cliente '{client.full_name}' ha sido enviado al asesor correctamente.", "success")
+    return redirect(url_for("clients.detail", client_id=client.id))
+
+
+@bp.route("/<int:client_id>/documentos", methods=["POST"])
+@login_required
+@permission_required("clients.edit")
+def add_document(client_id):
+    client = Client.query.get_or_404(client_id)
+    doc_type = request.form.get("doc_type", "otro")
+    file = request.files.get("file")
+    if file and getattr(file, "filename", None) and allowed(file.filename):
+        create_document("cliente", client.id, doc_type, file, current_user.id)
+        log_audit(current_user.id, "Cargar documento", "Documento", None, f"Cliente {client.full_name}")
+        db.session.commit()
+        flash("Documento asociado al expediente del cliente.", "success")
+    else:
+        flash("Archivo no válido o no seleccionado.", "warning")
+    return redirect(url_for("clients.detail", client_id=client.id))
 
 
 @bp.route("/<int:client_id>/editar", methods=["GET", "POST"])
@@ -275,7 +374,7 @@ def edit(client_id):
 
         client.references.clear()
         _save_references(client)
-        _save_client_documents(client)
+        _update_client_documents(client)
         log_audit(current_user.id, "Editar cliente", "Cliente", client.id, client.full_name)
         db.session.commit()
         flash("Cliente actualizado con éxito.", "success")

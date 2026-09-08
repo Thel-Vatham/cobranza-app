@@ -37,6 +37,14 @@
           <td data-label="Código"><strong>{{ c.code }}</strong></td>
           <td data-label="Nombre">
             <strong style="color: var(--text);">{{ c.full_name }}</strong>
+            {% if c.portfolio %}
+            <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 0.7rem; border: 1px solid #e2e8f0; margin-left: 4px;">
+              📁 {{ c.portfolio.name }}
+            </span>
+            {% endif %}
+            {% if c.referred_to_advisor %}
+            <span class="badge badge-warning" style="font-size: 0.68rem; margin-left: 4px;">En Asesoría</span>
+            {% endif %}
           </td>
           <td data-label="Identificación">{{ c.identification_type }} {{ c.identification_number }}</td>
           <td data-label="Teléfono">{{ c.phone or '—' }}</td>

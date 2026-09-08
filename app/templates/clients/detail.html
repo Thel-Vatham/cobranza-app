@@ -1,56 +1,71 @@
 {% extends "base.html" %}
-{% block title %}Hoja de Vida: {{ client.full_name }} · Cartera{% endblock %}
+{% block title %}Expediente: {{ client.full_name }} · Cartera{% endblock %}
 {% block content %}
-{# ────────────────── HEADER HOJA DE VIDA ────────────────── #}
-<header class="page-head cv-page-head" style="margin-bottom: 24px;">
-  <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-    {# Avatar o Fotografía Real del Deudor #}
-    <div class="cv-avatar-container">
-      {% if debtor_photo %}
-      <img src="{{ url_for('documents.view_raw', document_id=debtor_photo.id) }}" alt="Foto de {{ client.full_name }}" class="cv-avatar-img" onclick="openPhotoModal(this.src, 'Foto del Deudor: {{ client.full_name }}')">
-      <span class="cv-avatar-badge" title="Foto de perfil verificada">{{ icon('check', 12) }}</span>
-      {% else %}
-      <div class="avatar cv-avatar-fallback">
-        {{ client.first_name[:1] }}{{ client.last_name[:1] }}
-      </div>
-      <span class="cv-avatar-badge-missing" title="Foto pendiente">+ Foto</span>
-      {% endif %}
+{# ────────────────── HEADER EXPEDIENTE DE CLIENTE ────────────────── #}
+<header class="cv-page-head" style="margin-bottom: 24px;">
+  {# Columna Izquierda: Recuadro grande de Fotografía / Avatar del Titular #}
+  <div class="cv-avatar-container">
+    {% if debtor_photo %}
+    <img src="{{ url_for('documents.view_raw', document_id=debtor_photo.id) }}" alt="Foto de {{ client.full_name }}" class="cv-avatar-img" onclick="openPhotoModal(this.src, 'Fotografía del Titular: {{ client.full_name }}')" title="Ampliar fotografía">
+    <span class="cv-avatar-badge" title="Titular verificado">{{ icon('check', 13) }}</span>
+    {% else %}
+    <div class="avatar cv-avatar-fallback" title="Sin fotografía registrada">
+      {{ client.first_name[:1] }}{{ client.last_name[:1] }}
     </div>
-
-    <div>
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <h1 style="margin: 0; font-size: 1.65rem; font-weight: 800; color: var(--text);">{{ client.full_name }}</h1>
-        <span class="badge badge-info" style="font-weight: 700; font-size: 0.82rem;">{{ client.code }}</span>
-      </div>
-
-      {# Subtítulo Laboral de Hoja de Vida #}
-      <div style="margin-top: 4px; font-size: 1.02rem; color: var(--text-soft); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        {% if client.job_title or client.employer_name %}
-        <strong style="color: var(--primary);">{{ client.job_title or 'Ocupación' }}</strong>
-        <span>en</span>
-        <strong>{{ client.employer_name or 'Empresa no registrada' }}</strong>
-        <span class="muted">·</span>
-        {% endif %}
-        <span class="badge" style="background: #e2e8f0; color: #334155; font-weight: 600;">
-          {{ client.identification_type }}: {{ client.identification_number }}
-        </span>
-        <span class="muted" style="font-size: 0.88rem;">📍 {{ client.city or 'Colombia' }}</span>
-      </div>
-    </div>
+    <span class="cv-avatar-badge-missing" title="Foto pendiente">Sin foto</span>
+    {% endif %}
   </div>
 
-  {# Acciones Principales y Botón de Impresión #}
-  <div class="btn-group no-print">
-    <a class="btn" href="{{ url_for('clients.list_clients') }}">← Volver</a>
-    <button type="button" class="btn btn-outline" onclick="window.print()" title="Imprimir o guardar en PDF la Hoja de Vida">
-      🖨️ Imprimir Hoja de Vida
-    </button>
-    {% if current_user.has_permission('clients.edit') %}
-    <a class="btn" href="{{ url_for('clients.edit', client_id=client.id) }}">Editar Hoja de Vida</a>
-    {% endif %}
-    {% if current_user.has_permission('loans.create') %}
-    <a class="btn btn-primary" href="{{ url_for('loans.create') }}?client_id={{ client.id }}">+ Nuevo Préstamo</a>
-    {% endif %}
+  {# Columna Derecha: Información del titular y Acciones hacia la derecha #}
+  <div class="cv-info-container">
+    <div>
+      {# Fila 1: Nombre, Código, Cartera y Estado de Asesoría #}
+      <div class="cv-title-row">
+        <h1 class="cv-title">{{ client.full_name }}</h1>
+        <span class="badge badge-info cv-code-badge">{{ client.code }}</span>
+        {% if client.portfolio %}
+        <span class="badge cv-portfolio-badge">
+          📁 {{ client.portfolio.name }}
+        </span>
+        {% endif %}
+        {% if client.referred_to_advisor %}
+        <span class="badge badge-warning cv-advisor-badge">
+          {{ icon('shield', 12) }} En Asesoría
+        </span>
+        {% endif %}
+      </div>
+
+      {# Fila 2: Subtítulo Laboral, Documento de Identidad y Ubicación #}
+      <div class="cv-meta-row">
+        {% if client.job_title or client.employer_name %}
+        <span class="cv-job-title">{{ client.job_title or 'Ocupación' }}</span>
+        <span class="muted">en</span>
+        <span class="cv-employer">{{ client.employer_name or 'Empresa no registrada' }}</span>
+        <span class="muted">·</span>
+        {% endif %}
+        <span class="badge cv-id-badge">
+          {{ client.identification_type }}: {{ client.identification_number }}
+        </span>
+        <span class="muted" style="font-size: 0.88rem;">{{ client.city or '' }} {{ client.country or 'Colombia' }}</span>
+      </div>
+    </div>
+
+    {# Fila 3: Botonera de Acciones (alineada a la derecha de la foto) #}
+    <div class="btn-group no-print cv-actions-row">
+      <a class="btn" href="{{ url_for('clients.list_clients') }}" style="font-weight: 600;">← Volver</a>
+      <button type="button" class="btn btn-secondary" onclick="openEnviarAsesorModal()" style="border-color: #93c5fd; color: #1d4ed8; background: #eff6ff; font-weight: 700;">
+        {{ icon('shield', 15) }} Enviar a Asesor
+      </button>
+      <button type="button" class="btn btn-outline" onclick="window.print()" title="Imprimir expediente completo">
+        Imprimir (PDF)
+      </button>
+      {% if current_user.has_permission('clients.edit') %}
+      <a class="btn" href="{{ url_for('clients.edit', client_id=client.id) }}">Editar</a>
+      {% endif %}
+      {% if current_user.has_permission('loans.create') %}
+      <a class="btn btn-primary" href="{{ url_for('loans.create') }}?client_id={{ client.id }}" style="font-weight: 700;">+ Nuevo Crédito</a>
+      {% endif %}
+    </div>
   </div>
 </header>
 
@@ -88,15 +103,15 @@
 </div>
 
 {# ────────────────── EXPEDIENTE VISUAL FOTOGRÁFICO (4 FOTOS) ────────────────── #}
-<section class="card cv-section" style="margin-bottom: 24px;">
+<section class="card cv-section" style="margin-bottom: 24px; border: 1px solid #e2e8f0;">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
     <div>
-      <h2 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-        📸 Expediente Visual y Evidencias Fotográficas
+      <h2 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a;">
+        Evidencias y Verificación Documental Fotográfica
       </h2>
       <p class="muted" style="margin: 2px 0 0 0; font-size: 0.85rem;">Fotografías de verificación del titular, lugar de trabajo, fachada del domicilio y documento de identidad</p>
     </div>
-    <span class="badge badge-info">4 Soportes Obligatorios</span>
+    <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 600; border: 1px solid #cbd5e1;">4 Soportes Registrados</span>
   </div>
 
   <div class="grid grid-4" style="gap: 16px;">
@@ -220,7 +235,7 @@
 
 {# ────────────────── FICHA LABORAL Y DE CONTACTO ────────────────── #}
 <div class="grid grid-2" style="margin-bottom: 24px; gap: 20px;">
-  {# Columna 1: Información Laboral (Hoja de Vida) #}
+  {# Columna 1: Información Laboral y de Empleo #}
   <section class="card" style="display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
       <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
@@ -348,7 +363,7 @@
           <span style="font-size: 0.88rem; font-weight: 600;">{{ client.city or '' }} {{ client.country or 'Colombia' }}</span>
         </div>
         <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
-          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Apertura Hoja de Vida</small>
+          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Apertura de Expediente</small>
           <span style="font-size: 0.88rem;">{{ client.created_at|d if client.created_at else '—' }}</span>
         </div>
       </div>
@@ -658,10 +673,10 @@
 {% if current_user.has_permission('clients.edit') %}
 <section class="card no-print">
   <div style="background: var(--bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-    <strong style="display: block; font-size: 0.95rem; margin-bottom: 8px;">+ Adjuntar Documento Adicional al Expediente</strong>
+    <strong style="display: block; font-size: 0.95rem; margin-bottom: 8px;">+ Adjuntar Documento o Foto al Expediente</strong>
     <form class="inline-upload" method="post" action="{{ url_for('clients.add_document', client_id=client.id) }}" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <select name="doc_type" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+      <select name="doc_type" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.88rem;">
         <option value="foto_deudor">Foto del Deudor</option>
         <option value="foto_trabajo">Foto del Trabajo</option>
         <option value="fachada">Foto de Fachada</option>
@@ -671,8 +686,23 @@
         <option value="pagaré">Pagaré</option>
         <option value="otro">Otro Documento</option>
       </select>
-      <input type="file" name="file" required style="padding: 6px; font-size: 0.85rem;">
-      <button class="btn btn-sm btn-primary" type="submit">Subir al Expediente</button>
+      
+      <input type="file" name="file" id="client_extra_file" required style="display: none;">
+
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn btn-sm" onclick="triggerCameraCapture('client_extra_file', 'environment')"
+                style="display: inline-flex; align-items: center; gap: 5px; font-weight: 700; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 12px; font-size: 0.82rem; color: #0f172a; cursor: pointer;">
+          {{ icon('camera', 14) }} <span>Tomar Foto</span>
+        </button>
+        <button type="button" class="btn btn-sm" onclick="triggerFileGallery('client_extra_file')"
+                style="display: inline-flex; align-items: center; gap: 5px; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 12px; font-size: 0.82rem; color: #475569; cursor: pointer;">
+          {{ icon('image', 14) }} <span>Galería / Archivo</span>
+        </button>
+      </div>
+
+      <button class="btn btn-sm btn-primary" type="submit" style="padding: 7px 16px; font-weight: 700; font-size: 0.84rem;">
+        Subir al Expediente
+      </button>
     </form>
   </div>
 </section>
@@ -688,6 +718,53 @@
     <div style="text-align: center; max-height: 80vh; overflow: auto;">
       <img id="photoModalImg" src="" alt="Evidencia en alta resolución" style="max-width: 100%; max-height: 75vh; border-radius: 6px; object-fit: contain;">
     </div>
+  </div>
+</div>
+
+{# ────────────────── MODAL ENVIAR A ASESOR ────────────────── #}
+<div id="modalEnviarAsesor" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: #ffffff; border-radius: 12px; max-width: 520px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25); overflow: hidden;">
+    <div style="padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+        {{ icon('shield', 18) }} Remitir Cliente a Asesoría
+      </h3>
+      <button type="button" onclick="closeEnviarAsesorModal()" style="background: none; border: none; font-size: 1.25rem; color: #64748b; cursor: pointer;">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('clients.send_to_advisor', client_id=client.id) }}" style="padding: 20px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="advisor_id" style="display: block; font-weight: 600; font-size: 0.88rem; color: #1e293b; margin-bottom: 6px;">Asesor Destinatario *</label>
+        <select id="advisor_id" name="advisor_id" class="form-control" required>
+          {% for adv in advisors %}
+          <option value="{{ adv.id }}">{{ adv.full_name or adv.username }} ({{ adv.role.name if adv.role else 'Asesor' }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="reason" style="display: block; font-weight: 600; font-size: 0.88rem; color: #1e293b; margin-bottom: 6px;">Motivo de Remisión</label>
+        <select id="reason" name="reason" class="form-control">
+          <option value="Cobranza Especializada / Mora">Cobranza Especializada / Mora</option>
+          <option value="Evaluación Crediticia / Score">Evaluación Crediticia / Score</option>
+          <option value="Acuerdo de Reestructuración">Acuerdo de Reestructuración</option>
+          <option value="Verificación de Garantías">Verificación de Garantías</option>
+          <option value="Consulta General">Consulta General</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="notes" style="display: block; font-weight: 600; font-size: 0.88rem; color: #1e293b; margin-bottom: 6px;">Instrucciones / Observaciones</label>
+        <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="Indique antecedentes, acuerdos previos o instrucciones para el asesor..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeEnviarAsesorModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" style="background: #2563eb; border-color: #2563eb; font-weight: 700;">
+          {{ icon('send', 14) }} Enviar a Asesor
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -711,5 +788,17 @@ function closePhotoModal(e) {
 function closePhotoModalDirect() {
   document.getElementById('photoModal').style.display = 'none';
 }
+
+function openEnviarAsesorModal() {
+  document.getElementById('modalEnviarAsesor').style.display = 'flex';
+}
+
+function closeEnviarAsesorModal() {
+  document.getElementById('modalEnviarAsesor').style.display = 'none';
+}
+
+document.getElementById('modalEnviarAsesor').addEventListener('click', function(e) {
+  if (e.target === this) closeEnviarAsesorModal();
+});
 </script>
 {% endblock %}

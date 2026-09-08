@@ -1,16 +1,15 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · Hoja de Vida · Cartera{% endblock %}
+{% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · Expediente · Cartera{% endblock %}
 {% block content %}
 <header class="page-head">
   <div>
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
       <a class="muted" href="{{ url_for('clients.list_clients') }}">Clientes</a>
       <span class="muted">/</span>
-      <span class="badge badge-info">{{ 'Editar Hoja de Vida' if (client and client.id) else 'Nueva Hoja de Vida'
-        }}</span>
+      <span class="badge badge-info">{{ 'Editar Expediente' if (client and client.id) else 'Nuevo Expediente' }}</span>
     </div>
     <h1>{{ ('Editar cliente: ' ~ client.full_name) if (client and client.id) else 'Nuevo cliente' }}</h1>
-    <p class="muted">Hoja de vida, información laboral, expediente fotográfico y parámetros bancarios</p>
+    <p class="muted">Datos personales, información laboral, verificación fotográfica y cuentas bancarias</p>
   </div>
   <a class="btn"
     href="{{ url_for('clients.detail', client_id=client.id) if (client and client.id) else url_for('clients.list_clients') }}">←
@@ -30,6 +29,19 @@
   </div>
 
   <div class="grid grid-3">
+    {% if is_admin and portfolios %}
+    <label style="grid-column: 1 / -1; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
+      <strong style="color: #0f172a; display: block; margin-bottom: 4px;">📁 Cartera Asignada *</strong>
+      <select name="portfolio_id" id="portfolio_id" style="max-width: 400px; font-weight: 600;">
+        {% for p in portfolios %}
+        <option value="{{ p.id }}" {% if (client and client.portfolio_id == p.id) or (active_portfolio and active_portfolio.id == p.id) %}selected{% endif %}>
+          {{ p.name }} ({{ p.code }}) - ${{ "%.2f"|format(p.assigned_capital_usd|float) }} USD
+        </option>
+        {% endfor %}
+      </select>
+      <small class="muted" style="display: block; margin-top: 2px;">El cliente pertenecerá exclusivamente al flujo de esta cartera.</small>
+    </label>
+    {% endif %}
     <label>Nombres *
       <input type="text" name="first_name" id="first_name" required value="{{ client.first_name if client else '' }}"
         placeholder="Ej: Carlos Andrés">
@@ -90,8 +102,8 @@
         placeholder="Ej: Analista de Ventas, Administrador, Independiente..."
         value="{{ client.job_title if client and client.job_title else '' }}">
     </label>
-    <label>Salario Mensual (COP) *
-      <input type="text" name="salary" id="salary" placeholder="Ej: 2.500.000 o 2500000"
+    <label>Ingreso Mensual (USD) *
+      <input type="text" name="salary" id="salary" placeholder="Ej: 500 o 800"
         value="{{ client.salary|money if client and client.salary else '' }}">
     </label>
     <label class="span-2">Dirección - Ubicación del Trabajo
@@ -108,13 +120,13 @@
   {# ────────────────── 3. EXPEDIENTE VISUAL (4 FOTOS) ────────────────── #}
   <div class="form-section-header">
     <div class="form-section-title">
-      <span class="section-icon" style="background: #fef3c7; color: #b45309;">{{ icon('folder', 20) }}</span>
-      <h2>3. Expediente Visual y Fotográfico Obligatorio</h2>
+      <span class="section-icon" style="background: #f1f5f9; color: #334155;">{{ icon('folder', 20) }}</span>
+      <h2>3. Evidencias y Verificación Fotográfica</h2>
     </div>
-    <span class="badge badge-warning">4 Evidencias Clave</span>
+    <span class="badge">4 Evidencias Clave</span>
   </div>
   <p class="muted" style="margin: -6px 0 16px 0; font-size: 0.88rem;">
-    Cargue las cuatro fotografías de soporte para conformar el expediente y la Hoja de Vida del deudor.
+    Cargue las cuatro fotografías de soporte para conformar el expediente del deudor.
   </p>
 
   <div class="grid grid-2" style="gap: 16px; margin-bottom: 24px;">
@@ -123,7 +135,7 @@
       <div class="upload-tile-head">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 700;">1</span>
-          <strong>Foto del Deudor (Perfil)</strong>
+          <strong>Foto del Titular (Rostro)</strong>
         </div>
         <small class="muted">JPG, PNG, WEBP</small>
       </div>
@@ -146,7 +158,17 @@
           </div>
         </div>
       </label>
-      <small class="hint">Fotografía reciente del rostro del titular para su Hoja de Vida.</small>
+      <div class="upload-tile-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+        <button type="button" class="btn btn-sm" onclick="triggerCameraCapture('debtor_photo', 'user')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #1e293b; cursor: pointer;">
+          {{ icon('camera', 14) }} <span>Tomar Foto</span>
+        </button>
+        <button type="button" class="btn btn-sm" onclick="triggerFileGallery('debtor_photo')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #475569; cursor: pointer;">
+          {{ icon('image', 14) }} <span>Galería / Archivo</span>
+        </button>
+      </div>
+      <small class="hint">Fotografía reciente del rostro del titular para su expediente.</small>
     </div>
 
     {# Foto 2: Trabajo #}
@@ -177,6 +199,16 @@
           </div>
         </div>
       </label>
+      <div class="upload-tile-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+        <button type="button" class="btn btn-sm" onclick="triggerCameraCapture('work_photo', 'environment')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #1e293b; cursor: pointer;">
+          {{ icon('camera', 14) }} <span>Tomar Foto</span>
+        </button>
+        <button type="button" class="btn btn-sm" onclick="triggerFileGallery('work_photo')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #475569; cursor: pointer;">
+          {{ icon('image', 14) }} <span>Galería / Archivo</span>
+        </button>
+      </div>
       <small class="hint">Fotografía en el puesto de trabajo, uniforme o local comercial.</small>
     </div>
 
@@ -208,6 +240,16 @@
           </div>
         </div>
       </label>
+      <div class="upload-tile-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+        <button type="button" class="btn btn-sm" onclick="triggerCameraCapture('facade_photo', 'environment')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #1e293b; cursor: pointer;">
+          {{ icon('camera', 14) }} <span>Tomar Foto</span>
+        </button>
+        <button type="button" class="btn btn-sm" onclick="triggerFileGallery('facade_photo')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #475569; cursor: pointer;">
+          {{ icon('image', 14) }} <span>Galería / Archivo</span>
+        </button>
+      </div>
       <small class="hint">Foto exterior visible de la vivienda que coincida con la dirección registrada.</small>
     </div>
 
@@ -242,6 +284,16 @@
           </div>
         </div>
       </label>
+      <div class="upload-tile-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+        <button type="button" class="btn btn-sm" onclick="triggerCameraCapture('id_document', 'environment')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #1e293b; cursor: pointer;">
+          {{ icon('camera', 14) }} <span>Tomar Foto</span>
+        </button>
+        <button type="button" class="btn btn-sm" onclick="triggerFileGallery('id_document')"
+                style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.78rem; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; color: #475569; cursor: pointer;">
+          {{ icon('file-text', 14) }} <span>Galería / PDF</span>
+        </button>
+      </div>
       <div id="ocr-status" class="ocr-status" hidden style="margin-top: 8px;"></div>
       <small class="hint">Al cargar el documento se extraen automáticamente datos del cliente.</small>
     </div>
@@ -445,7 +497,7 @@
   {# ────────────────── ACCIONES ────────────────── #}
   <div class="form-actions" style="margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border);">
     <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700; font-size: 0.95rem;">
-      {{ icon('check', 18) }} Guardar Hoja de Vida de Cliente
+      {{ icon('check', 18) }} Guardar Expediente del Cliente
     </button>
     <a class="btn"
       href="{{ url_for('clients.detail', client_id=client.id) if (client and client.id) else url_for('clients.list_clients') }}">Cancelar</a>

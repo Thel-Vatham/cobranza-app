@@ -53,6 +53,8 @@ def create_app(config_object=Config):
     from .routes.documents import bp as documents_bp
     from .routes.reports import bp as reports_bp
     from .routes.admin import bp as admin_bp
+    from .routes.portfolios import bp as portfolios_bp
+    from .routes.advisor import bp as advisor_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -63,6 +65,48 @@ def create_app(config_object=Config):
     app.register_blueprint(documents_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(portfolios_bp)
+    app.register_blueprint(advisor_bp)
+
+    @app.context_processor
+    def inject_global_context():
+        if not current_user.is_authenticated:
+            return {}
+        from flask import session
+        from .models import Notification, Portfolio
+
+        unread_notifs_count = 0
+        try:
+            unread_notifs_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        except Exception:
+            pass
+
+        is_admin = bool(current_user.role and current_user.role.name == "Administrador")
+        available_portfolios = []
+        active_portfolio = None
+
+        try:
+            if is_admin:
+                available_portfolios = Portfolio.query.filter_by(status="activa").order_by(Portfolio.name).all()
+            else:
+                available_portfolios = Portfolio.query.filter_by(user_id=current_user.id, status="activa").order_by(Portfolio.name).all()
+
+            active_id = session.get("active_portfolio_id")
+            if active_id:
+                active_portfolio = Portfolio.query.get(active_id)
+
+            # Si el operador no tiene ninguna seleccionada pero tiene carteras asignadas, activar la primera por defecto
+            if not active_portfolio and available_portfolios and not is_admin:
+                active_portfolio = available_portfolios[0]
+                session["active_portfolio_id"] = active_portfolio.id
+        except Exception:
+            pass
+
+        return {
+            "active_portfolio": active_portfolio,
+            "available_portfolios": available_portfolios,
+            "unread_notifs_count": unread_notifs_count,
+        }
 
     @app.template_filter("money")
     def money_filter(value):
@@ -178,3 +222,19 @@ def _ensure_columns():
                 conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN collection_account_number VARCHAR(60)")
             if "collection_account_holder" not in client_cols:
                 conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN collection_account_holder VARCHAR(160)")
+            # Cartera y remisión a asesor
+            if "portfolio_id" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN portfolio_id INTEGER REFERENCES portfolios(id)")
+            if "referred_to_advisor" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN referred_to_advisor BOOLEAN DEFAULT 0")
+
+    if "loans" in table_names:
+        loan_cols = {c["name"] for c in inspector.get_columns("loans")}
+        with db.engine.begin() as conn:
+            if "frequency_type" not in loan_cols:
+                conn.exec_driver_sql("ALTER TABLE loans ADD COLUMN frequency_type VARCHAR(20) DEFAULT 'quincenal'")
+            if "biweekly_cycle" not in loan_cols:
+                conn.exec_driver_sql("ALTER TABLE loans ADD COLUMN biweekly_cycle VARCHAR(20)")
+            if "portfolio_id" not in loan_cols:
+                conn.exec_driver_sql("ALTER TABLE loans ADD COLUMN portfolio_id INTEGER REFERENCES portfolios(id)")
+
