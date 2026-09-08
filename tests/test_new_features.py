@@ -94,6 +94,14 @@ class NewFeaturesTest(unittest.TestCase):
                 "account_type": "Ahorros",
                 "account_number": "9876543210",
                 "account_holder": "Juan Perez",
+                "employer_name": "Empresa ABC",
+                "job_title": "Gerente",
+                "salary": "3500000",
+                "collection_bank_name": "Nequi",
+                "collection_account_number": "3109876543",
+                "ref_name": ["Ref Uno", "Ref Dos"],
+                "ref_relationship": ["Codeudor", "Familiar"],
+                "ref_phone": ["311111", "322222"],
             },
             follow_redirects=True,
         )
@@ -101,12 +109,18 @@ class NewFeaturesTest(unittest.TestCase):
         html = resp.get_data(as_text=True)
         self.assertIn("Bancolombia", html)
         self.assertIn("9876543210", html)
+        self.assertIn("Empresa ABC", html)
+        self.assertIn("Gerente", html)
 
         with self.app.app_context():
             cli = Client.query.filter_by(identification_number="123450987").first()
             self.assertIsNotNone(cli)
             self.assertEqual(cli.bank_name, "Bancolombia")
             self.assertEqual(cli.account_number, "9876543210")
+            self.assertEqual(cli.employer_name, "Empresa ABC")
+            self.assertEqual(cli.job_title, "Gerente")
+            self.assertEqual(cli.collection_bank_name, "Nequi")
+            self.assertEqual(len(cli.references), 2)
 
     def test_loan_with_disbursement_voucher(self):
         with self.app.app_context():

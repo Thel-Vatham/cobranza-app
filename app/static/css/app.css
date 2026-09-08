@@ -515,3 +515,385 @@ td .muted { font-size: 13px; }
   .page-head .btn-group, .page-head > div:last-child { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
   .page-head .btn { flex: 1; text-align: center; }
 }
+
+/* ==========================================================================
+   ESTILOS DE HOJA DE VIDA, EXPEDIENTE FOTOGRÁFICO Y PARAMETRIZACIÓN
+   ========================================================================== */
+.cv-page-head {
+  padding: 16px 20px;
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.cv-avatar-container {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+}
+
+.cv-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #3b82f6;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.cv-avatar-img:hover {
+  transform: scale(1.05);
+}
+
+.cv-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+}
+
+.cv-avatar-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #10b981;
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+.cv-avatar-badge-missing {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: #f59e0b;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 2px solid white;
+}
+
+/* Secciones del formulario */
+.form-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.form-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-section-title h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.section-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Casillas de subida de fotos */
+.upload-tile {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-tile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.upload-dropzone {
+  display: block;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.photo-input {
+  display: none;
+}
+
+.dropzone-body {
+  border: 2px dashed #cbd5e1;
+  border-radius: var(--radius-sm);
+  padding: 16px 12px;
+  background: white;
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.dropzone-body:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.dropzone-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.dropzone-preview {
+  position: relative;
+  width: 100%;
+  height: 130px;
+}
+
+.dropzone-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.preview-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Referencias en dos columnas fijas */
+.references-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.reference-slot-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-top: 4px solid #2563eb;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+
+.reference-slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ref-number-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Galería del detalle / Hoja de Vida */
+.cv-photo-tile {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cv-photo-tile-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.cv-photo-preview-box {
+  width: 100%;
+  height: 160px;
+  border-radius: var(--radius-sm);
+  background: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cv-photo-preview-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.cv-photo-preview-box img:hover {
+  transform: scale(1.04);
+}
+
+.cv-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cv-zoom-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.cv-zoom-btn:hover {
+  background: #1e293b;
+}
+
+.cv-photo-tile-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+/* Lightbox Modal */
+.photo-lightbox-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.photo-lightbox-content {
+  background: #0f172a;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  padding: 16px 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.photo-lightbox-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.photo-lightbox-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Formato de Impresión para la Hoja de Vida */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt !important;
+  }
+  .sidebar, .mobile-top-bar, .no-print, .btn, .btn-group, nav, header.mobile-top-bar, .sidebar-backdrop {
+    display: none !important;
+  }
+  .layout, .content, main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 12px !important;
+    page-break-inside: avoid;
+  }
+  .cv-page-head {
+    border: none !important;
+    box-shadow: none !important;
+    padding-bottom: 10px !important;
+    border-bottom: 2px solid #333 !important;
+  }
+  .cv-avatar-img, .cv-photo-preview-box img {
+    filter: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

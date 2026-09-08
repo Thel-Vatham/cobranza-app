@@ -1,26 +1,52 @@
 {% extends "base.html" %}
-{% block title %}{{ client.full_name }} · Cartera{% endblock %}
+{% block title %}Hoja de Vida: {{ client.full_name }} · Cartera{% endblock %}
 {% block content %}
-<header class="page-head" style="margin-bottom: 24px;">
-  <div style="display: flex; align-items: center; gap: 16px;">
-    <div class="avatar" style="width: 56px; height: 56px; font-size: 22px; background: linear-gradient(135deg, #2563eb, #3b82f6); box-shadow: 0 4px 10px rgba(37,99,235,0.25);">
-      {{ client.first_name[:1] }}{{ client.last_name[:1] }}
+{# ────────────────── HEADER HOJA DE VIDA ────────────────── #}
+<header class="page-head cv-page-head" style="margin-bottom: 24px;">
+  <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+    {# Avatar o Fotografía Real del Deudor #}
+    <div class="cv-avatar-container">
+      {% if debtor_photo %}
+      <img src="{{ url_for('documents.view_raw', document_id=debtor_photo.id) }}" alt="Foto de {{ client.full_name }}" class="cv-avatar-img" onclick="openPhotoModal(this.src, 'Foto del Deudor: {{ client.full_name }}')">
+      <span class="cv-avatar-badge" title="Foto de perfil verificada">{{ icon('check', 12) }}</span>
+      {% else %}
+      <div class="avatar cv-avatar-fallback">
+        {{ client.first_name[:1] }}{{ client.last_name[:1] }}
+      </div>
+      <span class="cv-avatar-badge-missing" title="Foto pendiente">+ Foto</span>
+      {% endif %}
     </div>
+
     <div>
-      <h1 style="margin: 0; font-size: 1.6rem; font-weight: 700;">{{ client.full_name }}</h1>
-      <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
-        <span class="badge badge-info" style="font-weight: 600;">{{ client.code }}</span>
-        <span class="badge" style="background: #e2e8f0; color: #334155;">{{ client.identification_type }}: {{ client.identification_number }}</span>
-        {% if client.email %}
-        <span class="muted" style="font-size: 0.85rem;">{{ client.email }}</span>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <h1 style="margin: 0; font-size: 1.65rem; font-weight: 800; color: var(--text);">{{ client.full_name }}</h1>
+        <span class="badge badge-info" style="font-weight: 700; font-size: 0.82rem;">{{ client.code }}</span>
+      </div>
+
+      {# Subtítulo Laboral de Hoja de Vida #}
+      <div style="margin-top: 4px; font-size: 1.02rem; color: var(--text-soft); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        {% if client.job_title or client.employer_name %}
+        <strong style="color: var(--primary);">{{ client.job_title or 'Ocupación' }}</strong>
+        <span>en</span>
+        <strong>{{ client.employer_name or 'Empresa no registrada' }}</strong>
+        <span class="muted">·</span>
         {% endif %}
+        <span class="badge" style="background: #e2e8f0; color: #334155; font-weight: 600;">
+          {{ client.identification_type }}: {{ client.identification_number }}
+        </span>
+        <span class="muted" style="font-size: 0.88rem;">📍 {{ client.city or 'Colombia' }}</span>
       </div>
     </div>
   </div>
-  <div class="btn-group">
+
+  {# Acciones Principales y Botón de Impresión #}
+  <div class="btn-group no-print">
     <a class="btn" href="{{ url_for('clients.list_clients') }}">← Volver</a>
+    <button type="button" class="btn btn-outline" onclick="window.print()" title="Imprimir o guardar en PDF la Hoja de Vida">
+      🖨️ Imprimir Hoja de Vida
+    </button>
     {% if current_user.has_permission('clients.edit') %}
-    <a class="btn" href="{{ url_for('clients.edit', client_id=client.id) }}">Editar Datos</a>
+    <a class="btn" href="{{ url_for('clients.edit', client_id=client.id) }}">Editar Hoja de Vida</a>
     {% endif %}
     {% if current_user.has_permission('loans.create') %}
     <a class="btn btn-primary" href="{{ url_for('loans.create') }}?client_id={{ client.id }}">+ Nuevo Préstamo</a>
@@ -28,7 +54,7 @@
   </div>
 </header>
 
-{# Top Summary KPI Cards #}
+{# ────────────────── TARJETAS KPI RESUMEN ────────────────── #}
 <div class="grid grid-4" style="margin-bottom: 24px;">
   <div class="card stat">
     <span class="stat-label">Capital Total Otorgado</span>
@@ -61,24 +87,225 @@
   </div>
 </div>
 
-<div class="grid grid-3" style="margin-bottom: 24px;">
-  {# Card 1: Datos de Contacto #}
+{# ────────────────── EXPEDIENTE VISUAL FOTOGRÁFICO (4 FOTOS) ────────────────── #}
+<section class="card cv-section" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        📸 Expediente Visual y Evidencias Fotográficas
+      </h2>
+      <p class="muted" style="margin: 2px 0 0 0; font-size: 0.85rem;">Fotografías de verificación del titular, lugar de trabajo, fachada del domicilio y documento de identidad</p>
+    </div>
+    <span class="badge badge-info">4 Soportes Obligatorios</span>
+  </div>
+
+  <div class="grid grid-4" style="gap: 16px;">
+    {# 1. Foto Deudor #}
+    <div class="cv-photo-tile">
+      <div class="cv-photo-tile-head">
+        <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 700;">1</span>
+        <strong>Foto del Deudor</strong>
+      </div>
+      <div class="cv-photo-preview-box">
+        {% if debtor_photo %}
+        <img src="{{ url_for('documents.view_raw', document_id=debtor_photo.id) }}" alt="Foto Deudor" onclick="openPhotoModal(this.src, 'Foto del Deudor')">
+        <button type="button" class="cv-zoom-btn no-print" onclick="openPhotoModal('{{ url_for('documents.view_raw', document_id=debtor_photo.id) }}', 'Foto del Deudor')">🔍 Ampliar</button>
+        {% else %}
+        <div class="cv-photo-placeholder">
+          {{ icon('user', 32) }}
+          <span>No cargada</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="cv-photo-tile-foot">
+        {% if debtor_photo %}
+        <span class="badge badge-success">✓ Verificada</span>
+        <a class="btn btn-sm no-print" href="{{ url_for('documents.download', document_id=debtor_photo.id) }}">Descargar</a>
+        {% else %}
+        <span class="badge badge-danger">Pendiente</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# 2. Foto Trabajo #}
+    <div class="cv-photo-tile">
+      <div class="cv-photo-tile-head">
+        <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700;">2</span>
+        <strong>Foto del Trabajo</strong>
+      </div>
+      <div class="cv-photo-preview-box">
+        {% if work_photo %}
+        <img src="{{ url_for('documents.view_raw', document_id=work_photo.id) }}" alt="Foto Trabajo" onclick="openPhotoModal(this.src, 'Foto del Trabajo / Negocio')">
+        <button type="button" class="cv-zoom-btn no-print" onclick="openPhotoModal('{{ url_for('documents.view_raw', document_id=work_photo.id) }}', 'Foto del Trabajo / Negocio')">🔍 Ampliar</button>
+        {% else %}
+        <div class="cv-photo-placeholder">
+          {{ icon('briefcase', 32) }}
+          <span>No cargada</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="cv-photo-tile-foot">
+        {% if work_photo %}
+        <span class="badge badge-success">✓ Verificada</span>
+        <a class="btn btn-sm no-print" href="{{ url_for('documents.download', document_id=work_photo.id) }}">Descargar</a>
+        {% else %}
+        <span class="badge badge-danger">Pendiente</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# 3. Foto Fachada #}
+    <div class="cv-photo-tile">
+      <div class="cv-photo-tile-head">
+        <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">3</span>
+        <strong>Fachada Casa</strong>
+      </div>
+      <div class="cv-photo-preview-box">
+        {% if facade_photo %}
+        <img src="{{ url_for('documents.view_raw', document_id=facade_photo.id) }}" alt="Fachada Domicilio" onclick="openPhotoModal(this.src, 'Fachada de la Casa / Domicilio')">
+        <button type="button" class="cv-zoom-btn no-print" onclick="openPhotoModal('{{ url_for('documents.view_raw', document_id=facade_photo.id) }}', 'Fachada de la Casa / Domicilio')">🔍 Ampliar</button>
+        {% else %}
+        <div class="cv-photo-placeholder">
+          {{ icon('map-pin', 32) }}
+          <span>No cargada</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="cv-photo-tile-foot">
+        {% if facade_photo %}
+        <span class="badge badge-success">✓ Verificada</span>
+        <a class="btn btn-sm no-print" href="{{ url_for('documents.download', document_id=facade_photo.id) }}">Descargar</a>
+        {% else %}
+        <span class="badge badge-danger">Pendiente</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# 4. Documento Cédula #}
+    <div class="cv-photo-tile">
+      <div class="cv-photo-tile-head">
+        <span class="badge" style="background: #f3e8ff; color: #6b21a8; font-weight: 700;">4</span>
+        <strong>Documento Identidad</strong>
+      </div>
+      <div class="cv-photo-preview-box">
+        {% if id_doc %}
+          {% if id_doc.extension != 'pdf' %}
+          <img src="{{ url_for('documents.view_raw', document_id=id_doc.id) }}" alt="Documento Cédula" onclick="openPhotoModal(this.src, 'Documento de Identificación')">
+          <button type="button" class="cv-zoom-btn no-print" onclick="openPhotoModal('{{ url_for('documents.view_raw', document_id=id_doc.id) }}', 'Documento de Identificación')">🔍 Ampliar</button>
+          {% else %}
+          <div class="cv-photo-placeholder" style="background: #eef2ff;">
+            {{ icon('file-text', 32) }}
+            <span style="color: #4338ca; font-weight: 700;">Archivo PDF</span>
+            <small class="muted" style="font-size: 0.72rem;">{{ id_doc.original_name }}</small>
+          </div>
+          {% endif %}
+        {% else %}
+        <div class="cv-photo-placeholder">
+          {{ icon('file-text', 32) }}
+          <span>No cargado</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="cv-photo-tile-foot">
+        {% if id_doc %}
+        <a class="btn btn-sm no-print" href="{{ url_for('documents.ocr', document_id=id_doc.id) }}">OCR</a>
+        <a class="btn btn-sm no-print" href="{{ url_for('documents.download', document_id=id_doc.id) }}">Descargar</a>
+        {% else %}
+        <span class="badge badge-danger">Pendiente</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ────────────────── FICHA LABORAL Y DE CONTACTO ────────────────── #}
+<div class="grid grid-2" style="margin-bottom: 24px; gap: 20px;">
+  {# Columna 1: Información Laboral (Hoja de Vida) #}
   <section class="card" style="display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Información de Contacto</h2>
-      <span class="badge badge-info">Cliente</span>
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        💼 Datos de Empleo y Actividad Laboral
+      </h2>
+      <span class="badge badge-info">Sustento Económico</span>
     </div>
-    
+
     <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
-      {# Teléfono y WhatsApp con botones directos #}
+      {# Empresa y Cargo #}
       <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Teléfono Móvil</small>
-            <strong style="font-size: 1.05rem; color: var(--text);">{{ client.phone or 'No registrado' }}</strong>
+            <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Empresa / Empleador</small>
+            <strong style="font-size: 1.05rem; color: var(--text);">{{ client.employer_name or 'No registrada' }}</strong>
+          </div>
+          <div>
+            <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Cargo / Ocupación</small>
+            <strong style="font-size: 1.05rem; color: var(--primary);">{{ client.job_title or 'No especificado' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      {# Salario Mensual #}
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <small style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: #166534; font-weight: 700;">Salario Mensual Declarado</small>
+          <strong style="font-size: 1.25rem; color: #15803d; font-weight: 800;">
+            {{ client.salary|money if client.salary else 'No especificado' }}
+          </strong>
+        </div>
+        <span class="badge" style="background: #dcfce7; color: #166534; font-weight: 600;">Ingreso Comprobado</span>
+      </div>
+
+      {# Dirección del Trabajo #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div>
+            <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Dirección del Trabajo / Ubicación</small>
+            <strong style="font-size: 0.92rem; color: var(--text);">{{ client.employer_address or 'No registrada' }}</strong>
+          </div>
+          {% if client.employer_address %}
+          <a class="btn-map-action no-print" href="https://www.google.com/maps/search/?api=1&query={{ client.employer_address|urlencode }}" target="_blank">
+            {{ icon('map-pin', 14) }} Maps
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Contacto Laboral #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Teléfono / Contacto Laboral</small>
+            <strong style="font-size: 0.95rem; color: var(--text);">{{ client.employer_phone or 'No registrado' }}</strong>
+          </div>
+          {% if client.employer_phone %}
+          <div class="btn-action-group no-print">
+            <a class="btn-tel-action" href="tel:{{ client.employer_phone }}">{{ icon('phone', 14) }} Llamar</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# Columna 2: Información de Contacto y Residencia #}
+  <section class="card" style="display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        👤 Datos Personales y Residencia
+      </h2>
+      <span class="badge">Contacto Titular</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+      {# Teléfono Móvil y WhatsApp #}
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Teléfono Móvil Personal</small>
+            <strong style="font-size: 1.08rem; color: var(--text);">{{ client.phone or 'No registrado' }}</strong>
           </div>
           {% if client.phone %}
-          <div class="btn-action-group">
+          <div class="btn-action-group no-print">
             <button type="button" class="btn-wa-action" data-wa-trigger
                     data-name="{{ client.full_name }}"
                     data-phone="{{ client.phone }}"
@@ -93,215 +320,279 @@
         </div>
       </div>
 
-      {# Email #}
+      {# Correo Electrónico #}
       <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px;">
-        <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Correo Electrónico</small>
+        <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Correo Electrónico</small>
         <span style="font-size: 0.92rem; color: var(--text); word-break: break-all;">{{ client.email or 'No registrado' }}</span>
       </div>
 
-      {# Datos Bancarios / Desembolso #}
-      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 14px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <small style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #166534; font-weight: 700;">
-            🏦 Cuenta para Desembolso / Depósito
-          </small>
-          {% if client.bank_name %}
-          <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 600; font-size: 0.75rem;">
-            {{ client.account_type or 'Ahorros' }}
-          </span>
-          {% endif %}
-        </div>
-        {% if client.bank_name or client.account_number %}
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-          <div>
-            <strong style="font-size: 1.02rem; color: #14532d; display: block;">{{ client.bank_name or 'Banco no especificado' }}</strong>
-            <span style="font-size: 0.92rem; font-family: monospace; color: #166534; font-weight: 600;">
-              {{ client.account_number or 'Sin número' }}
-            </span>
-            {% if client.account_holder %}
-            <small class="muted" style="display: block; font-size: 0.75rem; margin-top: 2px;">Titular: {{ client.account_holder }}</small>
-            {% endif %}
-          </div>
-          {% if client.account_number %}
-          <button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText('{{ client.account_number }}'); this.innerText='¡Copiado!'; setTimeout(()=>this.innerText='Copiar', 2000);" style="font-size: 0.75rem; padding: 4px 8px; background: white; border-color: #86efac; color: #15803d;">
-            Copiar
-          </button>
-          {% endif %}
-        </div>
-        {% else %}
-        <span class="muted" style="font-size: 0.85rem;">No se han registrado datos bancarios para este cliente.</span>
-        {% endif %}
-      </div>
-
-      {# Dirección de Residencia con Botón a Maps #}
+      {# Dirección de Residencia #}
       <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
           <div>
-            <small class="muted" style="display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Dirección de Residencia</small>
+            <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Dirección de Residencia</small>
             <strong style="font-size: 0.92rem; color: var(--text);">{{ client.address or 'No registrada' }}</strong>
           </div>
           {% if client.address %}
-          <a class="btn-map-action" href="https://www.google.com/maps/search/?api=1&query={{ client.address|urlencode }}+{{ (client.city or 'Colombia')|urlencode }}" target="_blank">
-            {{ icon('map-pin', 14) }} Ver Mapa
+          <a class="btn-map-action no-print" href="https://www.google.com/maps/search/?api=1&query={{ client.address|urlencode }}+{{ (client.city or 'Colombia')|urlencode }}" target="_blank">
+            {{ icon('map-pin', 14) }} Maps
           </a>
           {% endif %}
         </div>
       </div>
 
-      {# Ubicación y Registro #}
+      {# Ciudad, País y Fecha de Registro #}
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
           <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Ciudad / País</small>
           <span style="font-size: 0.88rem; font-weight: 600;">{{ client.city or '' }} {{ client.country or 'Colombia' }}</span>
         </div>
         <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px;">
-          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Registrado</small>
+          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Apertura Hoja de Vida</small>
           <span style="font-size: 0.88rem;">{{ client.created_at|d if client.created_at else '—' }}</span>
         </div>
       </div>
     </div>
   </section>
+</div>
 
-  {# Card 2: Referencias y Codeudores #}
-  <section class="card" style="display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Referencias y Codeudores</h2>
-      <span class="badge badge-info">{{ client.references|length }} registro(s)</span>
+{# ────────────────── CUENTAS BANCARIAS DUALES (DESEMBOLSO VS RECAUDO) ────────────────── #}
+<div class="grid grid-2" style="margin-bottom: 24px; gap: 20px;">
+  {# Tarjeta A: Desembolso #}
+  <section class="card" style="background: #fcfdfd; border: 1px solid #bbf7d0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #dcfce7; padding-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.2rem;">🏦</span>
+        <h3 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: #14532d; text-transform: uppercase; letter-spacing: 0.5px;">
+          Datos Bancarios para Desembolso
+        </h3>
+      </div>
+      <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Giro de Crédito</span>
     </div>
-    {% if client.references %}
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-      {% for r in client.references %}
-      <div class="ref-item" style="padding: 12px 14px; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--border);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <strong style="font-size: 0.95rem; color: var(--text);">{{ r.full_name }}</strong>
-          <span class="badge" style="background: {% if r.relationship == 'Codeudor' %}#fee2e2; color: #dc2626; font-weight: 700;{% else %}#e2e8f0; color: #475569; font-weight: 600;{% endif %}">
-            {{ r.relationship or 'Referencia' }}
-          </span>
+
+    {% if client.bank_name or client.account_number %}
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Entidad Financiera</small>
+          <strong style="font-size: 1.05rem; color: #14532d;">{{ client.bank_name or 'No especificada' }}</strong>
         </div>
-        <div style="font-size: 0.84rem; color: var(--text-soft); display: flex; flex-direction: column; gap: 6px;">
-          {% if r.phone %}
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>Tel: <strong>{{ r.phone }}</strong></span>
-            <div class="btn-action-group">
-              <button type="button" class="btn-wa-action" style="padding: 4px 8px; font-size: 0.75rem;" data-wa-trigger
-                      data-name="{{ r.full_name }}"
-                      data-phone="{{ r.phone }}"
-                      data-default-template="libre">
-                {{ icon('whatsapp', 12) }} WA
-              </button>
-              <a class="btn-tel-action" style="padding: 4px 8px; font-size: 0.75rem;" href="tel:{{ r.phone }}">
-                {{ icon('phone', 12) }} Tel
-              </a>
-            </div>
-          </div>
-          {% endif %}
-          {% if r.identification_number %}<span>Doc: <strong>{{ r.identification_number }}</strong></span>{% endif %}
-          {% if r.address %}
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>Dir: {{ r.address }}</span>
-            <a class="btn-map-action" style="padding: 4px 8px; font-size: 0.75rem;" href="https://www.google.com/maps/search/?api=1&query={{ r.address|urlencode }}" target="_blank">
-              {{ icon('map-pin', 12) }} Mapa
-            </a>
-          </div>
-          {% endif %}
+        <span class="badge" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+          {{ client.account_type or 'Cuenta Ahorros' }}
+        </span>
+      </div>
+
+      <div style="background: #f0fdf4; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid #bbf7d0; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <small style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #166534; font-weight: 600;">Número de Cuenta / Teléfono</small>
+          <strong style="font-family: monospace; font-size: 1.1rem; color: #14532d;">
+            {{ client.account_number or 'Sin número registrado' }}
+          </strong>
         </div>
+        {% if client.account_number %}
+        <button type="button" class="btn btn-sm no-print" onclick="navigator.clipboard.writeText('{{ client.account_number }}'); this.innerText='¡Copiado!'; setTimeout(()=>this.innerText='Copiar', 2000);" style="font-size: 0.75rem; background: white; border-color: #86efac; color: #15803d;">
+          Copiar
+        </button>
+        {% endif %}
       </div>
-      {% endfor %}
+
+      {% if client.account_holder %}
+      <div>
+        <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Titular Registrado</small>
+        <span style="font-size: 0.9rem; font-weight: 600; color: #14532d;">{{ client.account_holder }}</span>
       </div>
+      {% endif %}
+    </div>
     {% else %}
-    <div style="text-align: center; padding: 24px 0; color: var(--muted);">
-      <p style="margin: 0;">Sin referencias registradas para este cliente.</p>
-    </div>
+    <p class="muted" style="font-size: 0.88rem; margin: 8px 0;">No se han registrado datos bancarios de desembolso para este cliente.</p>
     {% endif %}
   </section>
 
-  {# Card 3: Score y Análisis de Riesgo #}
-  <section class="card" style="display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Análisis de Riesgo</h2>
-      <a class="btn btn-sm" href="{{ url_for('reports.scoring') }}">Ver Matriz →</a>
-    </div>
-    {% if score.score is not none %}
-    {# Tarjeta Principal de Score #}
-    <div style="background: var(--bg); padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; border: 1px solid var(--border);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text);">Calificación Crediticia</span>
-        <strong style="font-size: 1.15rem; color: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; font-weight: 800;">
-          {{ score.score }} / 100
-        </strong>
+  {# Tarjeta B: Recaudo #}
+  <section class="card" style="background: #fffbf5; border: 1px solid #fed7aa;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #ffedd5; padding-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.2rem;">💳</span>
+        <h3 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: #9a3412; text-transform: uppercase; letter-spacing: 0.5px;">
+          Datos Bancarios para Recaudo
+        </h3>
       </div>
-      <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
-        <div style="width: {{ score.score }}%; height: 100%; background: {% if score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; border-radius: 999px; transition: width 0.4s ease;"></div>
-      </div>
+      <span class="badge" style="background: #ffedd5; color: #c2410c; font-weight: 700;">Pago de Cuotas</span>
     </div>
 
-    {# Desglose de Factores de Riesgo en Grid Estructurado #}
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1;">
-      
-      {# Puntualidad #}
-      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between;">
-        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Puntualidad</small>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 6px 0;">
-          <strong style="font-size: 1.05rem; color: #2563eb;">{{ score.detail.puntualidad }}%</strong>
+    {% if client.collection_bank_name or client.collection_account_number %}
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Medio / Entidad de Recaudo</small>
+          <strong style="font-size: 1.05rem; color: #7c2d12;">{{ client.collection_bank_name or 'Medio acordado' }}</strong>
         </div>
-        <div style="width: 100%; height: 5px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
-          <div style="width: {{ score.detail.puntualidad }}%; height: 100%; background: #2563eb; border-radius: 999px;"></div>
-        </div>
+        <span class="badge" style="background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa;">
+          {{ client.collection_account_type or 'Canal Directo' }}
+        </span>
       </div>
 
-      {# Cumplimiento #}
-      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between;">
-        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Cumplimiento</small>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 6px 0;">
-          <strong style="font-size: 1.05rem; color: #10b981;">{{ score.detail.cumplimiento }}%</strong>
+      <div style="background: #fff7ed; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid #fed7aa; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <small style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #9a3412; font-weight: 600;">Convenio / Referencia / Cuenta</small>
+          <strong style="font-family: monospace; font-size: 1.1rem; color: #7c2d12;">
+            {{ client.collection_account_number or 'Sin referencia' }}
+          </strong>
         </div>
-        <div style="width: 100%; height: 5px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
-          <div style="width: {{ score.detail.cumplimiento }}%; height: 100%; background: #10b981; border-radius: 999px;"></div>
-        </div>
+        {% if client.collection_account_number %}
+        <button type="button" class="btn btn-sm no-print" onclick="navigator.clipboard.writeText('{{ client.collection_account_number }}'); this.innerText='¡Copiado!'; setTimeout(()=>this.innerText='Copiar', 2000);" style="font-size: 0.75rem; background: white; border-color: #fdba74; color: #9a3412;">
+          Copiar
+        </button>
+        {% endif %}
       </div>
 
-      {# Días de Mora #}
-      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Máx. Días Mora</small>
-        <div style="margin-top: 4px;">
-          {% if score.detail.max_dias_mora > 0 %}
-          <span class="badge badge-danger" style="font-weight: 700; font-size: 0.85rem;">{{ score.detail.max_dias_mora }} días atraso</span>
-          {% else %}
-          <span class="badge badge-success" style="font-weight: 700; font-size: 0.85rem;">0 días (Al día)</span>
-          {% endif %}
-        </div>
+      {% if client.collection_account_holder %}
+      <div>
+        <small class="muted" style="display: block; font-size: 0.72rem; text-transform: uppercase;">Instrucción / Beneficiario</small>
+        <span style="font-size: 0.9rem; font-weight: 600; color: #7c2d12;">{{ client.collection_account_holder }}</span>
       </div>
-
-      {# Cuotas Vencidas #}
-      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-        <small class="muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Cuotas Vencidas</small>
-        <div style="margin-top: 4px;">
-          {% if score.detail.obligaciones_vencidas > 0 %}
-          <span class="badge badge-danger" style="font-weight: 700; font-size: 0.85rem;">{{ score.detail.obligaciones_vencidas }} en mora</span>
-          {% else %}
-          <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.85rem;">0 cuotas</span>
-          {% endif %}
-        </div>
-      </div>
-
+      {% endif %}
     </div>
     {% else %}
-    <div style="text-align: center; padding: 24px 0; color: var(--muted);">
-      <p style="margin: 0;">{{ score.detail }}</p>
-    </div>
+    <p class="muted" style="font-size: 0.88rem; margin: 8px 0;">No se han configurado parámetros especiales de recaudo para este cliente.</p>
     {% endif %}
   </section>
 </div>
 
-{# Card 4: Préstamos del Cliente #}
+{# ────────────────── REFERENCIAS Y CODEUDORES (EXACTAMENTE DOS) ────────────────── #}
 <section class="card" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        👥 Referencias y Codeudores
+      </h2>
+      <p class="muted" style="margin: 2px 0 0 0; font-size: 0.85rem;">Dos registros requeridos para estudio crediticio y verificación en campo</p>
+    </div>
+    <span class="badge badge-info">{{ client.references|length }} de 2 registrados</span>
+  </div>
+
+  <div class="grid grid-2" style="gap: 16px;">
+    {% for r in client.references %}
+    <div class="ref-item" style="padding: 16px; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--border); border-top: 4px solid {% if r.relationship == 'Codeudor' %}#ef4444{% else %}#2563eb{% endif %};">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div>
+          <span class="badge" style="font-size: 0.72rem; margin-bottom: 4px; display: inline-block; background: {% if r.relationship == 'Codeudor' %}#fee2e2; color: #dc2626; font-weight: 800;{% else %}#e0e7ff; color: #3730a3; font-weight: 700;{% endif %}">
+            Ranura {{ loop.index }} · {{ r.relationship or 'Referencia' }}
+          </span>
+          <strong style="display: block; font-size: 1.05rem; color: var(--text);">{{ r.full_name }}</strong>
+        </div>
+      </div>
+
+      <div style="font-size: 0.88rem; color: var(--text-soft); display: flex; flex-direction: column; gap: 8px;">
+        {% if r.phone %}
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Teléfono: <strong style="color: var(--text);">{{ r.phone }}</strong></span>
+          <div class="btn-action-group no-print">
+            <button type="button" class="btn-wa-action" style="padding: 4px 8px; font-size: 0.75rem;" data-wa-trigger
+                    data-name="{{ r.full_name }}"
+                    data-phone="{{ r.phone }}"
+                    data-default-template="libre">
+              {{ icon('whatsapp', 12) }} WA
+            </button>
+            <a class="btn-tel-action" style="padding: 4px 8px; font-size: 0.75rem;" href="tel:{{ r.phone }}">
+              {{ icon('phone', 12) }} Tel
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if r.identification_number %}
+        <div>
+          <span>Documento ID: <strong>{{ r.identification_number }}</strong></span>
+        </div>
+        {% endif %}
+
+        {% if r.address %}
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Dirección: {{ r.address }}</span>
+          <a class="btn-map-action no-print" style="padding: 4px 8px; font-size: 0.75rem;" href="https://www.google.com/maps/search/?api=1&query={{ r.address|urlencode }}" target="_blank">
+            {{ icon('map-pin', 12) }} Mapa
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="span-2" style="text-align: center; padding: 24px 0; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius-sm);">
+      <p style="margin: 0;">Sin referencias registradas para este cliente.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{# ────────────────── SCORE Y MATRIZ DE RIESGO ────────────────── #}
+<section class="card cv-section" style="margin-bottom: 24px;">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
     <div>
-      <h2 style="margin: 0;">Préstamos y Amortizaciones</h2>
-      <p class="muted" style="font-size: 0.85rem; margin: 2px 0 0 0;">Historial de créditos asignados a este cliente</p>
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Calificación y Score de Comportamiento</h2>
+      <p class="muted" style="font-size: 0.85rem; margin: 2px 0 0 0;">Evaluación algorítmica de cumplimiento, puntualidad y mora</p>
+    </div>
+    <a class="btn btn-sm no-print" href="{{ url_for('reports.scoring') }}">Ver Matriz Completa →</a>
+  </div>
+
+  {% if score.score is not none %}
+  <div class="grid grid-4" style="gap: 12px;">
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+      <small class="muted" style="font-size: 0.75rem; text-transform: uppercase;">Puntualidad de Pago</small>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 6px 0;">
+        <strong style="font-size: 1.15rem; color: #2563eb;">{{ score.detail.puntualidad }}%</strong>
+      </div>
+      <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+        <div style="width: {{ score.detail.puntualidad }}%; height: 100%; background: #2563eb;"></div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+      <small class="muted" style="font-size: 0.75rem; text-transform: uppercase;">Cumplimiento de Cuotas</small>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 6px 0;">
+        <strong style="font-size: 1.15rem; color: #10b981;">{{ score.detail.cumplimiento }}%</strong>
+      </div>
+      <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+        <div style="width: {{ score.detail.cumplimiento }}%; height: 100%; background: #10b981;"></div>
+      </div>
+    </div>
+
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+      <small class="muted" style="font-size: 0.75rem; text-transform: uppercase;">Máximo Días de Mora</small>
+      <div style="margin-top: 6px;">
+        {% if score.detail.max_dias_mora > 0 %}
+        <span class="badge badge-danger" style="font-weight: 700; font-size: 0.95rem;">{{ score.detail.max_dias_mora }} días</span>
+        {% else %}
+        <span class="badge badge-success" style="font-weight: 700; font-size: 0.95rem;">0 días (Al día)</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+      <small class="muted" style="font-size: 0.75rem; text-transform: uppercase;">Cuotas en Atraso Activo</small>
+      <div style="margin-top: 6px;">
+        {% if score.detail.obligaciones_vencidas > 0 %}
+        <span class="badge badge-danger" style="font-weight: 700; font-size: 0.95rem;">{{ score.detail.obligaciones_vencidas }} cuotas</span>
+        {% else %}
+        <span class="badge badge-success" style="font-weight: 700; font-size: 0.95rem;">Sin atrasos</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted" style="text-align: center; padding: 16px 0;">Cliente sin historial crediticio suficiente para calcular score.</p>
+  {% endif %}
+</section>
+
+{# ────────────────── PRÉSTAMOS DEL CLIENTE ────────────────── #}
+<section class="card cv-section" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Historial de Préstamos y Amortizaciones</h2>
+      <p class="muted" style="font-size: 0.85rem; margin: 2px 0 0 0;">Líneas de crédito aprobadas, saldos vigentes y cuotas</p>
     </div>
     {% if current_user.has_permission('loans.create') %}
-    <a class="btn btn-sm btn-primary" href="{{ url_for('loans.create') }}?client_id={{ client.id }}">+ Crear Préstamo</a>
+    <a class="btn btn-sm btn-primary no-print" href="{{ url_for('loans.create') }}?client_id={{ client.id }}">+ Crear Préstamo</a>
     {% endif %}
   </div>
 
@@ -312,12 +603,12 @@
         <th>Código</th>
         <th>Fecha Inicio</th>
         <th>Capital Inicial</th>
-        <th>Interés</th>
+        <th>Tasa Interés</th>
         <th>Frecuencia</th>
         <th>Cuotas</th>
         <th>Saldo Pendiente</th>
         <th>Estado</th>
-        <th>Acción</th>
+        <th class="no-print">Acción</th>
       </tr>
     </thead>
     <tbody>
@@ -335,67 +626,90 @@
             {{ l.status|capitalize }}
           </span>
         </td>
-        <td><a class="btn btn-sm" href="{{ url_for('loans.detail', loan_id=l.id) }}">Plan de Pagos →</a></td>
+        <td class="no-print"><a class="btn btn-sm" href="{{ url_for('loans.detail', loan_id=l.id) }}">Plan de Pagos →</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p class="muted" style="text-align: center; padding: 20px 0;">Este cliente no tiene préstamos activos ni históricos.</p>
+  <p class="muted" style="text-align: center; padding: 20px 0;">Este cliente no tiene créditos registrados aún.</p>
   {% endif %}
 </section>
 
-{# Card 5: Documentos y Evidencias #}
-<section class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-    <div>
-      <h2 style="margin: 0;">Documentos y Evidencias Adjuntas</h2>
-      <p class="muted" style="font-size: 0.85rem; margin: 2px 0 0 0;">Cédulas, fachadas de inmueble/negocio, comprobantes y contratos</p>
-    </div>
-  </div>
-
-  {% if documents %}
-  <div class="grid grid-3" style="gap: 16px; margin-bottom: 20px;">
-    {% for d in documents %}
-    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+{# ────────────────── OTROS DOCUMENTOS ADJUNTOS ────────────────── #}
+{% if other_docs %}
+<section class="card cv-section no-print" style="margin-bottom: 24px;">
+  <h2 style="margin: 0 0 14px 0; font-size: 1.05rem; font-weight: 700;">Otros Documentos de Soporte</h2>
+  <div class="grid grid-3" style="gap: 12px;">
+    {% for d in other_docs %}
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; display: flex; justify-content: space-between; align-items: center;">
       <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span class="badge" style="font-weight: 700; background: #e0e7ff; color: #3730a3;">{{ d.doc_type|upper }}</span>
-          <small class="muted">{{ d.extension|upper }} · {{ (d.size / 1024)|round(1) }} KB</small>
-        </div>
-        <strong style="display: block; font-size: 0.92rem; word-break: break-all; margin-bottom: 6px;">{{ d.original_name }}</strong>
-        <small class="muted" style="display: block; margin-bottom: 12px;">Cargado: {{ d.uploaded_at|d }}</small>
+        <span class="badge" style="font-size: 0.7rem; font-weight: 700;">{{ d.doc_type|upper }}</span>
+        <strong style="display: block; font-size: 0.85rem; margin-top: 4px; word-break: break-all;">{{ d.original_name }}</strong>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center; margin-top: 12px;">
-        <a class="btn btn-sm" href="{{ url_for('documents.download', document_id=d.id) }}">Descargar</a>
-        <a class="btn btn-sm" href="{{ url_for('documents.ocr', document_id=d.id) }}">OCR</a>
-      </div>
+      <a class="btn btn-sm" href="{{ url_for('documents.download', document_id=d.id) }}">Descargar</a>
     </div>
     {% endfor %}
   </div>
-  {% else %}
-  <div style="text-align: center; padding: 20px 0; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius-sm); margin-bottom: 16px;">
-    <p style="margin: 0;">No hay documentos adjuntos para este cliente todavía.</p>
-  </div>
-  {% endif %}
+</section>
+{% endif %}
 
-  {% if current_user.has_permission('clients.edit') %}
+{# ────────────────── SUBIR NUEVO DOCUMENTO AL EXPEDIENTE ────────────────── #}
+{% if current_user.has_permission('clients.edit') %}
+<section class="card no-print">
   <div style="background: var(--bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-    <strong style="display: block; font-size: 0.9rem; margin-bottom: 8px;">+ Adjuntar Nuevo Documento / Foto de Fachada</strong>
+    <strong style="display: block; font-size: 0.95rem; margin-bottom: 8px;">+ Adjuntar Documento Adicional al Expediente</strong>
     <form class="inline-upload" method="post" action="{{ url_for('clients.add_document', client_id=client.id) }}" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <select name="doc_type" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <option value="foto_deudor">Foto del Deudor</option>
+        <option value="foto_trabajo">Foto del Trabajo</option>
+        <option value="fachada">Foto de Fachada</option>
         <option value="identificacion">Cédula / Identificación</option>
-        <option value="fachada">Foto de Fachada / Negocio</option>
-        <option value="comprobante">Comprobante de Ingresos / Servicios</option>
+        <option value="comprobante">Comprobante de Ingresos / Pago</option>
         <option value="contrato">Contrato Firmado</option>
         <option value="pagaré">Pagaré</option>
         <option value="otro">Otro Documento</option>
       </select>
       <input type="file" name="file" required style="padding: 6px; font-size: 0.85rem;">
-      <button class="btn btn-sm btn-primary" type="submit">Subir Documento</button>
+      <button class="btn btn-sm btn-primary" type="submit">Subir al Expediente</button>
     </form>
   </div>
-  {% endif %}
 </section>
+{% endif %}
+
+{# ────────────────── MODAL LIGHTBOX PARA FOTOS ────────────────── #}
+<div id="photoModal" class="photo-lightbox-modal" onclick="closePhotoModal(event)">
+  <div class="photo-lightbox-content">
+    <div class="photo-lightbox-header">
+      <h3 id="photoModalTitle" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: white;">Evidencia Fotográfica</h3>
+      <button type="button" class="photo-lightbox-close" onclick="closePhotoModalDirect()">&times;</button>
+    </div>
+    <div style="text-align: center; max-height: 80vh; overflow: auto;">
+      <img id="photoModalImg" src="" alt="Evidencia en alta resolución" style="max-width: 100%; max-height: 75vh; border-radius: 6px; object-fit: contain;">
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openPhotoModal(src, title) {
+  document.getElementById('photoModalImg').src = src;
+  document.getElementById('photoModalTitle').innerText = title || 'Evidencia Fotográfica';
+  const modal = document.getElementById('photoModal');
+  modal.style.display = 'flex';
+}
+
+function closePhotoModal(e) {
+  if (e.target.id === 'photoModal') {
+    document.getElementById('photoModal').style.display = 'none';
+  }
+}
+
+function closePhotoModalDirect() {
+  document.getElementById('photoModal').style.display = 'none';
+}
+</script>
 {% endblock %}

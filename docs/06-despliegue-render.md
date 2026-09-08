@@ -1,72 +1,70 @@
-# Despliegue en Render + PostgreSQL
+# Despliegue en Render (Persistent Disk / PostgreSQL)
 
-Este documento explica cómo publicar **Cartera** en Render con una base de datos
-PostgreSQL persistente.
+Este documento explica cómo desplegar **Cartera** en Render asegurando persistencia de datos (base de datos y documentos subidos) y rendimiento óptimo.
 
 ## 1. Requisitos previos
 
 - Cuenta en [Render](https://render.com).
 - Repositorio del proyecto subido a GitHub/GitLab.
-- Los archivos `Procfile`, `render.yaml` y `requirements.txt` ya están en el proyecto.
+- Los archivos `Procfile`, `render.yaml` y `requirements.txt` ya están configurados en el repositorio.
 
-## 2. Configuración ya aplicada
+## 2. Configuración preconfigurada en `render.yaml`
 
-- `app/config.py` lee la conexión desde la variable de entorno `DATABASE_URL`.
-  Si no existe, usa SQLite local (ideal para desarrollo).
-- Si `DATABASE_URL` está definida (producción), el acceso directo sin login se
-  desactiva automáticamente (`AUTH_DISABLED=false`). Se puede forzar con la
-  variable `AUTH_DISABLED`.
-- `render.yaml` declara el servicio y genera una `SECRET_KEY` automáticamente.
+El archivo `render.yaml` incluye la especificación de infraestructura completa:
+- **Runtime**: Python 3.10+
+- **Build command**: `pip install -r requirements.txt`
+- **Start command**: `gunicorn -w 2 -t 120 run:app`
+- **Disco persistente**: Un volumen de 1 GB (`cartera-data`) montado en `/data`.
+- **Variables automáticas**:
+  - `DATABASE_URL: sqlite:////data/cartera.db` (base de datos persistente en disco).
+  - `UPLOAD_FOLDER: /data/uploads` (documentos y comprobantes persistentes en disco).
+  - `AUTH_DISABLED: false` (fuerza inicio de sesión en producción).
+  - `SECRET_KEY`: generada aleatoriamente por Render.
 
 ## 3. Pasos de despliegue
 
-### Opción A — Blueprint (recomendada, usa `render.yaml`)
+### Opción A — Blueprint con Disco Persistente (Recomendada, cero configuración manual)
 
-1. En Render, ve a **New → Blueprint**.
-2. Conecta tu repositorio.
-3. Render detecta `render.yaml` y crea el servicio web.
-4. Cuando el servicio esté creado, ve a su pestaña **Environment** y crea la
-   base de datos PostgreSQL (botón **Create PostgreSQL**). Render enlazará la
-   variable `DATABASE_URL` automáticamente.
+1. En el panel de Render, haz clic en **New +** → **Blueprint**.
+2. Conecta tu repositorio `cobranza-app`.
+3. Render detectará automáticamente `render.yaml`, aprovisionará el servicio web y adjuntará el disco persistente `cartera-data`.
+4. Haz clic en **Apply**. El build y arranque se completarán en unos minutos.
 
-### Opción B — Creación manual
+### Opción B — Despliegue con PostgreSQL Gestionado
 
-1. **New → Web Service** y conecta el repositorio.
-2. Configura:
-   - **Build command**: `pip install -r requirements.txt`
-   - **Start command**: `gunicorn run:app`
-3. **New → PostgreSQL** y crea la instancia.
-4. En el web service, agrega la variable `DATABASE_URL` (Render la autocompleta
-   al enlazar la instancia) y `SECRET_KEY` (valor largo y aleatorio).
+Si prefieres usar la base de datos PostgreSQL administrada de Render en lugar de SQLite persistente:
+
+1. **Crear PostgreSQL**: Haz clic en **New +** → **PostgreSQL**.
+2. **Crear Web Service**: Haz clic en **New +** → **Web Service** y conecta el repositorio.
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn -w 2 -t 120 run:app`
+3. En la pestaña **Environment** del Web Service:
+   - Añade `DATABASE_URL` (enlazando la base de datos PostgreSQL creada).
+   - Añade `SECRET_KEY` (cadena secreta de producción).
+   - Añade `AUTH_DISABLED=false`.
 
 ## 4. Primer inicio de sesión
 
-En el primer despliegue la aplicación crea automáticamente:
+En el primer despliegue la aplicación inicializa automáticamente:
+- Estructura de tablas, roles predefinidos, catálogo de permisos y parámetros del sistema.
+- Usuario administrador inicial:
+  - **Usuario**: `admin`
+  - **Contraseña**: `admin123`
 
-- Las tablas (roles, permisos, usuarios, etc.).
-- El usuario administrador:
-  - Usuario: `admin`
-  - Contraseña: `admin123`
+> ⚠️ **IMPORTANTE**: Cambia la contraseña del administrador inmediatamente tras el primer ingreso desde **Administración → Usuarios → Editar**.
 
-> ⚠️ **Cambia la contraseña del administrador inmediatamente** después de entrar
-> (Administración → Usuarios → Editar).
+## 5. Persistencia y Respaldo
 
-## 5. Limitaciones a tener en cuenta
+- **Con Blueprint (`render.yaml`)**: Tanto la base de datos SQLite como la carpeta `/data/uploads` están montadas en el disco persistente `cartera-data`, manteniéndose intactas tras cada nuevo despliegue o reinicio de contenedor.
+- **Copias de seguridad**: Puedes descargar respaldos integrales en formato ZIP/CSV en cualquier momento desde **Administración → Gestión de datos** (`/admin/exportar-csv`).
 
-- **Archivos cargados**: `app/uploads/` es efímero en Render (se pierde en cada
-  deploy). Para producción se recomienda almacenamiento en la nube (S3, Cloudinary,
-  u otro). La base de datos (metadatos) sí persiste.
-- **SQLite local**: en tu máquina sigue funcionando sin cambios.
-- **Vercel**: no es recomendable para este proyecto (serverless + Flask de larga
-  duración). Render es la opción adecuada.
+## 6. Verificación local con Gunicorn
 
-## 6. Verificación local
-
-Para comprobar que la app arranca con gunicorn localmente:
+Para comprobar localmente el funcionamiento con Gunicorn antes de desplegar:
 
 ```bash
 pip install -r requirements.txt
-gunicorn run:app
+gunicorn -w 2 -t 120 run:app
 ```
 
-Abre http://127.0.0.1:8000 (puerto por defecto de gunicorn).
+Abre <http://127.0.0.1:8000> en tu navegador.

@@ -422,6 +422,8 @@ def export_csv():
             "Código Cliente", "Nombres", "Apellidos", "Nombre Completo",
             "Tipo Documento", "Número de Documento", "Teléfono", "Correo Electrónico",
             "Dirección", "País", "Banco Desembolso", "Tipo de Cuenta", "Número de Cuenta", "Titular Cuenta",
+            "Empresa", "Cargo", "Salario Mensual", "Dirección Empleo", "Teléfono Empleo",
+            "Medio Recaudo", "Canal Recaudo", "Cuenta / Convenio Recaudo", "Titular Recaudo",
             "Créditos Registrados", "Referencias Registradas", "Fecha de Registro"
         ]
         client_rows = []
@@ -441,6 +443,15 @@ def export_csv():
                 c.account_type or "",
                 c.account_number or "",
                 c.account_holder or "",
+                c.employer_name or "",
+                c.job_title or "",
+                _format_money(c.salary) if c.salary else "",
+                c.employer_address or "",
+                c.employer_phone or "",
+                c.collection_bank_name or "",
+                c.collection_account_type or "",
+                c.collection_account_number or "",
+                c.collection_account_holder or "",
                 len(c.loans),
                 len(c.references),
                 _format_date(c.created_at)

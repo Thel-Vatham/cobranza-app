@@ -121,6 +121,25 @@ def download(document_id):
     )
 
 
+@bp.route("/<int:document_id>/ver")
+@login_required
+@permission_required("documents.view")
+def view_raw(document_id):
+    document = Document.query.get_or_404(document_id)
+    import io
+    import mimetypes
+    from flask import send_file
+    mime_type, _ = mimetypes.guess_type(document.original_name)
+    with open(document.path, "rb") as fh:
+        data = fh.read()
+    return send_file(
+        io.BytesIO(data),
+        mimetype=mime_type or "application/octet-stream",
+        as_attachment=False,
+        download_name=document.original_name,
+    )
+
+
 @bp.route("/<int:document_id>/ocr", methods=["GET", "POST"])
 @login_required
 @permission_required("documents.view")

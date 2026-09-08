@@ -32,59 +32,64 @@ patrón PRG (Post/Redirect/Get).
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/prestamos/` | Listado con filtros |
-| GET/POST | `/prestamos/nuevo` | Crear préstamo y generar obligaciones |
-| GET | `/prestamos/<id>` | Detalle con cuotas y pagos |
+| GET | `/prestamos/` | Listado con filtros de estado |
+| GET/POST | `/prestamos/nuevo` | Crear préstamo, amortización y subir comprobante de desembolso |
+| GET | `/prestamos/<id>` | Detalle integral con cronograma de cuotas, desembolso y pagos |
+| POST | `/prestamos/<id>/comprobante` | Adjuntar o actualizar el comprobante de desembolso bancario |
 
 ## 5. Pagos
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/pagos/` | Listado |
-| GET/POST | `/pagos/nuevo` | Registrar y aplicar pago (acepta comprobante) |
-| GET | `/pagos/<id>/recibo` | Recibo imprimible |
-| POST | `/pagos/<id>/anular` | Anular pago y restaurar saldos |
-| POST | `/pagos/<id>/comprobante` | Adjuntar comprobante a un pago existente |
+| GET | `/pagos/` | Listado general de pagos |
+| GET/POST | `/pagos/nuevo` | Registrar y aplicar pago transaccional (acepta comprobante) |
+| GET | `/pagos/<id>/recibo` | Recibo oficial ejecutivo con diseño limpio para impresión y PDF |
+| POST | `/pagos/<id>/anular` | Anular pago y restaurar saldos de cuotas transaccionalmente |
+| POST | `/pagos/<id>/comprobante` | Adjuntar o actualizar comprobante a un pago existente |
 
 ## 6. Cobranza
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/cobranza/` | Obligaciones vencidas |
-| GET/POST | `/cobranza/gestion/<obligacion_id>` | Registrar gestión |
-| GET | `/cobranza/gestiones` | Historial |
+| GET | `/cobranza/` | Obligaciones vencidas con semaforización de mora |
+| GET/POST | `/cobranza/gestion/<obligacion_id>` | Registrar gestión de cobro (llamada, visita, mensaje, acuerdo) |
+| GET | `/cobranza/gestiones` | Historial cronológico de gestiones |
 
 ## 7. Documentos
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/documentos/` | Listado |
-| GET/POST | `/documentos/subir` | Carga de archivo |
-| GET | `/documentos/<id>/descargar` | Descarga |
-| GET/POST | `/documentos/<id>/ocr` | OCR y validación |
-| POST | `/documentos/<id>/editar` | Editar metadatos (tipo y entidad) |
-| POST | `/documentos/<id>/reemplazar` | Reemplazar el archivo |
-| POST | `/documentos/<id>/eliminar` | Eliminar el documento |
+| GET | `/documentos/` | Listado general de documentos clasificados |
+| GET/POST | `/documentos/subir` | Carga de archivo con nomenclatura trazable |
+| GET | `/documentos/<id>/descargar` | Descarga segura del archivo |
+| GET/POST | `/documentos/<id>/ocr` | Procesamiento OCR (EasyOCR / PyMuPDF) y visualización |
+| POST | `/documentos/<id>/editar` | Editar metadatos (tipo de documento y entidad) |
+| POST | `/documentos/<id>/reemplazar` | Reemplazar el archivo físico invalidando OCR previo |
+| POST | `/documentos/<id>/eliminar` | Eliminar documento físico y su registro |
 
 ## 8. Reportes
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/reportes/cartera` | Indicadores y distribución |
-| GET | `/reportes/score` | Score por cliente |
+| GET | `/reportes/cartera` | Indicadores consolidados y distribución por estado |
+| GET | `/reportes/score` | Panel de análisis de riesgo con tarjetas métricas y scoring |
 
-## 9. Administración
+## 9. Administración y Gestión de datos
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/admin/usuarios` | Listado de usuarios |
-| GET/POST | `/admin/usuarios/nuevo` | Crear usuario |
-| GET/POST | `/admin/usuarios/<id>/editar` | Editar usuario |
-| GET | `/admin/roles` | Roles y permisos |
-| POST | `/admin/roles/<id>` | Guardar permisos de un rol |
-| GET | `/admin/parametros` | Parámetros del sistema (agrupados por categoría) |
-| POST | `/admin/parametros/nuevo` | Crear parámetro |
-| GET | `/admin/auditoria` | Registro de auditoría |
+| GET | `/admin/usuarios` | Listado de usuarios del sistema |
+| GET/POST | `/admin/usuarios/nuevo` | Crear usuario con asignación de rol |
+| GET/POST | `/admin/usuarios/<id>/editar` | Editar usuario, estado y contraseña |
+| GET | `/admin/roles` | Matriz de roles y permisos RBAC |
+| POST | `/admin/roles/<id>` | Actualizar permisos asignados a un rol |
+| GET/POST | `/admin/parametros` | Parámetros del sistema y guardado masivo en caliente |
+| POST | `/admin/parametros/nuevo` | Registrar nuevo parámetro de configuración |
+| GET | `/admin/auditoria` | Bitácora de eventos y trazabilidad del sistema |
+| GET | `/admin/datos` | Panel de exportación de copias de seguridad y purga de base de datos |
+| GET | `/admin/exportar-csv` | Exportación completa a ZIP con archivos CSV amigables para Excel |
+| POST | `/admin/borrar-datos` | Purga segura de datos operativos (conserva usuarios y configuración) |
+| POST | `/admin/cargar-demo` | Recarga de datos de demostración limpios |
 
 ## 10. Filtros de plantilla
 

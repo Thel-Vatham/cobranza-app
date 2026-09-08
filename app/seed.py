@@ -435,10 +435,20 @@ def _seed_demo_data(force=False):
             email=c_def.get("email"),
             address=c_def["address"],
             country="Colombia",
+            city=c_def.get("city", "Bogotá"),
             bank_name=c_def.get("bank_name"),
             account_type=c_def.get("account_type"),
             account_number=c_def.get("account_number"),
             account_holder=c_def.get("account_holder"),
+            employer_name=c_def.get("employer_name", "Comercio & Servicios Integrales"),
+            employer_address=c_def.get("employer_address", c_def["address"]),
+            employer_phone=c_def.get("employer_phone", c_def["phone"]),
+            job_title=c_def.get("job_title", "Empleado / Asesor Comercial"),
+            salary=c_def.get("salary", Decimal("2200000.00")),
+            collection_bank_name=c_def.get("collection_bank_name", c_def.get("bank_name", "Bancolombia")),
+            collection_account_type=c_def.get("collection_account_type", "Billetera Digital"),
+            collection_account_number=c_def.get("collection_account_number", c_def.get("account_number", "3001234567")),
+            collection_account_holder=c_def.get("collection_account_holder", "Cartera & Cobranzas"),
         )
         db.session.add(client)
         db.session.flush()

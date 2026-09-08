@@ -1,204 +1,551 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · Cartera{% endblock %}
+{% block title %}{{ 'Editar' if client else 'Nuevo' }} cliente · Hoja de Vida · Cartera{% endblock %}
 {% block content %}
 <header class="page-head">
   <div>
-    <h1>{{ 'Editar cliente' if client else 'Nuevo cliente' }}</h1>
-    <p class="muted">Datos personales, contacto y referencias</p>
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+      <a class="muted" href="{{ url_for('clients.list_clients') }}">Clientes</a>
+      <span class="muted">/</span>
+      <span class="badge badge-info">{{ 'Editar Hoja de Vida' if (client and client.id) else 'Nueva Hoja de Vida'
+        }}</span>
+    </div>
+    <h1>{{ ('Editar cliente: ' ~ client.full_name) if (client and client.id) else 'Nuevo cliente' }}</h1>
+    <p class="muted">Hoja de vida, información laboral, expediente fotográfico y parámetros bancarios</p>
   </div>
-  <a class="btn" href="{{ url_for('clients.list_clients') }}">← Volver</a>
+  <a class="btn"
+    href="{{ url_for('clients.detail', client_id=client.id) if (client and client.id) else url_for('clients.list_clients') }}">←
+    Volver</a>
 </header>
 
-<form class="card form" method="post" enctype="multipart/form-data">
-  <h2>Datos básicos</h2>
+<form class="card form" method="post" enctype="multipart/form-data" id="clientForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {# ────────────────── 1. DATOS BÁSICOS ────────────────── #}
+  <div class="form-section-header">
+    <div class="form-section-title">
+      <span class="section-icon">{{ icon('user', 20) }}</span>
+      <h2>1. Datos Básicos y Personales</h2>
+    </div>
+    <span class="badge">Identificación oficial</span>
+  </div>
+
   <div class="grid grid-3">
     <label>Nombres *
-      <input type="text" name="first_name" id="first_name" required value="{{ client.first_name if client else '' }}">
+      <input type="text" name="first_name" id="first_name" required value="{{ client.first_name if client else '' }}"
+        placeholder="Ej: Carlos Andrés">
     </label>
     <label>Apellidos *
-      <input type="text" name="last_name" id="last_name" required value="{{ client.last_name if client else '' }}">
+      <input type="text" name="last_name" id="last_name" required value="{{ client.last_name if client else '' }}"
+        placeholder="Ej: Gómez Restrepo">
     </label>
     <label>Tipo de identificación
       <select name="identification_type" id="identification_type">
         {% for t in ['CC','TI','CE','NIT','Pasaporte','Otro'] %}
-        <option value="{{ t }}" {% if client and client.identification_type == t %}selected{% endif %}>{{ t }}</option>
+        <option value="{{ t }}" {% if client and client.identification_type==t %}selected{% endif %}>{{ t }}</option>
         {% endfor %}
       </select>
     </label>
     <label>Número de identificación *
-      <input type="text" name="identification_number" id="identification_number" required value="{{ client.identification_number if client else '' }}">
+      <input type="text" name="identification_number" id="identification_number" required
+        value="{{ client.identification_number if client else '' }}" placeholder="Ej: 1020304050">
     </label>
     <label>País
       <input type="text" name="country" id="country" value="{{ client.country if client else 'Colombia' }}">
     </label>
     <label>Ciudad
-      <input type="text" name="city" id="city" placeholder="Ej: Bogotá, Medellín..." value="{{ client.city if client else '' }}">
+      <input type="text" name="city" id="city" placeholder="Ej: Bogotá, Medellín, Cali..."
+        value="{{ client.city if client else '' }}">
     </label>
-    <label>Teléfono
-      <input type="text" name="phone" id="phone" value="{{ client.phone if client else '' }}">
+    <label>Teléfono móvil *
+      <input type="text" name="phone" id="phone" placeholder="Ej: 3101234567"
+        value="{{ client.phone if client else '' }}">
     </label>
-    <label>Email
-      <input type="email" name="email" id="email" value="{{ client.email if client else '' }}">
+    <label>Correo electrónico
+      <input type="email" name="email" id="email" placeholder="cliente@correo.com"
+        value="{{ client.email if client else '' }}">
     </label>
-    <label class="span-2">Dirección
-      <input type="text" name="address" id="address" value="{{ client.address if client else '' }}">
+    <label class="span-2">Dirección de residencia
+      <input type="text" name="address" id="address" placeholder="Ej: Calle 50 # 12-34, Apto 201"
+        value="{{ client.address if client else '' }}">
     </label>
   </div>
 
-  <h2>🏦 Datos bancarios para desembolso / depósito</h2>
-  <div class="grid grid-4" style="background: var(--bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 24px;">
+  {# ────────────────── 2. DATOS DE EMPLEO ────────────────── #}
+  <div class="form-section-header" style="margin-top: 28px;">
+    <div class="form-section-title">
+      <span class="section-icon" style="background: #e0f2fe; color: #0284c7;">{{ icon('briefcase', 20) }}</span>
+      <h2>2. Datos de Empleo y Actividad Laboral</h2>
+    </div>
+    <span class="badge badge-info">Capacidad de Pago</span>
+  </div>
+
+  <div class="grid grid-3"
+    style="background: var(--bg); padding: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 24px;">
+    <label>Empresa / Empleador *
+      <input type="text" name="employer_name" id="employer_name" placeholder="Ej: Bancolombia S.A., Negocio Propio..."
+        value="{{ client.employer_name if client and client.employer_name else '' }}">
+    </label>
+    <label>Cargo / Ocupación *
+      <input type="text" name="job_title" id="job_title"
+        placeholder="Ej: Analista de Ventas, Administrador, Independiente..."
+        value="{{ client.job_title if client and client.job_title else '' }}">
+    </label>
+    <label>Salario Mensual (COP) *
+      <input type="text" name="salary" id="salary" placeholder="Ej: 2.500.000 o 2500000"
+        value="{{ client.salary|money if client and client.salary else '' }}">
+    </label>
+    <label class="span-2">Dirección - Ubicación del Trabajo
+      <input type="text" name="employer_address" id="employer_address"
+        placeholder="Ej: Carrera 7 # 72-11, Edificio Torre Norte"
+        value="{{ client.employer_address if client and client.employer_address else '' }}">
+    </label>
+    <label>Teléfono de Contacto Laboral
+      <input type="text" name="employer_phone" id="employer_phone" placeholder="Ej: 6011234567 o 3150001122"
+        value="{{ client.employer_phone if client and client.employer_phone else '' }}">
+    </label>
+  </div>
+
+  {# ────────────────── 3. EXPEDIENTE VISUAL (4 FOTOS) ────────────────── #}
+  <div class="form-section-header">
+    <div class="form-section-title">
+      <span class="section-icon" style="background: #fef3c7; color: #b45309;">{{ icon('folder', 20) }}</span>
+      <h2>3. Expediente Visual y Fotográfico Obligatorio</h2>
+    </div>
+    <span class="badge badge-warning">4 Evidencias Clave</span>
+  </div>
+  <p class="muted" style="margin: -6px 0 16px 0; font-size: 0.88rem;">
+    Cargue las cuatro fotografías de soporte para conformar el expediente y la Hoja de Vida del deudor.
+  </p>
+
+  <div class="grid grid-2" style="gap: 16px; margin-bottom: 24px;">
+    {# Foto 1: Deudor #}
+    <div class="upload-tile">
+      <div class="upload-tile-head">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 700;">1</span>
+          <strong>Foto del Deudor (Perfil)</strong>
+        </div>
+        <small class="muted">JPG, PNG, WEBP</small>
+      </div>
+      <label class="upload-dropzone">
+        <input type="file" name="debtor_photo" id="debtor_photo" accept="image/*" class="photo-input"
+          data-target="preview_debtor">
+        <div class="dropzone-body" id="dropzone_debtor">
+          <div class="dropzone-placeholder" id="ph_debtor">
+            {{ icon('user', 28) }}
+            <span>Haga clic o arrastre la foto del deudor</span>
+          </div>
+          <div class="dropzone-preview" id="preview_debtor" {% if not (client and client.debtor_photo_doc)
+            %}style="display:none;" {% endif %}>
+            {% if client and client.debtor_photo_doc %}
+            <img src="{{ url_for('documents.view_raw', document_id=client.debtor_photo_doc.id) }}" alt="Foto Deudor">
+            {% else %}
+            <img src="" alt="Vista previa">
+            {% endif %}
+            <span class="preview-badge">Foto actual</span>
+          </div>
+        </div>
+      </label>
+      <small class="hint">Fotografía reciente del rostro del titular para su Hoja de Vida.</small>
+    </div>
+
+    {# Foto 2: Trabajo #}
+    <div class="upload-tile">
+      <div class="upload-tile-head">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700;">2</span>
+          <strong>Foto del Trabajo / Negocio</strong>
+        </div>
+        <small class="muted">JPG, PNG, WEBP</small>
+      </div>
+      <label class="upload-dropzone">
+        <input type="file" name="work_photo" id="work_photo" accept="image/*" class="photo-input"
+          data-target="preview_work">
+        <div class="dropzone-body" id="dropzone_work">
+          <div class="dropzone-placeholder" id="ph_work">
+            {{ icon('briefcase', 28) }}
+            <span>Haga clic o arrastre la foto del puesto laboral</span>
+          </div>
+          <div class="dropzone-preview" id="preview_work" {% if not (client and client.work_photo_doc)
+            %}style="display:none;" {% endif %}>
+            {% if client and client.work_photo_doc %}
+            <img src="{{ url_for('documents.view_raw', document_id=client.work_photo_doc.id) }}" alt="Foto Trabajo">
+            {% else %}
+            <img src="" alt="Vista previa">
+            {% endif %}
+            <span class="preview-badge">Foto actual</span>
+          </div>
+        </div>
+      </label>
+      <small class="hint">Fotografía en el puesto de trabajo, uniforme o local comercial.</small>
+    </div>
+
+    {# Foto 3: Fachada Casa #}
+    <div class="upload-tile">
+      <div class="upload-tile-head">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">3</span>
+          <strong>Fachada de la Casa / Domicilio</strong>
+        </div>
+        <small class="muted">JPG, PNG, WEBP</small>
+      </div>
+      <label class="upload-dropzone">
+        <input type="file" name="facade_photo" id="facade_photo" accept="image/*" class="photo-input"
+          data-target="preview_facade">
+        <div class="dropzone-body" id="dropzone_facade">
+          <div class="dropzone-placeholder" id="ph_facade">
+            {{ icon('map-pin', 28) }}
+            <span>Haga clic o arrastre la foto de la fachada</span>
+          </div>
+          <div class="dropzone-preview" id="preview_facade" {% if not (client and client.facade_photo_doc)
+            %}style="display:none;" {% endif %}>
+            {% if client and client.facade_photo_doc %}
+            <img src="{{ url_for('documents.view_raw', document_id=client.facade_photo_doc.id) }}" alt="Fachada Casa">
+            {% else %}
+            <img src="" alt="Vista previa">
+            {% endif %}
+            <span class="preview-badge">Foto actual</span>
+          </div>
+        </div>
+      </label>
+      <small class="hint">Foto exterior visible de la vivienda que coincida con la dirección registrada.</small>
+    </div>
+
+    {# Foto 4: Cédula / Identificación #}
+    <div class="upload-tile">
+      <div class="upload-tile-head">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge" style="background: #f3e8ff; color: #6b21a8; font-weight: 700;">4</span>
+          <strong>Documento de Identificación (Cédula)</strong>
+        </div>
+        <small class="badge badge-success" style="font-size: 0.72rem;">Con OCR inteligente</small>
+      </div>
+      <label class="upload-dropzone">
+        <input type="file" name="id_document" id="id_document" accept=".pdf,image/*" class="photo-input"
+          data-target="preview_id">
+        <div class="dropzone-body" id="dropzone_id">
+          <div class="dropzone-placeholder" id="ph_id">
+            {{ icon('file-text', 28) }}
+            <span>Haga clic o arrastre el escaneo de la cédula (PDF o imagen)</span>
+          </div>
+          <div class="dropzone-preview" id="preview_id" {% if not (client and client.id_doc) %}style="display:none;" {%
+            endif %}>
+            {% if client and client.id_doc and client.id_doc.extension != 'pdf' %}
+            <img src="{{ url_for('documents.view_raw', document_id=client.id_doc.id) }}" alt="Documento Identidad">
+            {% elif client and client.id_doc %}
+            <div style="padding: 20px; text-align: center; color: #4338ca; font-weight: 600;">PDF: {{
+              client.id_doc.original_name }}</div>
+            {% else %}
+            <img src="" alt="Vista previa">
+            {% endif %}
+            <span class="preview-badge">Documento cargado</span>
+          </div>
+        </div>
+      </label>
+      <div id="ocr-status" class="ocr-status" hidden style="margin-top: 8px;"></div>
+      <small class="hint">Al cargar el documento se extraen automáticamente datos del cliente.</small>
+    </div>
+  </div>
+
+  {# ────────────────── 4. DATOS BANCARIOS PARA DESEMBOLSO ────────────────── #}
+  <div class="form-section-header">
+    <div class="form-section-title">
+      <span class="section-icon" style="background: #dcfce7; color: #166534;">{{ icon('banknote', 20) }}</span>
+      <h2>4. Datos Bancarios para Desembolso</h2>
+    </div>
+    <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 700;">Giro del Crédito</span>
+  </div>
+  <p class="muted" style="margin: -6px 0 14px 0; font-size: 0.88rem;">
+    Cuenta bancaria o billetera digital donde se transferirá el monto del préstamo aprobado.
+  </p>
+
+  <div class="grid grid-4"
+    style="background: var(--bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 24px;">
     <label>Entidad Financiera / Banco
       <select name="bank_name" id="bank_name">
         <option value="">Seleccione banco…</option>
         {% set banks = [
-          'Bancolombia', 'Nequi', 'Daviplata', 'Davivienda', 'BBVA Colombia',
-          'Banco de Bogotá', 'Banco Agrario', 'Scotiabank Colpatria', 'Banco Popular',
-          'Banco AV Villas', 'Banco Caja Social', 'Banco de Occidente', 'Lulo Bank',
-          'Nu Colombia', 'RappiPay', 'Dale!', 'Movii', 'Banco Falabella', 'Banco Itaú', 'Otro'
+        'Bancolombia', 'Nequi', 'Daviplata', 'Davivienda', 'BBVA Colombia',
+        'Banco de Bogotá', 'Banco Agrario', 'Scotiabank Colpatria', 'Banco Popular',
+        'Banco AV Villas', 'Banco Caja Social', 'Banco de Occidente', 'Lulo Bank',
+        'Nu Colombia', 'RappiPay', 'Dale!', 'Movii', 'Banco Falabella', 'Banco Itaú', 'Efectivo / Ventanilla', 'Otro'
         ] %}
         {% for b in banks %}
-        <option value="{{ b }}" {% if client and client.bank_name == b %}selected{% endif %}>{{ b }}</option>
+        <option value="{{ b }}" {% if client and client.bank_name==b %}selected{% endif %}>{{ b }}</option>
         {% endfor %}
       </select>
     </label>
     <label>Tipo de Cuenta
       <select name="account_type" id="account_type">
-        <option value="Ahorros" {% if not client or client.account_type == 'Ahorros' %}selected{% endif %}>Cuenta de Ahorros</option>
-        <option value="Corriente" {% if client and client.account_type == 'Corriente' %}selected{% endif %}>Cuenta Corriente</option>
-        <option value="Billetera Digital" {% if client and client.account_type == 'Billetera Digital' %}selected{% endif %}>Billetera Digital (Nequi/Daviplata)</option>
+        <option value="Ahorros" {% if not client or client.account_type=='Ahorros' %}selected{% endif %}>Cuenta de
+          Ahorros</option>
+        <option value="Corriente" {% if client and client.account_type=='Corriente' %}selected{% endif %}>Cuenta
+          Corriente</option>
+        <option value="Billetera Digital" {% if client and client.account_type=='Billetera Digital' %}selected{% endif
+          %}>Billetera Digital (Nequi/Daviplata)</option>
+        <option value="Efectivo" {% if client and client.account_type=='Efectivo' %}selected{% endif %}>Entrega en
+          Efectivo</option>
       </select>
     </label>
     <label>Número de Cuenta / Teléfono
-      <input type="text" name="account_number" id="account_number" placeholder="Ej: 1234567890 o 310..." value="{{ client.account_number if client else '' }}">
+      <input type="text" name="account_number" id="account_number" placeholder="Ej: 1057014054 o 310..."
+        value="{{ client.account_number if client else '' }}">
     </label>
     <label>Titular de la Cuenta
-      <input type="text" name="account_holder" id="account_holder" placeholder="Dejar vacío si es el mismo cliente" value="{{ client.account_holder if client else '' }}">
+      <input type="text" name="account_holder" id="account_holder" placeholder="Dejar vacío si es el mismo cliente"
+        value="{{ client.account_holder if client else '' }}">
     </label>
   </div>
 
-  <h2>Documentos</h2>
-  <div class="grid grid-2">
-    <div class="upload-box">
-      <label>Documento de identidad (imagen o PDF)
-        <input type="file" name="id_document" id="id_document" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif">
-      </label>
-      <p class="hint">Al subirlo se intenta autocompletar nombre, identificación, teléfono, dirección y email.</p>
-      <div id="ocr-status" class="ocr-status" hidden></div>
+  {# ────────────────── 5. DATOS BANCARIOS PARA RECAUDO ────────────────── #}
+  <div class="form-section-header">
+    <div class="form-section-title">
+      <span class="section-icon" style="background: #ffedd5; color: #c2410c;">{{ icon('clipboard', 20) }}</span>
+      <h2>5. Datos Bancarios y Medios para Recaudo</h2>
     </div>
-    <div class="upload-box">
-      <label>Foto de la fachada de la casa
-        <input type="file" name="address_photo" accept=".png,.jpg,.jpeg,.webp,.gif">
-      </label>
-      <p class="hint">Si el documento contiene la dirección, se sugiere en el campo Dirección.</p>
-    </div>
+    <span class="badge" style="background: #ffedd5; color: #9a3412; font-weight: 700;">Pago de Cuotas</span>
   </div>
+  <p class="muted" style="margin: -6px 0 14px 0; font-size: 0.88rem;">
+    Canal designado o cuenta asignada al cliente para efectuar el pago y cobro de sus obligaciones.
+  </p>
 
-  <h2>Referencias y codeudores</h2>
-  <div id="references">
-    {% if client and client.references %}
-      {% for r in client.references %}
-      <div class="ref-row grid grid-5">
-        <input type="text" name="ref_name" placeholder="Nombre completo" value="{{ r.full_name }}">
-        <select name="ref_relationship">
-          {% for rel in ['Referencia','Codeudor','Familiar','Laboral','Personal'] %}
-          <option value="{{ rel }}" {% if r.relationship == rel %}selected{% endif %}>{{ rel }}</option>
-          {% endfor %}
-        </select>
-        <input type="text" name="ref_identification" placeholder="Identificación" value="{{ r.identification_number or '' }}">
-        <input type="text" name="ref_phone" placeholder="Teléfono" value="{{ r.phone or '' }}">
-        <input type="text" name="ref_address" placeholder="Dirección" value="{{ r.address or '' }}">
-      </div>
-      {% endfor %}
-    {% else %}
-    <div class="ref-row grid grid-5">
-      <input type="text" name="ref_name" placeholder="Nombre completo">
-      <select name="ref_relationship">
-        {% for rel in ['Referencia','Codeudor','Familiar','Laboral','Personal'] %}
-        <option value="{{ rel }}">{{ rel }}</option>
+  <div class="grid grid-4"
+    style="background: var(--bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 24px;">
+    <label>Entidad / Medio de Recaudo
+      <select name="collection_bank_name" id="collection_bank_name">
+        <option value="">Seleccione medio de recaudo…</option>
+        {% set c_banks = [
+        'Bancolombia Recaudo', 'Nequi', 'Daviplata', 'Davivienda', 'BBVA Colombia',
+        'Banco de Bogotá', 'Banco Agrario', 'Efecty / SuRed', 'SuperGIROS',
+        'Cobrador a Domicilio (Efectivo)', 'Transferencia Bancaria', 'Código QR Interbancario', 'Otro'
+        ] %}
+        {% for cb in c_banks %}
+        <option value="{{ cb }}" {% if client and client.collection_bank_name==cb %}selected{% endif %}>{{ cb }}
+        </option>
         {% endfor %}
       </select>
-      <input type="text" name="ref_identification" placeholder="Identificación">
-      <input type="text" name="ref_phone" placeholder="Teléfono">
-      <input type="text" name="ref_address" placeholder="Dirección">
-    </div>
-    {% endif %}
+    </label>
+    <label>Tipo de Recaudo / Canal
+      <select name="collection_account_type" id="collection_account_type">
+        <option value="Transferencia" {% if client and client.collection_account_type=='Transferencia' %}selected{%
+          endif %}>Transferencia Bancaria</option>
+        <option value="Billetera Digital" {% if not client or client.collection_account_type=='Billetera Digital'
+          %}selected{% endif %}>Billetera Digital (Nequi/Daviplata)</option>
+        <option value="Convenio Empresarial" {% if client and client.collection_account_type=='Convenio Empresarial'
+          %}selected{% endif %}>Convenio Empresarial de Recaudo</option>
+        <option value="Efectivo en Campo" {% if client and client.collection_account_type=='Efectivo en Campo'
+          %}selected{% endif %}>Efectivo / Cobrador en Campo</option>
+        <option value="Código QR" {% if client and client.collection_account_type=='Código QR' %}selected{% endif %}>
+          Código QR</option>
+      </select>
+    </label>
+    <label>Número / Convenio / Referencia de Pago
+      <input type="text" name="collection_account_number" id="collection_account_number"
+        placeholder="Ej: Convenio 49201 o Celular" value="{{ client.collection_account_number if client else '' }}">
+    </label>
+    <label>Titular / Instrucción de Cobranza
+      <input type="text" name="collection_account_holder" id="collection_account_holder"
+        placeholder="Ej: Cartera & Cobranzas / Referencia CC"
+        value="{{ client.collection_account_holder if client else '' }}">
+    </label>
   </div>
-  <button type="button" class="btn btn-sm" onclick="addReference()">+ Agregar referencia</button>
 
-  <div class="form-actions">
-    <button type="submit" class="btn btn-primary">Guardar</button>
-    <a class="btn" href="{{ url_for('clients.list_clients') }}">Cancelar</a>
+  {# ────────────────── 6. REFERENCIAS Y CODEUDORES (EXACTAMENTE DOS) ────────────────── #}
+  <div class="form-section-header">
+    <div class="form-section-title">
+      <span class="section-icon" style="background: #fce7f3; color: #be185d;">{{ icon('users', 20) }}</span>
+      <h2>6. Referencias y Codeudores</h2>
+    </div>
+
+  </div>
+  <p class="muted" style="margin: -6px 0 16px 0; font-size: 0.88rem;">
+    El estudio de crédito exige exactamente dos (2) personas de respaldo (codeudores o referencias
+    personales/laborales/familiares).
+  </p>
+
+  {% set ref1 = client.references[0] if (client and client.references|length > 0) else None %}
+  {% set ref2 = client.references[1] if (client and client.references|length > 1) else None %}
+
+  <div class="references-dual-grid">
+    {# Ranura 1 #}
+    <div class="reference-slot-card">
+      <div class="reference-slot-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="ref-number-badge">1</span>
+          <strong>Primera Referencia o Codeudor *</strong>
+        </div>
+        <span class="badge badge-info">Obligatorio</span>
+      </div>
+      <div class="grid grid-2" style="gap: 12px;">
+        <label class="span-2">Rol / Vinculación *
+          <select name="ref_relationship" required>
+            {% for r in ['Codeudor','Familiar','Personal','Laboral','Comercial','Referencia'] %}
+            <option value="{{ r }}" {% if ref1 and ref1.relationship==r %}selected{% elif not ref1 and r=='Codeudor'
+              %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="span-2">Nombre Completo *
+          <input type="text" name="ref_name" id="ref_name_1" required placeholder="Nombre completo"
+            value="{{ ref1.full_name if ref1 else '' }}">
+        </label>
+        <label>Teléfono / Móvil *
+          <input type="text" name="ref_phone" id="ref_phone_1" required placeholder="Ej: 3110001122"
+            value="{{ ref1.phone if ref1 else '' }}">
+        </label>
+        <label>Número de Identificación
+          <input type="text" name="ref_identification" placeholder="Cédula"
+            value="{{ ref1.identification_number if ref1 else '' }}">
+        </label>
+        <label class="span-2">Dirección de Residencia / Ubicación
+          <input type="text" name="ref_address" placeholder="Ej: Calle 68 # 14-20"
+            value="{{ ref1.address if ref1 else '' }}">
+        </label>
+      </div>
+    </div>
+
+    {# Ranura 2 #}
+    <div class="reference-slot-card">
+      <div class="reference-slot-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="ref-number-badge">2</span>
+          <strong>Segunda Referencia o Codeudor *</strong>
+        </div>
+        <span class="badge badge-info">Obligatorio</span>
+      </div>
+      <div class="grid grid-2" style="gap: 12px;">
+        <label class="span-2">Rol / Vinculación *
+          <select name="ref_relationship" required>
+            {% for r in ['Familiar','Personal','Laboral','Comercial','Codeudor','Referencia'] %}
+            <option value="{{ r }}" {% if ref2 and ref2.relationship==r %}selected{% elif not ref2 and r=='Familiar'
+              %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="span-2">Nombre Completo *
+          <input type="text" name="ref_name" id="ref_name_2" required placeholder="Nombre completo"
+            value="{{ ref2.full_name if ref2 else '' }}">
+        </label>
+        <label>Teléfono / Móvil *
+          <input type="text" name="ref_phone" id="ref_phone_2" required placeholder="Ej: 3120003344"
+            value="{{ ref2.phone if ref2 else '' }}">
+        </label>
+        <label>Número de Identificación
+          <input type="text" name="ref_identification" placeholder="Cédula"
+            value="{{ ref2.identification_number if ref2 else '' }}">
+        </label>
+        <label class="span-2">Dirección de Residencia / Ubicación
+          <input type="text" name="ref_address" placeholder="Ej: Carrera 15 # 45-80"
+            value="{{ ref2.address if ref2 else '' }}">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  {# ────────────────── ACCIONES ────────────────── #}
+  <div class="form-actions" style="margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border);">
+    <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700; font-size: 0.95rem;">
+      {{ icon('check', 18) }} Guardar Hoja de Vida de Cliente
+    </button>
+    <a class="btn"
+      href="{{ url_for('clients.detail', client_id=client.id) if (client and client.id) else url_for('clients.list_clients') }}">Cancelar</a>
   </div>
 </form>
 {% endblock %}
+
 {% block scripts %}
 <script>
-function addReference() {
-  const row = document.createElement('div');
-  row.className = 'ref-row grid grid-5';
-  row.innerHTML = `
-    <input type="text" name="ref_name" placeholder="Nombre completo">
-    <select name="ref_relationship">
-      ${['Referencia','Codeudor','Familiar','Laboral','Personal'].map(r => `<option>${r}</option>`).join('')}
-    </select>
-    <input type="text" name="ref_identification" placeholder="Identificación">
-    <input type="text" name="ref_phone" placeholder="Teléfono">
-    <input type="text" name="ref_address" placeholder="Dirección">
-  `;
-  document.getElementById('references').appendChild(row);
-}
+  // Validación estricta de dos referencias en el cliente
+  document.getElementById('clientForm').addEventListener('submit', function (e) {
+    const r1 = document.getElementById('ref_name_1').value.trim();
+    const r2 = document.getElementById('ref_name_2').value.trim();
+    if (!r1 || !r2) {
+      e.preventDefault();
+      alert('Debe diligenciar obligatoriamente las DOS (2) referencias o codeudores requeridos.');
+      if (!r1) document.getElementById('ref_name_1').focus();
+      else document.getElementById('ref_name_2').focus();
+    }
+  });
 
-// Autocompletado desde el documento de identidad
-document.getElementById('id_document').addEventListener('change', function () {
-  const file = this.files[0];
-  if (!file) return;
-  const status = document.getElementById('ocr-status');
-  status.hidden = false;
+  // Previsualización instantánea de imágenes cargadas
+  document.querySelectorAll('.photo-input').forEach(input => {
+    input.addEventListener('change', function () {
+      const file = this.files[0];
+      const targetId = this.getAttribute('data-target');
+      const previewBox = document.getElementById(targetId);
+      if (!file || !previewBox) return;
 
-  const MAX_MB = 15; // igual a MAX_CONTENT_LENGTH del servidor
-  if (file.size > MAX_MB * 1024 * 1024) {
-    status.textContent = `El archivo supera los ${MAX_MB} MB. Reduzca la resolución o comprímalo.`;
-    status.className = 'ocr-status ocr-error';
-    this.value = '';
-    return;
-  }
-
-  status.textContent = 'Analizando documento…';
-  status.className = 'ocr-status';
-
-  const data = new FormData();
-  data.append('file', file);
-
-  fetch("{{ url_for('clients.ocr') }}", { method: 'POST', body: data })
-    .then(r => r.json().catch(() => ({ ok: false, message: `El servidor respondió con estado ${r.status}.` })))
-    .then(res => {
-      if (!res.ok) {
-        status.textContent = res.message || 'No se pudo analizar el documento.';
-        status.className = 'ocr-status ocr-error';
-        return;
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          let img = previewBox.querySelector('img');
+          if (!img) {
+            img = document.createElement('img');
+            previewBox.innerHTML = '';
+            previewBox.appendChild(img);
+          }
+          img.src = e.target.result;
+          previewBox.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else if (file.name.endsWith('.pdf')) {
+        previewBox.innerHTML = `<div style="padding: 16px; text-align: center; color: #4338ca; font-weight: 600;">PDF: ${file.name}</div><span class="preview-badge">Listo</span>`;
+        previewBox.style.display = 'block';
       }
-      const f = res.fields || {};
-      const setIfEmpty = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val && !el.value) el.value = val;
-      };
-      setIfEmpty('first_name', f.first_name);
-      setIfEmpty('last_name', f.last_name);
-      setIfEmpty('identification_number', f.identification_number);
-      setIfEmpty('phone', f.phone);
-      setIfEmpty('address', f.address);
-      setIfEmpty('email', f.email);
-
-      const filled = Object.values(f).filter(Boolean).length;
-      status.textContent = filled
-        ? 'Se autocompletaron los campos encontrados. Revíselos antes de guardar.'
-        : 'No se detectaron campos. Complete la información manualmente.';
-      status.className = 'ocr-status ocr-ok';
-    })
-    .catch(() => {
-      status.textContent = 'Error de conexión al analizar el documento. Verifique que el servidor siga en ejecución.';
-      status.className = 'ocr-status ocr-error';
     });
-});
+  });
+
+  // Autocompletado OCR desde documento de identidad
+  document.getElementById('id_document').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const status = document.getElementById('ocr-status');
+    status.hidden = false;
+
+    const MAX_MB = 15;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      status.textContent = `El archivo supera los ${MAX_MB} MB. Reduzca la resolución o comprímalo.`;
+      status.className = 'ocr-status ocr-error';
+      this.value = '';
+      return;
+    }
+
+    status.textContent = 'Analizando documento de identidad con OCR…';
+    status.className = 'ocr-status';
+
+    const data = new FormData();
+    data.append('file', file);
+
+    fetch("{{ url_for('clients.ocr') }}", { method: 'POST', body: data })
+      .then(r => r.json().catch(() => ({ ok: false, message: `El servidor respondió con estado ${r.status}.` })))
+      .then(res => {
+        if (!res.ok) {
+          status.textContent = res.message || 'No se pudo analizar el documento.';
+          status.className = 'ocr-status ocr-error';
+          return;
+        }
+        const f = res.fields || {};
+        const setIfEmpty = (id, val) => {
+          const el = document.getElementById(id);
+          if (el && val && !el.value) el.value = val;
+        };
+        setIfEmpty('first_name', f.first_name);
+        setIfEmpty('last_name', f.last_name);
+        setIfEmpty('identification_number', f.identification_number);
+        setIfEmpty('phone', f.phone);
+        setIfEmpty('address', f.address);
+        setIfEmpty('email', f.email);
+
+        const filled = Object.values(f).filter(Boolean).length;
+        status.textContent = filled
+          ? 'Se detectaron y autocompletaron datos de la cédula. Revíselos antes de guardar.'
+          : 'Documento procesado. Complete la información restante manualmente.';
+        status.className = 'ocr-status ocr-ok';
+      })
+      .catch(() => {
+        status.textContent = 'No se pudo conectar al servicio OCR.';
+        status.className = 'ocr-status ocr-error';
+      });
+  });
 </script>
 {% endblock %}

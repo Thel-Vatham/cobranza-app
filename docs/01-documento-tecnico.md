@@ -18,20 +18,22 @@ generación de comprobantes y análisis de comportamiento financiero.
 
 ## 3. Alcance funcional
 
-- Gestión de clientes y deudores, con referencias y codeudores.
-- Gestión documental con carga, clasificación y consulta.
-- Creación y administración de préstamos.
-- Generación y seguimiento de cuotas u obligaciones.
-- Gestión de cartera y de cobranza.
-- Recepción y aplicación transaccional de pagos.
-- Generación de recibos imprimibles.
-- Indicadores financieros y score de comportamiento.
-- Administración de usuarios, roles, permisos, parámetros y auditoría.
+- Gestión de clientes y deudores, con referencias, codeudores, ubicación (ciudad) e información bancaria completa para transferencias/desembolsos.
+- Gestión documental con carga, clasificación, descarga, previsualización y OCR inteligente para autocompletado.
+- Creación y administración de préstamos con amortización francesa o alemana y tasa por período parametrizable.
+- Carga y visualización de comprobantes de desembolso asociados al crédito.
+- Generación y seguimiento de cuotas u obligaciones con cálculo de mora automático.
+- Gestión de cartera y de cobranza con registro de gestiones y semaforización.
+- Recepción y aplicación transaccional de pagos con orden de imputación dinámico (interés primero o capital primero).
+- Generación de recibos ejecutivos oficiales listos para impresión limpia y exportación a PDF.
+- Indicadores financieros, panel analítico y score de comportamiento crediticio con métricas consolidadas.
+- Administración de usuarios, roles RBAC, permisos granulares, auditoría y parámetros en caliente.
+- **Gestión avanzada de datos**: exportación completa a ZIP con archivos CSV limpios y legibles para Excel, purga segura de datos de prueba y recarga de datos demo.
 
 ## 4. Arquitectura general
 
 Se adopta una **arquitectura web ligera** (server-rendered), sin frontend SPA.
-El backend está implementado en Python con Flask y el frontend con HTML/CSS/JavaScript.
+El backend está implementado en Python con Flask y el frontend con HTML/CSS/JavaScript modular.
 
 ### 4.1 Capas
 
@@ -39,9 +41,9 @@ El backend está implementado en Python con Flask y el frontend con HTML/CSS/Jav
 |---|---|---|
 | Presentación | Formularios, tablas, filtros, navegación y visualización. | `app/templates/`, `app/static/` |
 | Aplicación | Rutas/controladores y coordinación de casos de uso. | `app/routes/` |
-| Dominio / negocio | Reglas financieras, scoring, permisos. | `app/services/` |
+| Dominio / negocio | Reglas financieras, scoring, permisos, OCR. | `app/services/` |
 | Persistencia | Entidades, relaciones y acceso a datos. | `app/models.py` |
-| Infraestructura | Almacenamiento de archivos, OCR opcional. | `app/uploads/`, `app/routes/documents.py` |
+| Infraestructura | Almacenamiento de archivos privados, disco persistente. | `app/uploads/`, `app/routes/documents.py` |
 
 ### 4.2 Diagrama de capas
 
@@ -51,8 +53,8 @@ flowchart TD
   P --> A[Aplicación - Routes]
   A --> D[Dominio - Services]
   D --> R[Persistencia - Models]
-  R --> DB[(SQLite)]
-  A --> I[Infraestructura - Uploads/OCR]
+  R --> DB[(SQLite / PostgreSQL)]
+  A --> I[Infraestructura - Uploads/OCR/Export]
 ```
 
 ## 5. Stack tecnológico
@@ -63,22 +65,24 @@ flowchart TD
 | Framework web | Flask 3 |
 | ORM | Flask-SQLAlchemy 3 (SQLAlchemy 2) |
 | Autenticación | Flask-Login |
-| Hashing de contraseñas | Werkzeug (PBKDF2) |
-| Base de datos | SQLite (reemplazable por PostgreSQL/MySQL) |
-| Frontend | HTML5, CSS3, JavaScript (vanilla) |
+| Hashing de contraseñas | Werkzeug (PBKDF2 / scrypt) |
+| Seguridad y Rate Limit | Flask-WTF (CSRF), Flask-Limiter |
+| Extracción y OCR | PyMuPDF (fitz), Pillow, EasyOCR |
+| Base de datos | SQLite (desarrollo/producción con volumen) / PostgreSQL |
+| Frontend | HTML5, CSS3 moderno, JavaScript (vanilla) |
 
 ## 6. Módulos funcionales
 
-1. **Panel principal** — indicadores de cartera, obligaciones por vencer/vencidas, pagos recientes.
-2. **Clientes** — CRUD, referencias/codeudores, ficha integral y score.
-3. **Préstamos** — creación con valor, interés, cuotas y fecha; generación de obligaciones.
-4. **Cuotas / obligaciones** — capital, interés, saldo, días de mora y estado.
-5. **Pagos** — registro transaccional, aplicación, recibo y anulación.
-6. **Cobranza** — reporte de vencidos y registro de gestiones.
-7. **Documentos** — carga, clasificación, descarga y OCR opcional.
-8. **Cartera y analítica** — indicadores y distribución por estado.
-9. **Score de comportamiento** — puntualidad, cumplimiento y mora.
-10. **Administración** — usuarios, roles, permisos, parámetros y auditoría.
+1. **Panel principal** — indicadores de cartera, obligaciones por vencer/vencidas, pagos recientes y filtros.
+2. **Clientes** — CRUD, referencias/codeudores, datos bancarios (banco, cuenta, titular), ficha integral y scoring.
+3. **Préstamos** — creación con tasa periódica parametrizable, cuotas y fecha; comprobante de desembolso y cronograma.
+4. **Cuotas / obligaciones** — capital, interés, saldo, días de mora y estado en tiempo real.
+5. **Pagos** — registro transaccional, orden configurable (interés/capital), recibo ejecutivo imprimible y anulación.
+6. **Cobranza** — reporte de vencidos, semáforo de riesgo y registro cronológico de gestiones de cobro.
+7. **Documentos** — carga trazable, clasificación, descarga y OCR híbrido para agilizar altas.
+8. **Cartera y analítica** — indicadores globales, distribución por estado y panel interactivo.
+9. **Score de comportamiento** — calificación ponderada (0–100), bandas de riesgo y resumen precalculado.
+10. **Administración y datos** — usuarios, roles, permisos, parámetros, auditoría, exportación CSV/Excel y purga/demo.
 
 ## 7. Flujo operativo principal
 

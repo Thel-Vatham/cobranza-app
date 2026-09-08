@@ -122,7 +122,7 @@ Al crear la app (`create_app()`):
 | `roles` | Roles | name, description |
 | `permissions` | Permisos granulares | code, name |
 | `role_permissions` | Relación N:M roles ↔ permisos | role_id, permission_id |
-| `clients` | Clientes | code, first_name, last_name, identification_number, phone, email |
+| `clients` | Clientes | code, first_name, last_name, identification_type, identification_number, country, city, address, phone, email, bank_name, account_type, account_number, account_holder |
 | `references` | Referencias/codeudores del cliente | full_name, relationship, phone |
 | `loans` | Préstamos | principal, annual_rate, installments_count, frequency_days, amortization_type, status |
 | `obligations` | Cuotas generadas | number, due_date, scheduled_value, capital, interest, pending_capital, pending_interest, status |
@@ -162,7 +162,7 @@ Los documentos se guardan con trazabilidad física:
 {entidad}/{entity_id}/{entidad}-{entity_id}-{tipo}-{AAAAMMDD}-{uuid8}.{ext}
 ```
 
-Ejemplo: `cliente/12/cliente-12-identificacion-20260820-a1b2c3d4.png`.
+Ejemplo: `cliente/12/cliente-12-identificacion-20260820-a1b2c3d4.png` o `prestamo/5/prestamo-5-comprobante-20260901-f3e4d2a1.pdf`.
 
 `original_name` conserva el nombre original del usuario para mostrarlo en la UI.
 
@@ -175,14 +175,11 @@ Implementado en `app/services/financial.py`. Todas las operaciones usan
 
 ### 5.1 Tasa periódica
 
-El préstamo almacena `annual_rate` en forma decimal (0.24 = 24 % anual).
-La tasa del período se calcula con **convención 360 días**:
+La tasa de interés se maneja por período de cuota (`tasa_interes_periodo`, por defecto 20.0%), aplicándose directamente al cálculo periódico sin conversiones anuales artificiales:
 
 ```
-tasa_periodo = tasa_anual × (frecuencia_días / 360)
+tasa_periodo = annual_rate  (leído desde parámetros o configurado en el crédito)
 ```
-
-Ejemplo: tasa anual 24 % y cuotas cada 30 días → `0.24 × (30/360) = 0.02` (2 %).
 
 ### 5.2 Amortización francesa (cuota fija)
 
@@ -205,24 +202,6 @@ saldo        = saldo_anterior − capital_k
 En la **última cuota**, `capital = saldo_anterior` (para absorber el redondeo y
 liquidar exactamente el principal).
 
-**Ejemplo concreto** — Préstamo de $1,000,000, 24 % anual, 6 cuotas mensuales:
-
-```
-i = 0.24 × (30/360) = 0.02
-cuota = 1,000,000 × 0.02 / (1 − (1.02)^−6) ≈ 178,525.81
-```
-
-| Cuota | Interés | Capital | Saldo |
-|---|---|---|---|
-| 1 | 20,000.00 | 158,525.81 | 841,474.19 |
-| 2 | 16,829.48 | 161,696.33 | 679,777.86 |
-| 3 | 13,595.56 | 164,930.25 | 514,847.61 |
-| 4 | 10,296.95 | 168,228.86 | 346,618.75 |
-| 5 | 6,932.38 | 171,593.43 | 175,025.32 |
-| 6 | 3,500.49 | 175,025.32 | 0.00 |
-
-*(Cifras ilustrativas redondeadas a 2 decimales; el sistema aplica `ROUND_HALF_UP` en cada paso.)*
-
 ### 5.3 Amortización alemana (capital fijo)
 
 ```
@@ -238,24 +217,34 @@ La cuota es **decreciente** (el interés baja con el saldo). En la última cuota
 
 Al registrar un pago se aplica de forma **transaccional** sobre las cuotas
 pendientes, **ordenadas por fecha de vencimiento y número** (la más antigua
-primero). El orden de imputación es:
+primero).
 
-```
-1. Intereses pendientes de la obligación más antigua.
-2. Capital pendiente de esa misma obligación.
-3. Continúa con la siguiente obligación.
-```
+El orden de imputación dentro de cada cuota es configurable dinámicamente mediante el parámetro `orden_aplicacion_pago`:
+
+1. **`interes_primero` (Estándar recomendado)**:
+   - Intereses pendientes primero.
+   - Capital pendiente después.
+2. **`capital_primero`**:
+   - Capital pendiente primero (amortización acelerada de deuda).
+   - Intereses pendientes después.
 
 Pseudoalgoritmo:
 
 ```
 restante = monto_pago
+orden = Parameter.get("orden_aplicacion_pago", "interes_primero")
 for obligación in pendientes(ordenadas):
     if restante <= 0: break
-    interés_aplicar = min(interés_pendiente, restante)
-    restante -= interés_aplicar
-    capital_aplicar = min(capital_pendiente, restante)
-    restante -= capital_aplicar
+    if orden == "capital_primero":
+        capital_aplicar = min(capital_pendiente, restante)
+        restante -= capital_aplicar
+        interés_aplicar = min(interés_pendiente, restante)
+        restante -= interés_aplicar
+    else:
+        interés_aplicar = min(interés_pendiente, restante)
+        restante -= interés_aplicar
+        capital_aplicar = min(capital_pendiente, restante)
+        restante -= capital_aplicar
 
     actualizar pendientes y estado:
         pendiente_capital -= capital_aplicar
@@ -391,47 +380,68 @@ flowchart TD
 - El OCR del documento de identidad sugiere: nombres, apellidos, cédula,
   teléfono, dirección y email.
 
-### 7.3 Creación de préstamo
+### 7.3 Creación de préstamo y comprobante de desembolso
 
 ```mermaid
 flowchart TD
-    A[POST /prestamos/nuevo] --> B[Validar cliente, principal y cuotas]
-    B --> C[Crear Loan con tasa/100 y frecuencia]
-    C --> D[generate_obligations]
+    A[POST /prestamos/nuevo] --> B[Validar cliente, monto y cuotas]
+    B --> C[Crear Loan con tasa_interes_periodo]
+    C --> D[generate_obligations: francesa o alemana]
     D --> E[calculate_schedule]
     E --> F[Persistir N obligaciones]
-    F --> G[log_audit + commit]
-    G --> H[Redirigir a detalle]
+    F --> G{¿Adjuntó comprobante de desembolso?}
+    G -- Sí --> H[create_document: prestamo / comprobante]
+    G -- No --> I[Continuar]
+    H --> J[log_audit + commit]
+    I --> J
+    J --> K[Redirigir a detalle del préstamo]
 ```
 
-### 7.4 Registro de pago
+- Permite adjuntar el soporte de transferencia/desembolso en el formulario de creación o posteriormente mediante `POST /prestamos/<id>/comprobante`.
+- El detalle del crédito muestra el estado de desembolso y enlace para ver/descargar el comprobante.
+
+### 7.4 Registro de pago y recibo ejecutivo oficial
 
 ```mermaid
 flowchart TD
     A[POST /pagos/nuevo] --> B[Validar monto > 0]
     B --> C[Crear Payment]
-    C --> D[apply_payment: interés primero, luego capital]
-    D --> E[Actualizar estados de obligaciones y préstamo]
-    E --> F[Asociar comprobante si se subió]
+    C --> D[apply_payment: según orden_aplicacion_pago]
+    D --> E[Actualizar saldos de obligaciones y estado del préstamo]
+    E --> F[Asociar comprobante de pago si se subió]
     F --> G[log_audit + commit]
-    G --> H[Mostrar recibo imprimible]
+    G --> H[Mostrar recibo ejecutivo imprimible]
 ```
+
+- **Recibo oficial**: Vista ejecutiva `/pagos/<id>/recibo` con formato institucional limpio, desglose de capital e intereses abonados, saldo remanente y reglas CSS `@media print` para exportación impecable a PDF.
 
 ### 7.5 Gestión de cobranza
 
 1. `/cobranza` lista las obligaciones vencidas (no pagadas con `due_date < hoy`),
-   ordenadas por fecha de vencimiento.
+   ordenadas por fecha de vencimiento y semaforizadas por nivel de atraso.
 2. `/cobranza/gestion/<obligation_id>` registra una gestión: acción
-   (llamada, visita, mensaje, acuerdo), notas y próxima fecha.
-3. `/cobranza/gestiones` muestra el histórico.
+   (llamada, visita, mensaje, acuerdo), notas y próxima fecha de contacto.
+3. `/cobranza/gestiones` muestra el histórico de contactos realizados.
 
 ### 7.6 Gestión documental
 
 1. Subida validada por extensión (`ALLOWED_EXTENSIONS`) y tamaño (15 MB).
-2. El archivo se guarda con nomenclatura trazable (ver §4.4).
+2. El archivo se guarda con nomenclatura trazable física (ver §4.4).
 3. Se puede descargar, reemplazar (invalida OCR previos) y eliminar.
 4. OCR: PDF (texto incrustado vía PyMuPDF; si es escaneado, se renderiza a
    imagen y se aplica EasyOCR) e imágenes (EasyOCR).
+
+### 7.7 Gestión de datos y copias de seguridad
+
+Desde `/admin/datos`:
+1. **Exportación completa comprensible (`/admin/exportar-csv`)**: Genera al vuelo un archivo ZIP (`cartera_export_*.zip`) con archivos CSV codificados en UTF-8 con BOM (`utf-8-sig`) para compatibilidad directa con Microsoft Excel y herramientas analíticas:
+   - `clientes.csv` (incluye datos bancarios, localización y contacto).
+   - `prestamos.csv` (tasas, plazos, modalidad y saldos).
+   - `cronograma_cuotas.csv` (detalle de cada obligación generada).
+   - `pagos_recibidos.csv` y `aplicaciones_pagos.csv` (imputación contable).
+   - `gestiones_cobranza.csv`, `auditoria_sistema.csv` y `parametros_sistema.csv`.
+2. **Purga de base de datos (`/admin/borrar-datos`)**: Borra los registros transaccionales (clientes, préstamos, pagos, documentos) respetando la integridad referencial y preservando usuarios, roles y parámetros.
+3. **Carga de demostración (`/admin/cargar-demo`)**: Restablece un conjunto completo de datos de prueba para entrenamiento o evaluación.
 
 ---
 
@@ -538,18 +548,19 @@ usuarios, roles y parámetros. Incluye usuario, acción, entidad, id y detalles.
 
 | Clave | Categoría | Descripción | Default |
 |---|---|---|---|
-| `metodo_interes` | financieros | Método de amortización | `frances` |
-| `periodicidad_interes` | financieros | Periodicidad del interés | `mensual` |
-| `orden_aplicacion_pago` | financieros | Orden de aplicación | `interes_primero` |
-| `tasa_mora_diaria` | financieros | Tasa de mora (referencial) | `0.001` |
-| `dias_proximos_vencer` | cobranza | Horizonte de por vencer | `15` |
-| `dias_alerta_mora` | cobranza | Alerta de mora temprana | `5` |
-| `peso_puntualidad` | scoring | Peso de puntualidad | `0.45` |
-| `peso_cumplimiento` | scoring | Peso de cumplimiento | `0.35` |
-| `peso_mora` | scoring | Peso de mora | `0.20` |
+| `tasa_interes_periodo` | financieros | Tasa de interés (%) por período de cuota | `20.0` |
+| `metodo_interes` | financieros | Método de amortización (`frances` / `aleman`) | `frances` |
+| `periodicidad_interes` | financieros | Periodicidad del interés | `quincenal` |
+| `orden_aplicacion_pago` | financieros | Orden de aplicación (`interes_primero` / `capital_primero`) | `interes_primero` |
+| `tasa_mora_diaria` | financieros | Tasa de mora referencial | `0.001` |
+| `dias_proximos_vencer` | cobranza | Horizonte de días para obligaciones por vencer | `15` |
+| `dias_alerta_mora` | cobranza | Alerta temprana de mora en días | `5` |
+| `peso_puntualidad` | scoring | Ponderación de puntualidad | `0.45` |
+| `peso_cumplimiento` | scoring | Ponderación de cumplimiento | `0.35` |
+| `peso_mora` | scoring | Ponderación de mora | `0.20` |
 | `dias_max_mora_score` | scoring | Días para escalar penalización | `90` |
 
-> El panel de administración permite editar y crear parámetros en caliente.
+> El panel de administración permite editar, guardar masivamente y crear parámetros en caliente.
 
 ---
 
@@ -558,9 +569,12 @@ usuarios, roles y parámetros. Incluye usuario, acción, entidad, id y detalles.
 ### 11.1 Render
 
 - `Procfile`: `web: gunicorn wsgi:app`.
-- `render.yaml` declara el servicio web, el build y las variables de entorno.
-- Se recomienda `DATABASE_URL` (PostgreSQL) y `SECRET_KEY` en producción.
-- `psycopg2-binary` es el driver de PostgreSQL.
+- `render.yaml` declara la infraestructura como código con **disco persistente de 1 GB** montado en `/data`:
+  - `DATABASE_URL: sqlite:////data/cartera.db` (persistencia total de SQLite).
+  - `UPLOAD_FOLDER: /data/uploads` (persistencia total de documentos y comprobantes).
+  - `startCommand: gunicorn -w 2 -t 120 run:app`.
+- También soporta base de datos gestionada **PostgreSQL** mediante `DATABASE_URL` (`psycopg2-binary`).
+- `SECRET_KEY` se autogenera de forma segura en el despliegue inicial.
 
 ### 11.2 PythonAnywhere
 

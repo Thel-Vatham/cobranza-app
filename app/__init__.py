@@ -158,3 +158,23 @@ def _ensure_columns():
                 conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN account_number VARCHAR(60)")
             if "account_holder" not in client_cols:
                 conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN account_holder VARCHAR(160)")
+            # Datos de empleo
+            if "employer_name" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN employer_name VARCHAR(160)")
+            if "employer_address" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN employer_address VARCHAR(255)")
+            if "employer_phone" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN employer_phone VARCHAR(60)")
+            if "job_title" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN job_title VARCHAR(120)")
+            if "salary" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN salary NUMERIC(14, 2)")
+            # Datos bancarios para recaudo
+            if "collection_bank_name" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN collection_bank_name VARCHAR(100)")
+            if "collection_account_type" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN collection_account_type VARCHAR(40)")
+            if "collection_account_number" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN collection_account_number VARCHAR(60)")
+            if "collection_account_holder" not in client_cols:
+                conn.exec_driver_sql("ALTER TABLE clients ADD COLUMN collection_account_holder VARCHAR(160)")

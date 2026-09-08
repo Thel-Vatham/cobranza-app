@@ -45,14 +45,17 @@ class SmokeTest(unittest.TestCase):
                 "identification_type": "CC", "identification_number": "12345",
                 "country": "Colombia", "address": "Calle 1",
                 "phone": "300", "email": "j@x.com",
-                "ref_name": ["Ana Gomez"], "ref_relationship": ["Referencia"],
-                "ref_identification": ["999"], "ref_phone": ["301"], "ref_address": [""],
+                "ref_name": ["Ana Gomez", "Carlos Sanchez"],
+                "ref_relationship": ["Referencia", "Codeudor"],
+                "ref_identification": ["999", "888"],
+                "ref_phone": ["301", "302"],
+                "ref_address": ["", ""],
             }, follow_redirects=True)
             self.assertEqual(resp.status_code, 200)
             client = Client.query.filter_by(identification_number="12345").first()
             self.assertIsNotNone(client)
             self.assertEqual(client.full_name, "Juan Perez")
-            self.assertEqual(len(client.references), 1)
+            self.assertEqual(len(client.references), 2)
 
             # crear préstamo
             resp = self.client.post("/prestamos/nuevo", data={
@@ -92,6 +95,11 @@ class SmokeTest(unittest.TestCase):
                 "first_name": "Cliente", "last_name": "Sin Prestamos",
                 "identification_type": "CC", "identification_number": "99988877",
                 "country": "Colombia", "city": "Medellín",
+                "ref_name": ["Ref Uno", "Ref Dos"],
+                "ref_relationship": ["Personal", "Familiar"],
+                "ref_identification": ["111", "222"],
+                "ref_phone": ["311", "312"],
+                "ref_address": ["", ""],
             }, follow_redirects=True)
             self.assertEqual(resp_c2.status_code, 200)
 

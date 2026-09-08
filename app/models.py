@@ -77,6 +77,20 @@ class Client(db.Model):
     account_type = db.Column(db.String(40), nullable=True)  # Ahorros, Corriente, Billetera Digital, etc.
     account_number = db.Column(db.String(60), nullable=True)
     account_holder = db.Column(db.String(160), nullable=True)
+
+    # Datos de empleo / información laboral
+    employer_name = db.Column(db.String(160), nullable=True)       # Empresa
+    employer_address = db.Column(db.String(255), nullable=True)    # Dirección - ubicación
+    employer_phone = db.Column(db.String(60), nullable=True)       # Contacto
+    job_title = db.Column(db.String(120), nullable=True)           # Cargo
+    salary = db.Column(db.Numeric(14, 2), nullable=True)           # Salario mensual
+
+    # Datos bancarios para recaudo
+    collection_bank_name = db.Column(db.String(100), nullable=True)     # Entidad / Medio de recaudo
+    collection_account_type = db.Column(db.String(40), nullable=True)   # Tipo de cuenta / canal
+    collection_account_number = db.Column(db.String(60), nullable=True) # Número / Convenio / Referencia
+    collection_account_holder = db.Column(db.String(160), nullable=True)# Titular / Instrucción de recaudo
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -86,6 +100,30 @@ class Client(db.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
+
+    def get_document(self, doc_type):
+        """Retorna el documento más reciente del tipo especificado."""
+        return (
+            Document.query.filter_by(entity_type="cliente", entity_id=self.id, doc_type=doc_type)
+            .order_by(Document.uploaded_at.desc())
+            .first()
+        )
+
+    @property
+    def debtor_photo_doc(self):
+        return self.get_document("foto_deudor") or self.get_document("perfil")
+
+    @property
+    def work_photo_doc(self):
+        return self.get_document("foto_trabajo") or self.get_document("trabajo")
+
+    @property
+    def facade_photo_doc(self):
+        return self.get_document("fachada") or self.get_document("domicilio")
+
+    @property
+    def id_doc(self):
+        return self.get_document("identificacion") or self.get_document("cedula")
 
 
 class Reference(db.Model):

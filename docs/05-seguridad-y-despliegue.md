@@ -45,32 +45,40 @@ documentos, cambios de roles y parámetros.
 
 ## 4. Configuración por ambiente
 
-| Variable | Descripción |
-|---|---|
-| `SECRET_KEY` | Clave de sesión (obligatoria en producción) |
-| `SQLALCHEMY_DATABASE_URI` | Cadena de conexión a base de datos |
-| `UPLOAD_FOLDER` | Carpeta de archivos privados |
+| Variable | Descripción | Valor por defecto |
+|---|---|---|
+| `SECRET_KEY` | Clave criptográfica para firmas de sesión (obligatoria en prod) | Valor de desarrollo |
+| `DATABASE_URL` | Cadena de conexión (SQLite local / PostgreSQL en producción) | `sqlite:///cartera.db` |
+| `UPLOAD_FOLDER` | Directorio de almacenamiento de documentos privados | `app/uploads` (o `/data/uploads`) |
+| `AUTH_DISABLED` | Bypass de autenticación para modo demostración (`true` / `false`) | `false` si hay `DATABASE_URL` |
 
 ## 5. Despliegue en producción
 
-1. Establecer `AUTH_DISABLED = False` y cambiar la contraseña del administrador.
-2. Configurar `SECRET_KEY` mediante variable de entorno.
-3. Migrar la base de datos a **PostgreSQL** o **MySQL** (SQLAlchemy lo soporta sin
-   cambios en el modelo).
-4. Servir con un WSGI de producción (p. ej. **Gunicorn** en Linux):
+1. **Configurar variables críticas**:
+   - `AUTH_DISABLED=false`
+   - `SECRET_KEY`: generar una cadena aleatoria y segura de al menos 32 caracteres.
+   - `DATABASE_URL`: URI de PostgreSQL (`postgresql://usuario:pass@host:5432/bd`) o ruta persistente de SQLite (`sqlite:////data/cartera.db`).
+2. **Servidor WSGI de producción**:
+   Ejecutar mediante Gunicorn con timeout ajustado para operaciones intensivas (OCR / exports):
    ```bash
-   gunicorn -w 4 run:app
+   gunicorn -w 2 -t 120 run:app
+   # o alternativamente:
+   gunicorn -w 2 -t 120 wsgi:app
    ```
-5. Habilitar **HTTPS** (proxy inverso o certificado TLS).
-6. Configurar **copias de seguridad** de la base de datos y de `app/uploads/`.
+3. **Persistencia de archivos y base de datos**:
+   - En plataformas como **Render**, usar un **Persistent Disk** montado en `/data` (definido en `render.yaml`), apuntando `DATABASE_URL=sqlite:////data/cartera.db` y `UPLOAD_FOLDER=/data/uploads`.
+4. **Habilitar HTTPS**:
+   - Forzar TLS mediante proxy inverso (Nginx, Traefik o el enrutador PaaS).
+5. **Estrategia de copias de seguridad**:
+   - Descarga periódica de respaldos comprensibles en formato ZIP/CSV desde el panel de administración (`/admin/exportar-csv`).
+   - Respaldo del directorio de subidas (`uploads`) o del disco persistente.
 
-## 6. Pruebas
+## 6. Pruebas y verificación
 
-Ejecutar la prueba integral:
+Ejecutar la suite de pruebas unitarias y de integración del sistema:
 
 ```bash
 python -m unittest tests.test_smoke -v
 ```
 
-La prueba cubre: autenticación, creación de cliente, préstamo con 12 cuotas,
-aplicación de pago, generación de recibo y consulta de reportes y administración.
+La prueba valida: autenticación de usuario, ciclo de vida de clientes, creación de préstamo con cronograma de cuotas y redondeo `ROUND_HALF_UP`, aplicación transaccional de pagos, recibo oficial, consultas de reportes y auditoría.
