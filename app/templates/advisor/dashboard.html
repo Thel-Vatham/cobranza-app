@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Panel de Asesoría Crediticia · Cartera{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 24px;">
+  <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+    {{ icon('shield', 26) }} Panel de Asesoría Crediticia y Consultoría
+  </h1>
+  <p class="muted" style="margin: 4px 0 0 0; font-size: 0.95rem;">
+    Expedientes de clientes remitidos para evaluación, análisis de riesgo y gestión técnica de cobranza.
+  </p>
+</div>
+
+<!-- SECCIÓN 1: PANEL DE NOTIFICACIONES RECIENTES -->
+<div class="card" style="margin-bottom: 24px; padding: 18px 20px; border-radius: 12px; border-left: 4px solid #2563eb; background: #ffffff;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+      {{ icon('clipboard', 18) }} Notificaciones y Asignaciones Recientes
+      {% if unread_notifs_count > 0 %}
+      <span class="badge badge-danger" style="font-size: 0.72rem;">{{ unread_notifs_count }} nueva(s)</span>
+      {% endif %}
+    </h3>
+    <div style="display: flex; gap: 8px;">
+      {% if notifications %}
+      <form method="POST" action="{{ url_for('advisor.mark_all_read') }}" style="display: inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.78rem; padding: 3px 8px;">
+          Marcar todas leídas
+        </button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('advisor.notifications') }}" class="btn btn-secondary btn-sm" style="font-size: 0.78rem; padding: 3px 8px;">
+        Ver historial
+      </a>
+    </div>
+  </div>
+
+  {% if not notifications %}
+  <p class="muted" style="margin: 0; font-size: 0.88rem;">No tiene notificaciones pendientes.</p>
+  {% else %}
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    {% for n in notifications[:4] %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; background: {% if not n.is_read %}#eff6ff{% else %}#f8fafc{% endif %}; border: 1px solid {% if not n.is_read %}#bfdbfe{% else %}#e2e8f0{% endif %};">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.1rem;">{% if not n.is_read %}🔔{% else %}📋{% endif %}</span>
+        <div>
+          <strong style="font-size: 0.88rem; color: #0f172a; display: block;">{{ n.title }}</strong>
+          <span style="font-size: 0.82rem; color: #475569;">{{ n.message }}</span>
+          <small class="muted" style="display: block; font-size: 0.72rem; margin-top: 2px;">{{ n.created_at.strftime("%d/%m/%Y %H:%M") }}</small>
+        </div>
+      </div>
+      <div>
+        {% if n.link %}
+        <form method="POST" action="{{ url_for('advisor.mark_notification_read', notif_id=n.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-primary btn-sm" style="font-size: 0.78rem; padding: 4px 10px;">
+            Revisar
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- SECCIÓN 2: KPIs DEL PANEL DE ASESORÍA -->
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #0284c7;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Clientes Asignados</div>
+    <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">{{ indicators.total_referred }}</div>
+    <small class="muted" style="font-size: 0.75rem;">Expedientes en consulta</small>
+  </div>
+
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #dc2626;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Clientes en Mora</div>
+    <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626;">{{ indicators.in_overdue_count }}</div>
+    <small class="muted" style="font-size: 0.75rem;">Con cuotas vencidas activas</small>
+  </div>
+
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #2563eb;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Saldo Total Adeudado</div>
+    <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb;">${{ "%.2f"|format(indicators.total_debt) }} USD</div>
+    <small class="muted" style="font-size: 0.75rem;">Capital + interés pendiente</small>
+  </div>
+
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #f97316;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Monto Total en Mora</div>
+    <div style="font-size: 1.6rem; font-weight: 800; color: #b91c1c;">${{ "%.2f"|format(indicators.total_overdue) }} USD</div>
+    <small class="muted" style="font-size: 0.75rem;">Exclusivo de cuotas en mora</small>
+  </div>
+</div>
+
+<!-- SECCIÓN 3: DASHBOARD DE CLIENTES REMITIDOS -->
+<div class="card" style="padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+    <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+      {{ icon('users', 20) }} Clientes Remitidos para Asesoría ({{ client_items|length }})
+    </h3>
+  </div>
+
+  {% if not client_items %}
+  <div style="text-align: center; padding: 48px 20px;">
+    <div style="font-size: 2.8rem; color: #94a3b8; margin-bottom: 10px;">👤</div>
+    <h4 style="font-size: 1.15rem; font-weight: 700; color: #334155; margin: 0 0 6px 0;">No tiene clientes asignados</h4>
+    <p class="muted" style="max-width: 440px; margin: 0 auto; font-size: 0.9rem;">
+      Cuando el administrador o los operadores de cobranza le remitan clientes para evaluación, aparecerán inmediatamente en este dashboard.
+    </p>
+  </div>
+  {% else %}
+  <div class="table-responsive">
+    <table class="table" style="width: 100%; font-size: 0.88rem; border-collapse: separate; border-spacing: 0;">
+      <thead>
+        <tr style="text-align: left; color: #64748b; border-bottom: 2px solid #e2e8f0;">
+          <th style="padding: 12px 10px;">Cliente</th>
+          <th style="padding: 12px 10px;">Identificación / Contacto</th>
+          <th style="padding: 12px 10px;">Score Crediticio</th>
+          <th style="padding: 12px 10px;">Estado Deuda</th>
+          <th style="padding: 12px 10px;">Total Adeudado</th>
+          <th style="padding: 12px 10px;">Monto en Mora</th>
+          <th style="padding: 12px 10px;">Remitido Por</th>
+          <th style="padding: 12px 10px; text-align: right;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in client_items %}
+        {% set c = item.client %}
+        {% set ref = item.referral %}
+        {% set s = item.score %}
+        <tr style="border-bottom: 1px solid #f1f5f9; vertical-align: middle;">
+          <td style="padding: 12px 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              {% if c.debtor_photo_doc %}
+              <img src="{{ url_for('documents.download_document', document_id=c.debtor_photo_doc.id) }}"
+                   alt="{{ c.full_name }}"
+                   style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; flex-shrink: 0;">
+              {% else %}
+              <div style="width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(135deg, #334155, #0f172a); color: #f8fafc; font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                {{ c.first_name[:1] }}{{ c.last_name[:1] }}
+              </div>
+              {% endif %}
+              <div>
+                <a href="{{ url_for('advisor.client_detail', client_id=c.id) }}" style="font-weight: 700; color: #0f172a; text-decoration: none; display: block;">
+                  {{ c.full_name }}
+                </a>
+                <span class="muted" style="font-size: 0.75rem;">{{ c.code }}</span>
+                {% if c.portfolio %}
+                <span class="badge badge-secondary" style="font-size: 0.68rem; margin-left: 4px;">{{ c.portfolio.name }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td style="padding: 12px 10px;">
+            <div style="font-weight: 600; color: #334155;">{{ c.identification_type }} {{ c.identification_number }}</div>
+            <div class="muted" style="font-size: 0.78rem;">{{ c.phone or 'Sin teléfono' }}</div>
+          </td>
+          <td style="padding: 12px 10px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <strong style="font-size: 1.05rem; color: #0f172a;">{{ s.score }}</strong>
+              <span class="badge badge-{% if s.color == 'green' %}success{% elif s.color == 'blue' %}info{% elif s.color == 'yellow' %}warning{% else %}danger{% endif %}" style="font-size: 0.72rem;">
+                {{ s.label }}
+              </span>
+            </div>
+          </td>
+          <td style="padding: 12px 10px;">
+            {% if item.is_overdue %}
+            <span class="badge badge-danger" style="font-size: 0.75rem;">En Mora</span>
+            {% else %}
+            <span class="badge badge-success" style="font-size: 0.75rem;">Al Día</span>
+            {% endif %}
+          </td>
+          <td style="padding: 12px 10px; font-weight: 700; color: #0f172a;">
+            ${{ "%.2f"|format(item.total_debt) }} USD
+          </td>
+          <td style="padding: 12px 10px; font-weight: 700; color: {% if item.total_overdue > 0 %}#dc2626{% else %}#64748b{% endif %};">
+            ${{ "%.2f"|format(item.total_overdue) }} USD
+          </td>
+          <td style="padding: 12px 10px;">
+            <div style="font-size: 0.8rem; font-weight: 600; color: #334155;">
+              {{ ref.referred_by.full_name or ref.referred_by.username if ref.referred_by else 'Admin' }}
+            </div>
+            <div class="muted" style="font-size: 0.72rem;">
+              {{ ref.created_at.strftime("%d/%m/%Y") }}
+              {% if ref.reason %} · <em>{{ ref.reason }}</em>{% endif %}
+            </div>
+          </td>
+          <td style="padding: 12px 10px; text-align: right;">
+            <a href="{{ url_for('advisor.client_detail', client_id=c.id) }}" class="btn btn-primary btn-sm" style="font-size: 0.8rem; padding: 5px 12px;">
+              Ver Ficha
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

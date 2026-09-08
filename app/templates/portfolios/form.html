@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}{% if portfolio %}Editar Cartera · {{ portfolio.name }}{% else %}Nueva Cartera{% endif %} · Cartera{% endblock %}
+
+{% block content %}
+<div style="max-width: 780px; margin: 0 auto; padding-bottom: 40px;">
+  
+  {# ── BREADCRUMB & ENCABEZADO ── #}
+  <nav style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: #64748b; margin-bottom: 14px;">
+    <a href="{{ url_for('portfolios.list_portfolios') }}" style="color: #64748b; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: color 0.15s ease;">
+      {{ icon('folder', 14) }} <span>Carteras</span>
+    </a>
+    <span style="color: #cbd5e1;">/</span>
+    <span style="color: #0f172a; font-weight: 600;">
+      {% if portfolio %}Editar Cartera{% else %}Nueva Cartera{% endif %}
+    </span>
+  </nav>
+
+  <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <a href="{{ url_for('portfolios.list_portfolios') }}" 
+         style="width: 38px; height: 38px; border-radius: 10px; background: #ffffff; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; justify-content: center; color: #475569; text-decoration: none; box-shadow: 0 1px 2px rgba(15,23,42,0.04); transition: all 0.15s ease;"
+         onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'; this.style.color='#0f172a';"
+         onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e2e8f0'; this.style.color='#475569';"
+         title="Volver a carteras">
+        {{ icon('arrow-left', 18) }}
+      </a>
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h1 style="margin: 0; font-size: 1.55rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">
+            {% if portfolio %}Editar Cartera: {{ portfolio.name }}{% else %}Nueva Cartera de Crédito{% endif %}
+          </h1>
+          {% if portfolio %}
+          <span style="font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em;
+                       {% if portfolio.status == 'activa' %}background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;
+                       {% elif portfolio.status == 'inactiva' %}background: #fffbeb; color: #d97706; border: 1px solid #fde68a;
+                       {% else %}background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;{% endif %}">
+            ● {{ portfolio.status|capitalize }}
+          </span>
+          {% endif %}
+        </div>
+        <p style="margin: 4px 0 0 0; font-size: 0.88rem; color: #64748b;">
+          Configure el capital asignado en USD, operador responsable y condiciones operativas.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {# ── RESUMEN MÉTRICO CONTEXTUAL (SOLO EN EDICIÓN) ── #}
+  {% if portfolio %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 22px;">
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.03);">
+      <span style="display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">Presupuesto Total</span>
+      <span style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-top: 2px; display: block;">${{ "%.2f"|format(portfolio.assigned_capital_usd|float) }} <span style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">USD</span></span>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.03);">
+      <span style="display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">Capital Colocado</span>
+      <span style="font-size: 1.15rem; font-weight: 800; color: #2563eb; margin-top: 2px; display: block;">${{ "%.2f"|format(portfolio.capital_colocado|float) }} <span style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">USD</span></span>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.03);">
+      <span style="display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">Disponible</span>
+      <span style="font-size: 1.15rem; font-weight: 800; color: #059669; margin-top: 2px; display: block;">${{ "%.2f"|format(portfolio.capital_disponible|float) }} <span style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">USD</span></span>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.03);">
+      <span style="display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">Clientes Propios</span>
+      <span style="font-size: 1.15rem; font-weight: 800; color: #475569; margin-top: 2px; display: block;">{{ portfolio.clients_count }} <span style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">registrados</span></span>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── FORMULARIO PRINCIPAL ── #}
+  <form method="POST" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px -2px rgba(15,23,42,0.04), 0 2px 6px -1px rgba(15,23,42,0.02); padding: 32px 36px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ── SECCIÓN 1: IDENTIFICACIÓN ── #}
+    <div style="margin-bottom: 26px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+        <span style="color: #2563eb; display: inline-flex;">{{ icon('folder', 16) }}</span>
+        <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.04em;">1. Identificación de la Cartera</h3>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.8fr 1fr; gap: 20px;">
+        <div>
+          <label for="name" style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.03em;">
+            Nombre de la Cartera <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="text" id="name" name="name" required
+                 value="{{ portfolio.name if portfolio else '' }}"
+                 placeholder="Ej. Cartera Norte - Zona Comercial"
+                 style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 0.92rem; font-family: inherit; color: #0f172a; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 9px; transition: all 0.15s ease; outline: none;"
+                 onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.12)';"
+                 onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">
+        </div>
+
+        <div>
+          <label for="code" style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.03em;">
+            Código Interno <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="position: relative;">
+            <input type="text" id="code" name="code" required
+                   value="{{ portfolio.code if portfolio else default_code }}"
+                   placeholder="CART-0001"
+                   {% if portfolio %}readonly style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 0.92rem; font-family: monospace; font-weight: 700; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; cursor: not-allowed;"
+                   {% else %}style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 0.92rem; font-family: monospace; font-weight: 700; color: #0f172a; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 9px; outline: none;"
+                   onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.12)';"
+                   onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';"{% endif %}>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── SECCIÓN 2: CAPITAL Y OPERADOR ── #}
+    <div style="margin-bottom: 26px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+        <span style="color: #059669; display: inline-flex;">{{ icon('banknote', 16) }}</span>
+        <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.04em;">2. Fondo de Capital y Operador Responsable</h3>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.2fr 1.3fr; gap: 20px;">
+        <div>
+          <label for="assigned_capital_usd" style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.03em;">
+            Monto Asignado (USD) <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <span style="position: absolute; left: 12px; font-size: 0.85rem; font-weight: 800; color: #64748b; pointer-events: none; letter-spacing: 0.02em;">USD $</span>
+            <input type="number" step="0.01" min="0" id="assigned_capital_usd" name="assigned_capital_usd" required
+                   value="{{ portfolio.assigned_capital_usd if portfolio else '1500.00' }}"
+                   style="width: 100%; box-sizing: border-box; padding: 11px 14px 11px 64px; font-size: 1.02rem; font-weight: 700; font-family: inherit; color: #0f172a; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 9px; transition: all 0.15s ease; outline: none;"
+                   onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.12)';"
+                   onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">
+          </div>
+        </div>
+
+        <div>
+          <label for="user_id" style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.03em;">
+            Operador de Cobranza Asignado <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="position: relative;">
+            <select id="user_id" name="user_id" required
+                    style="width: 100%; box-sizing: border-box; padding: 11px 36px 11px 14px; font-size: 0.92rem; font-family: inherit; color: #0f172a; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 9px; appearance: none; -webkit-appearance: none; outline: none; cursor: pointer; transition: all 0.15s ease;"
+                    onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.12)';"
+                    onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">
+              <option value="">Seleccionar operador de cobranza...</option>
+              {% for u in operators %}
+              <option value="{{ u.id }}" {% if portfolio and portfolio.user_id == u.id %}selected{% endif %}>
+                {{ u.full_name or u.username }} ({{ u.username }})
+              </option>
+              {% endfor %}
+            </select>
+            <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #94a3b8; display: flex; align-items: center;">
+              {{ icon('chevron', 14) }}
+            </div>
+          </div>
+          <small style="display: block; margin-top: 6px; font-size: 0.76rem; color: #64748b; line-height: 1.3;">
+            Operador de cobranza que gestionará exclusivamente los créditos y clientes de esta cartera.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    {# ── SECCIÓN 3: CONDICIONES Y ESTADO ── #}
+    <div style="margin-bottom: 28px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+        <span style="color: #d97706; display: inline-flex;">{{ icon('settings', 16) }}</span>
+        <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.04em;">3. Condiciones Operativas y Estado</h3>
+      </div>
+
+      <div style="margin-bottom: 18px;">
+        <label for="description" style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.03em;">
+          Descripción u Observaciones Operativas
+        </label>
+        <textarea id="description" name="description" rows="3"
+                  placeholder="Detalles sobre sector geográfico, ruta de cobro, condiciones particulares o acuerdos comerciales..."
+                  style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 0.9rem; font-family: inherit; line-height: 1.5; color: #0f172a; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 9px; resize: vertical; min-height: 80px; outline: none; transition: all 0.15s ease;"
+                  onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.12)';"
+                  onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">{{ portfolio.description if portfolio else '' }}</textarea>
+      </div>
+
+      <div>
+        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 9px; text-transform: uppercase; letter-spacing: 0.03em;">
+          Estado Operativo de la Cartera
+        </label>
+        
+        {# Selector segmentado minimalista #}
+        {% set current_status = portfolio.status if portfolio else 'activa' %}
+        <div style="display: inline-flex; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 4px; gap: 4px; flex-wrap: wrap;">
+          <label style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease; margin: 0; user-select: none;"
+                 id="lbl_activa"
+                 onclick="selectStatus('activa')">
+            <input type="radio" name="status" value="activa" {% if current_status == 'activa' %}checked{% endif %} style="display: none;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+            <span>Activa (En operación)</span>
+          </label>
+
+          <label style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease; margin: 0; user-select: none;"
+                 id="lbl_inactiva"
+                 onclick="selectStatus('inactiva')">
+            <input type="radio" name="status" value="inactiva" {% if current_status == 'inactiva' %}checked{% endif %} style="display: none;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
+            <span>Pausada (Inactiva)</span>
+          </label>
+
+          <label style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease; margin: 0; user-select: none;"
+                 id="lbl_cerrada"
+                 onclick="selectStatus('cerrada')">
+            <input type="radio" name="status" value="cerrada" {% if current_status == 'cerrada' %}checked{% endif %} style="display: none;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #94a3b8;"></span>
+            <span>Cerrada (Liquidada)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    {# ── BOTONES DE ACCIÓN (FOOTER) ── #}
+    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 14px; border-top: 1px solid #f1f5f9; padding-top: 24px; margin-top: 10px;">
+      <a href="{{ url_for('portfolios.detail', portfolio_id=portfolio.id) if portfolio else url_for('portfolios.list_portfolios') }}" 
+         style="padding: 10px 20px; font-size: 0.88rem; font-weight: 600; color: #64748b; text-decoration: none; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; transition: all 0.15s ease;"
+         onmouseover="this.style.background='#f8fafc'; this.style.color='#0f172a'; this.style.borderColor='#cbd5e1';"
+         onmouseout="this.style.background='#ffffff'; this.style.color='#64748b'; this.style.borderColor='#e2e8f0';">
+        Cancelar
+      </a>
+      
+      <button type="submit" 
+              style="padding: 10px 26px; font-size: 0.9rem; font-weight: 700; color: #ffffff; background: #2563eb; border: none; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(37,99,235,0.2); transition: all 0.15s ease;"
+              onmouseover="this.style.background='#1d4ed8'; this.style.boxShadow='0 4px 12px rgba(37,99,235,0.3)'; this.style.transform='translateY(-1px)';"
+              onmouseout="this.style.background='#2563eb'; this.style.boxShadow='0 2px 4px rgba(37,99,235,0.2)'; this.style.transform='none';">
+        {{ icon('check', 16) }}
+        <span>{% if portfolio %}Guardar Cambios{% else %}Crear Cartera{% endif %}</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+function updateStatusUI(val) {
+  ['activa', 'inactiva', 'cerrada'].forEach(st => {
+    const lbl = document.getElementById('lbl_' + st);
+    if (!lbl) return;
+    if (st === val) {
+      lbl.style.background = '#ffffff';
+      lbl.style.color = '#0f172a';
+      lbl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+    } else {
+      lbl.style.background = 'transparent';
+      lbl.style.color = '#64748b';
+      lbl.style.boxShadow = 'none';
+    }
+  });
+}
+
+function selectStatus(val) {
+  const radio = document.querySelector(`input[name="status"][value="${val}"]`);
+  if (radio) {
+    radio.checked = true;
+    updateStatusUI(val);
+  }
+}
+
+// Inicializar selección visual
+document.addEventListener('DOMContentLoaded', () => {
+  const checked = document.querySelector('input[name="status"]:checked');
+  if (checked) {
+    updateStatusUI(checked.value);
+  }
+});
+</script>
+{% endblock %}

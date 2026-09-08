@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block title %}Expediente de Asesoría · {{ client.full_name }} · Cartera{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; margin-bottom: 24px;">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <a href="{{ url_for('advisor.index') }}" class="btn btn-secondary btn-sm" title="Volver al panel de asesoría">
+      {{ icon('arrow-left', 16) }}
+    </a>
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 6px;">{{ client.code }}</span>
+        {% if client.portfolio %}
+        <span class="badge badge-secondary" style="font-size: 0.72rem;">{{ client.portfolio.name }}</span>
+        {% endif %}
+        {% if client.is_in_overdue %}
+        <span class="badge badge-danger" style="font-size: 0.72rem;">En Mora</span>
+        {% else %}
+        <span class="badge badge-success" style="font-size: 0.72rem;">Al Día</span>
+        {% endif %}
+      </div>
+      <h1 style="margin: 6px 0 2px 0; font-size: 1.6rem; font-weight: 800; color: #0f172a;">
+        {{ client.full_name }}
+      </h1>
+      <p class="muted" style="margin: 0; font-size: 0.88rem;">
+        Ficha Integral de Evaluación Crediticia · Vista de Asesoría y Consultoría (Solo Lectura)
+      </p>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 10px; align-items: center;">
+    {% if client.phone %}
+    <button type="button" class="btn btn-secondary js-wa-open"
+            data-wa-phone="{{ client.phone }}"
+            data-wa-name="{{ client.full_name }}"
+            data-wa-balance="{{ client.total_outstanding }}"
+            data-wa-due=""
+            data-wa-days=""
+            data-wa-type="recordatorio"
+            style="background: #f0fdf4; border-color: #86efac; color: #166534;">
+      {{ icon('whatsapp', 16) }} Contactar WhatsApp
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- HEADER CARD: FOTO + DATOS PRINCIPALES + SCORE -->
+<div class="card" style="padding: 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+  <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center;">
+    <!-- Foto del Cliente -->
+    <div style="width: 130px; height: 130px; border-radius: 14px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.06); flex-shrink: 0; position: relative;">
+      {% if client.debtor_photo_doc %}
+      <img src="{{ url_for('documents.download_document', document_id=client.debtor_photo_doc.id) }}"
+           alt="{{ client.full_name }}"
+           style="width: 100%; height: 100%; object-fit: cover;">
+      {% else %}
+      <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1e293b, #0f172a); color: #f8fafc; font-weight: 800; font-size: 2.5rem; display: flex; align-items: center; justify-content: center;">
+        {{ client.first_name[:1] }}{{ client.last_name[:1] }}
+      </div>
+      {% endif %}
+    </div>
+
+    <div style="flex: 1; min-width: 240px;">
+      <h3 style="margin: 0 0 6px 0; font-size: 1.25rem; font-weight: 700; color: #0f172a;">{{ client.full_name }}</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.88rem; color: #475569;">
+        <span><strong>Identificación:</strong> {{ client.identification_type }} {{ client.identification_number }}</span>
+        <span><strong>Teléfono:</strong> {{ client.phone or '—' }}</span>
+        <span><strong>Ciudad:</strong> {{ client.city or '—' }}</span>
+        <span><strong>Dirección:</strong> {{ client.address or '—' }}</span>
+      </div>
+    </div>
+
+    <!-- Indicador de Score Crediticio -->
+    <div style="text-align: center; padding: 12px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; min-width: 150px;">
+      <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">Score Crediticio</div>
+      <div style="font-size: 2rem; font-weight: 800; color: #0f172a; line-height: 1;">{{ score.score }}</div>
+      <span class="badge badge-{% if score.color == 'green' %}success{% elif score.color == 'blue' %}info{% elif score.color == 'yellow' %}warning{% else %}danger{% endif %}" style="font-size: 0.72rem; margin-top: 4px; display: inline-block;">
+        {{ score.label }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- RESUMEN FINANCIERO Y DE MORA -->
+<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #2563eb;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Deuda Total (USD)</div>
+    <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">${{ "%.2f"|format(client.total_outstanding|float) }}</div>
+    <small class="muted" style="font-size: 0.75rem;">Saldo capital + interés</small>
+  </div>
+
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #dc2626;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Saldo en Mora (USD)</div>
+    <div style="font-size: 1.5rem; font-weight: 800; color: {% if client.total_overdue > 0 %}#dc2626{% else %}#64748b{% endif %};">
+      ${{ "%.2f"|format(client.total_overdue|float) }}
+    </div>
+    <small class="muted" style="font-size: 0.75rem;">Monto vencido pendiente</small>
+  </div>
+
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #16a34a;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Ingreso Mensual</div>
+    <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">
+      {% if client.salary %}${{ "%.2f"|format(client.salary|float) }} USD{% else %}No reportado{% endif %}
+    </div>
+    <small class="muted" style="font-size: 0.75rem;">Capacidad de pago declarada</small>
+  </div>
+
+  <div class="card stat-card" style="padding: 16px; border-radius: 10px; border-left: 4px solid #f97316;">
+    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Préstamos Históricos</div>
+    <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">{{ client.loans|length }}</div>
+    <small class="muted" style="font-size: 0.75rem;">Créditos en sistema</small>
+  </div>
+</div>
+
+<!-- INFORMACIÓN DE REMISIÓN A ASESORÍA Y DICTAMEN -->
+{% if referral %}
+<div class="card" style="padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1px solid #bfdbfe; background: #f8fafc;">
+  <h3 style="margin: 0 0 12px 0; font-size: 1.1rem; font-weight: 700; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+    {{ icon('clipboard', 18) }} Detalle de Remisión a Asesoría
+  </h3>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; font-size: 0.88rem; margin-bottom: 14px;">
+    <div><strong>Remitido por:</strong> {{ referral.referred_by.full_name or referral.referred_by.username if referral.referred_by else 'Admin' }}</div>
+    <div><strong>Fecha de envío:</strong> {{ referral.created_at.strftime("%d/%m/%Y %H:%M") }}</div>
+    <div><strong>Motivo:</strong> {{ referral.reason or 'Sin motivo especificado' }}</div>
+    <div><strong>Estado:</strong> <span class="badge badge-info">{{ referral.status|capitalize }}</span></div>
+  </div>
+  {% if referral.notes %}
+  <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 0.88rem; margin-bottom: 14px;">
+    <strong style="color: #334155; display: block; margin-bottom: 4px;">Notas del Remitente:</strong>
+    <p style="margin: 0; color: #475569;">{{ referral.notes }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Formulario de Dictamen Técnico del Asesor -->
+  <form method="POST" action="{{ url_for('advisor.save_dictamen', client_id=client.id) }}" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="referral_id" value="{{ referral.id }}">
+
+    <label for="advisor_notes" style="font-weight: 700; font-size: 0.9rem; color: #0f172a; margin-bottom: 6px; display: block;">
+      Dictamen / Recomendación del Asesor:
+    </label>
+    <textarea id="advisor_notes" name="advisor_notes" class="form-control" rows="3"
+              placeholder="Escriba aquí su dictamen técnico, recomendación de reestructuración o resultado del análisis crediticio...">{{ referral.advisor_notes or '' }}</textarea>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="status" style="font-size: 0.85rem; font-weight: 600; color: #475569; margin: 0;">Actualizar Estado:</label>
+        <select id="status" name="status" class="form-control" style="width: auto; padding: 4px 10px; font-size: 0.85rem;">
+          <option value="pendiente" {% if referral.status == 'pendiente' %}selected{% endif %}>Pendiente</option>
+          <option value="revisado" {% if referral.status == 'revisado' %}selected{% endif %}>Revisado / Analizado</option>
+          <option value="en_gestion" {% if referral.status == 'en_gestion' %}selected{% endif %}>En Gestión de Cobro</option>
+          <option value="cerrado" {% if referral.status == 'cerrado' %}selected{% endif %}>Cerrado / Concluido</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm" style="padding: 6px 16px;">
+        {{ icon('check', 14) }} Guardar Dictamen
+      </button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<!-- EVIDENCIAS FOTOGRÁFICAS DEL EXPEDIENTE (CON ZOOM) -->
+<div class="card" style="padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+  <h3 style="margin: 0 0 16px 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+    {{ icon('folder', 18) }} Evidencias Fotográficas del Expediente
+  </h3>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+    <!-- 1. Foto Titular -->
+    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; background: #f8fafc;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 8px;">Foto del Titular</div>
+      {% if client.debtor_photo_doc %}
+      <img src="{{ url_for('documents.download_document', document_id=client.debtor_photo_doc.id) }}"
+           alt="Foto Titular" style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;"
+           onclick="openPhotoZoom(this.src, 'Foto del Titular')">
+      {% else %}
+      <div style="height: 140px; display: flex; align-items: center; justify-content: center; background: #e2e8f0; border-radius: 8px; color: #94a3b8; font-size: 0.85rem;">
+        No adjunta
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 2. Cédula -->
+    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; background: #f8fafc;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 8px;">Documento de Identidad</div>
+      {% if client.id_doc %}
+      <img src="{{ url_for('documents.download_document', document_id=client.id_doc.id) }}"
+           alt="Cédula" style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;"
+           onclick="openPhotoZoom(this.src, 'Documento de Identidad')">
+      {% else %}
+      <div style="height: 140px; display: flex; align-items: center; justify-content: center; background: #e2e8f0; border-radius: 8px; color: #94a3b8; font-size: 0.85rem;">
+        No adjunta
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 3. Empleo / Negocio -->
+    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; background: #f8fafc;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 8px;">Lugar de Trabajo / Negocio</div>
+      {% if client.work_photo_doc %}
+      <img src="{{ url_for('documents.download_document', document_id=client.work_photo_doc.id) }}"
+           alt="Lugar de Trabajo" style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;"
+           onclick="openPhotoZoom(this.src, 'Lugar de Trabajo / Negocio')">
+      {% else %}
+      <div style="height: 140px; display: flex; align-items: center; justify-content: center; background: #e2e8f0; border-radius: 8px; color: #94a3b8; font-size: 0.85rem;">
+        No adjunta
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 4. Fachada Domicilio -->
+    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; background: #f8fafc;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 8px;">Fachada de Domicilio</div>
+      {% if client.facade_photo_doc %}
+      <img src="{{ url_for('documents.download_document', document_id=client.facade_photo_doc.id) }}"
+           alt="Fachada" style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;"
+           onclick="openPhotoZoom(this.src, 'Fachada de Domicilio')">
+      {% else %}
+      <div style="height: 140px; display: flex; align-items: center; justify-content: center; background: #e2e8f0; border-radius: 8px; color: #94a3b8; font-size: 0.85rem;">
+        No adjunta
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- DESGLOSE DE CRÉDITOS Y OBLIGACIONES -->
+<div class="card" style="padding: 20px; border-radius: 12px;">
+  <h3 style="margin: 0 0 16px 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+    {{ icon('briefcase', 18) }} Historial de Créditos y Obligaciones
+  </h3>
+
+  {% if not client.loans %}
+  <p class="muted" style="text-align: center; padding: 20px 0; font-size: 0.88rem;">No existen créditos registrados para este cliente.</p>
+  {% else %}
+  {% for l in client.loans %}
+  <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #ffffff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+      <div>
+        <strong style="font-size: 1rem; color: #0f172a;">Préstamo {{ l.code }}</strong>
+        <span class="badge badge-{% if l.status == 'activo' %}success{% elif l.status == 'mora' %}danger{% else %}secondary{% endif %}" style="margin-left: 6px;">
+          {{ l.status|capitalize }}
+        </span>
+        <span class="muted" style="font-size: 0.82rem; margin-left: 6px;">
+          Modalidad: <strong>{{ l.frequency_type|capitalize }}</strong> {% if l.biweekly_cycle %}(Corte {{ l.biweekly_cycle }}){% endif %}
+        </span>
+      </div>
+      <div style="font-size: 0.9rem;">
+        Monto Desembolsado: <strong>${{ "%.2f"|format(l.principal|float) }} USD</strong> ·
+        Saldo Pendiente: <strong style="color: {% if l.outstanding_balance > 0 %}#dc2626{% else %}#16a34a{% endif %};">${{ "%.2f"|format(l.outstanding_balance|float) }} USD</strong>
+      </div>
+    </div>
+
+    <!-- Tabla de cuotas del préstamo -->
+    <div class="table-responsive">
+      <table class="table" style="width: 100%; font-size: 0.82rem; margin: 0;">
+        <thead>
+          <tr style="text-align: left; color: #64748b; border-bottom: 1px solid #e2e8f0;">
+            <th style="padding: 6px 8px;">#</th>
+            <th style="padding: 6px 8px;">Vencimiento</th>
+            <th style="padding: 6px 8px;">Cuota USD</th>
+            <th style="padding: 6px 8px;">Capital Pend.</th>
+            <th style="padding: 6px 8px;">Interés Pend.</th>
+            <th style="padding: 6px 8px;">Días Atraso</th>
+            <th style="padding: 6px 8px;">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in l.obligations %}
+          <tr style="border-bottom: 1px solid #f1f5f9; {% if o.days_late > 0 and o.status != 'pagada' %}background: #fef2f2;{% endif %}">
+            <td style="padding: 6px 8px; font-weight: 600;">{{ o.number }}</td>
+            <td style="padding: 6px 8px;">{{ o.due_date.strftime("%d/%m/%Y") }}</td>
+            <td style="padding: 6px 8px; font-weight: 600;">${{ "%.2f"|format(o.scheduled_value|float) }}</td>
+            <td style="padding: 6px 8px;">${{ "%.2f"|format(o.pending_capital|float) }}</td>
+            <td style="padding: 6px 8px;">${{ "%.2f"|format(o.pending_interest|float) }}</td>
+            <td style="padding: 6px 8px;">
+              {% if o.days_late > 0 and o.status != 'pagada' %}
+              <span style="color: #dc2626; font-weight: 700;">{{ o.days_late }} d</span>
+              {% else %}
+              <span class="muted">—</span>
+              {% endif %}
+            </td>
+            <td style="padding: 6px 8px;">
+              <span class="badge badge-{% if o.status == 'pagada' %}success{% elif o.days_late > 0 %}danger{% else %}secondary{% endif %}" style="font-size: 0.7rem;">
+                {{ o.status|capitalize }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+
+<!-- MODAL ZOOM DE FOTOGRAFÍAS -->
+<div id="photoZoomModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: #ffffff; border-radius: 12px; max-width: 720px; width: 100%; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+    <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0;">
+      <strong id="photoZoomTitle" style="font-size: 0.95rem; color: #0f172a;">Evidencia Fotográfica</strong>
+      <button type="button" onclick="closePhotoZoom()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #64748b;">✕</button>
+    </div>
+    <div style="padding: 16px; text-align: center; background: #0f172a;">
+      <img id="photoZoomImg" src="" alt="Zoom" style="max-height: 70vh; max-width: 100%; object-fit: contain; border-radius: 4px;">
+    </div>
+  </div>
+</div>
+
+<script>
+function openPhotoZoom(src, title) {
+  document.getElementById('photoZoomImg').src = src;
+  document.getElementById('photoZoomTitle').innerText = title || 'Evidencia Fotográfica';
+  document.getElementById('photoZoomModal').style.display = 'flex';
+}
+function closePhotoZoom() {
+  document.getElementById('photoZoomModal').style.display = 'none';
+}
+document.getElementById('photoZoomModal').addEventListener('click', function(e) {
+  if (e.target === this) closePhotoZoom();
+});
+</script>
+{% endblock %}

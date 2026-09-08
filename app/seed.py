@@ -1,9 +1,9 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from .extensions import db
-from .models import (Audit, Client, CollectionManagement, Document,
-                     Loan, Obligation, OCRResult, Parameter, Payment,
-                     PaymentApplication, Permission, Reference, Role, User)
+from .models import (Audit, Client, ClientReferral, CollectionManagement, Document,
+                     Loan, Notification, Obligation, OCRResult, Parameter, Payment,
+                     PaymentApplication, Permission, Portfolio, Reference, Role, User)
 from .services.financial import calculate_schedule
 
 PERMISSIONS = [
@@ -44,27 +44,18 @@ ROLES = {
 
 # (key, value, category, kind, description)
 PARAMETERS = [
-    # ── Políticas Financieras y de Crédito ──
+    # ── Políticas Financieras y de Crédito (USD) ──
     ("tasa_interes_periodo", "20", "financieros", "number", "Tasa de interés fija por cuota / período de pago (%)"),
-    ("orden_aplicacion_pago", "interes_primero", "financieros", "select", "Prioridad de aplicación del pago (Interés primero vs Capital primero)"),
-    ("tasa_mora_diaria", "0.1", "financieros", "number", "Tasa de interés moratorio diario de referencia (%)"),
+    ("montos_prestamo_disponibles", "75, 100, 125, 150", "financieros", "text", "Montos predefinidos de préstamo en USD (separados por coma, editables por el admin)"),
     
-    # ── Cobranza y Alertas en Campo ──
-    ("dias_proximos_vencer", "15", "cobranza", "number", "Horizonte de días para alertar cuotas próximas a vencer"),
-    ("dias_alerta_mora", "5", "cobranza", "number", "Días de retraso para marcar alerta de mora temprana"),
-
-    # ── Calibración del Score de Comportamiento y Riesgo ──
-    ("peso_puntualidad", "45", "scoring", "number", "Peso de la puntualidad histórica en el Score (%)"),
-    ("peso_cumplimiento", "35", "scoring", "number", "Peso del cumplimiento de cuotas pagadas (%)"),
-    ("peso_mora", "20", "scoring", "number", "Peso del castigo por mora activa en el Score (%)"),
-    ("dias_max_mora_score", "90", "scoring", "number", "Días de mora para alcanzar la penalización máxima (días)"),
-    ("umbral_score_excelente", "80", "scoring", "number", "Puntaje mínimo para clasificación Excelente / Riesgo Bajo (pts)"),
-    ("umbral_score_bueno", "60", "scoring", "number", "Puntaje mínimo para clasificación Bueno / Riesgo Medio (pts)"),
-    ("umbral_score_regular", "40", "scoring", "number", "Puntaje mínimo para clasificación Regular (pts)"),
+    # ── Calibración Intuitiva del Score (3 Parámetros) ──
+    ("umbral_score_excelente", "80", "scoring", "number", "Puntaje mínimo para cliente Excelente / Riesgo Bajo (pts)"),
+    ("umbral_score_bueno", "60", "scoring", "number", "Puntaje mínimo para aprobación / Riesgo Medio (pts)"),
+    ("dias_max_mora_score", "30", "scoring", "number", "Tolerancia máxima de días de mora antes de castigo total (días)"),
 
     # ── Datos de la Organización ──
     ("nombre_empresa", "Cartera & Cobranzas", "generales", "text", "Nombre comercial de la entidad o empresa"),
-    ("moneda_simbolo", "$", "generales", "text", "Símbolo monetario utilizado en comprobantes y vistas"),
+    ("moneda_simbolo", "$", "generales", "text", "Símbolo monetario (USD $)"),
 ]
 
 
@@ -72,6 +63,7 @@ def seed_if_empty():
     _seed_permissions_and_roles()
     _seed_users()
     seed_parameters()
+    _seed_default_portfolio()
 
 
 def _seed_permissions_and_roles():
@@ -98,9 +90,10 @@ def _seed_permissions_and_roles():
 def _seed_users():
     admin_role = Role.query.filter_by(name="Administrador").first()
     operator_role = Role.query.filter_by(name="Operador de cobranza").first()
+    consultant_role = Role.query.filter_by(name="Consulta").first()
 
-    # Eliminar usuarios anteriores obsoletos para dejar solo admin y user_0
-    User.query.filter(User.username.notin_(["admin", "user_0"])).delete()
+    # Eliminar usuarios anteriores obsoletos para dejar solo admin, user_0 y consultor_0
+    User.query.filter(User.username.notin_(["admin", "user_0", "consultor_0"])).delete()
 
     # Usuario admin (Acceso total)
     admin = User.query.filter_by(username="admin").first()
@@ -132,7 +125,44 @@ def _seed_users():
     user_0.role_id = operator_role.id if operator_role else None
     user_0.active = True
 
+    # Usuario consultor_0 (Perfil de consulta / asesoría)
+    consultor_0 = User.query.filter_by(username="consultor_0").first()
+    if not consultor_0:
+        consultor_0 = User(
+            username="consultor_0",
+            email="consultor_0@cartera.local",
+            full_name="Asesor de Consultoría",
+            role_id=consultant_role.id if consultant_role else None,
+            active=True,
+        )
+        db.session.add(consultor_0)
+    consultor_0.set_password("09300")
+    consultor_0.role_id = consultant_role.id if consultant_role else None
+    consultor_0.active = True
+
     db.session.commit()
+
+
+def _seed_default_portfolio():
+    user_0 = User.query.filter_by(username="user_0").first()
+    portfolio = Portfolio.query.first()
+    if not portfolio:
+        portfolio = Portfolio(
+            code="CART-0001",
+            name="Cartera Principal USD",
+            description="Cartera operativa inicial asignada a Operador de Gestión",
+            assigned_capital_usd=Decimal("1500.00"),
+            user_id=user_0.id if user_0 else None,
+            status="activa",
+        )
+        db.session.add(portfolio)
+        db.session.commit()
+
+    if portfolio:
+        # Asegurar que clientes y préstamos huérfanos se vinculen a esta cartera inicial
+        Client.query.filter(Client.portfolio_id.is_(None)).update({"portfolio_id": portfolio.id})
+        Loan.query.filter(Loan.portfolio_id.is_(None)).update({"portfolio_id": portfolio.id})
+        db.session.commit()
 
 
 def _seed_demo_data(force=False):
@@ -613,7 +643,16 @@ def _seed_demo_data(force=False):
 
 
 def seed_parameters():
-    """Inserta/actualiza parámetros conservando los valores ya configurados."""
+    """Inserta/actualiza parámetros conservando los valores ya configurados y elimina obsoletos."""
+    obsolete = [
+        "orden_aplicacion_pago", "tasa_mora_diaria",
+        "dias_proximos_vencer", "dias_alerta_mora",
+        "peso_puntualidad", "peso_cumplimiento", "peso_mora", "umbral_score_regular",
+        "metodo_interes", "periodicidad_interes",
+    ]
+    Parameter.query.filter(Parameter.key.in_(obsolete)).delete()
+    db.session.commit()
+
     existing = {p.key: p for p in Parameter.query.all()}
     for key, value, category, kind, description in PARAMETERS:
         if key in existing:
