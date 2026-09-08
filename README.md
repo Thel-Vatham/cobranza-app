@@ -1,114 +1,126 @@
-# Cartera — Sistema de Gestión de Cartera y Cobranza
+# 💳 Cartera — Plataforma de Gestión de Cartera, Microcréditos y Cobranza
 
-Prototipo final de un aplicativo web para la administración de clientes, préstamos,
-obligaciones de pago, cartera, cobranza, recepción de pagos, gestión documental,
-generación de comprobantes y análisis de comportamiento financiero.
+Aplicación web empresarial para la administración integral de carteras de microcréditos dolarizados (USD), expedientes de clientes, control de obligaciones, cobranza en terreno, asesoría financiera y trazabilidad contable de pagos.
 
-Arquitectura ligera: **backend Python (Flask)** + **HTML/CSS/JavaScript**, con
-separación de capas (presentación / aplicación / dominio / persistencia).
+---
 
-## Requisitos
+## 🌟 Visión y Enfoque de Negocio
 
-- Python 3.10 o superior
-- pip
+El sistema implementa una arquitectura rigurosa orientada a entidades crediticias y operadores de cobranza, asegurando:
+- **Operación 100% Dolarizada (USD $)**: Todas las transacciones, saldos, carteras y pagos operan en dólares.
+- **Tasa Fija Parametrizable (20%)**: El administrador configura en caliente la tasa de interés periódica (por defecto 20.00%).
+- **Montos Predefinidos de Préstamo**: Catálogo estandarizado de montos ($75, $100, $125, $150 USD) modificable, ampliable o reducible por el Administrador desde el panel de parámetros.
+- **Modalidades de Vencimiento**:
+  - **Semanal**: El cobro se realiza exactamente a los 7 días calendario del desembolso (`fecha de solicitud + 7 días`).
+  - **Quincenal (3 Ciclos Fijos)**: Cortes programados **5-20**, **10-25** y **15-30** con sugerencia predictiva automática según el día de la solicitud.
+- **Cascada Transaccional de Pagos (Waterfall Logic)**:
+  - Cualquier abono realizado por el cliente cubre en primera instancia el 100% de los intereses pendientes.
+  - El saldo remanente se destina a amortizar el capital insoluto.
+  - En amortizaciones parciales $(X - Z)$, el siguiente corte calcula intereses únicamente sobre el nuevo saldo de capital remanente.
+- **Aislamiento Multi-Cartera (Portfolios)**:
+  - Cada cartera es un silo cerrado con capital asignado en USD por el Administrador y vinculada a un operador responsable.
+  - Los clientes, préstamos e historiales de pago no se cruzan ni se comparten entre carteras.
+  - Los operadores pueden gestionar múltiples carteras alternando entre ellas desde la barra superior de navegación.
+- **Expediente Digital del Cliente (Sin "Hojas de Vida")**:
+  - Ficha técnica y crediticia integral con exactamente 2 referencias/codeudores obligatorios.
+  - 4 evidencias fotográficas y documentales auditadas: Foto del Deudor, Foto del Trabajo, Foto de Fachada Domiciliaria y Documento de Identificación (Cédula).
+- **Módulo de Asesoría / Consultoría**:
+  - Botón directo "Enviar a Asesor" para clientes en mora o de cobranza compleja.
+  - Rol exclusivo **`Consulta`**: el asesor dispone de una interfaz blindada que contiene únicamente su bandeja de notificaciones y el panel de clientes remitidos (con foto, contacto, score crediticio, estado de mora, capital adeudado e intereses pendientes).
 
-## Instalación
+---
+
+## 🚀 Puesta en Marcha Rápida
+
+### Requisitos
+- Python 3.10, 3.11 o superior
+- Pip y Entorno Virtual (`venv`)
+
+### Instalación y Ejecución Local (Windows / PowerShell)
 
 ```powershell
-cd ruta\al\proyecto
-python -m venv .venv
+# 1. Clonar o acceder a la carpeta del proyecto
+cd cobranza
+
+# 2. Activar el entorno virtual
 .\.venv\Scripts\Activate.ps1
+
+# 3. Instalar dependencias
 pip install -r requirements.txt
+
+# 4. Iniciar el servidor
 python run.py
 ```
 
-Abre en el navegador: <http://localhost:5000>
+Acceso web: **<http://localhost:5000>**
 
-## Credenciales de demostración
+---
 
-| Usuario | Contraseña | Rol |
-|---|---|---|
-| `admin` | `admin123` | Administrador (acceso total) |
+## 👥 Credenciales de Demostración
 
-En la primera ejecución el sistema crea automáticamente la base de datos SQLite
-(`app/cartera.db`), los roles, los permisos y el usuario administrador.
+Al iniciar por primera vez, el sistema autosembra la estructura de datos, carteras, roles y usuarios predeterminados:
 
-## Módulos implementados
+| Perfil | Usuario | Contraseña | Alcance Operativo |
+|---|---|---|---|
+| **Administrador** | `admin` | `09300` | Control total, carteras globales, parámetros USD, auditoría y usuarios |
+| **Operador de Cobranza** | `user_0` | `09300` | Operación de cartera asignada, clientes, préstamos y recaudos |
+| **Asesor / Consultor** | `consultor_0` | `09300` | Dashboard exclusivo de clientes remitidos, mora y notificaciones |
 
-- **Autenticación**: login/logout, sesiones seguras (Flask-Login), hash de contraseñas (Werkzeug).
-- **Panel principal**: indicadores de cartera, obligaciones por vencer y vencidas, pagos recientes y filtros rápidos.
-- **Clientes**: CRUD completo, referencias personales y codeudores, información bancaria para transferencias/desembolsos (banco, tipo de cuenta, número y titular), localización (ciudad/país), ficha integral con score crediticio.
-- **Préstamos / Créditos**: creación con valor principal, tasa de interés por período parametrizable, cuotas y periodicidad; generación automática del plan de pagos y soporte de comprobante de desembolso (en alta o posterior).
-- **Cuotas / Obligaciones**: amortización francesa (cuota fija) o alemana (capital fijo), control de capital, interés, saldo pendiente, días de mora y estado en tiempo real.
-- **Pagos**: registro transaccional, orden de aplicación configurable (interés primero o capital primero), recibo ejecutivo con diseño oficial optimizado para impresión limpia y exportación a PDF, anulación y reversión transaccional completa.
-- **Cobranza**: panel de obligaciones vencidas, semaforización de morosidad y registro cronológico de gestiones de cobro con próxima fecha de contacto.
-- **Gestión documental**: almacenamiento seguro con nomenclatura física trazable (`{entidad}/{id}/{entidad}-{id}-{tipo}-{fecha}-{hash}`), clasificación, reemplazo, descarga y motor OCR (EasyOCR + PyMuPDF) para autocompletar clientes desde documento de identidad.
-- **Cartera y analítica**: panel interactivo con métricas de capital colocado, recaudado, saldos pendientes y distribución por estado de crédito.
-- **Score de comportamiento**: motor de calificación (0–100) basado en puntualidad, cumplimiento y días de mora, con panel de análisis de riesgo visual (tarjetas de métricas, barras de progreso y bandas de riesgo).
-- **Administración y Gestión de Datos**:
-  - Gestión de usuarios, roles (RBAC) y matriz de permisos granulares.
-  - Parámetros del sistema editables en caliente (tasas, días de alerta, orden de pago, etc.).
-  - Bitácora completa de auditoría de eventos sensibles.
-  - **Exportación comprensible de base de datos**: descarga en archivo ZIP con múltiples archivos CSV limpios, formateados y legibles para Excel (clientes, préstamos, cronogramas, pagos, gestiones, etc.).
-  - **Herramientas de datos**: purga segura de información transaccional de prueba y recarga de datos demo limpios.
+---
 
-## Motor financiero
+## 💼 Flujos de Trabajo Principales
 
-El cálculo de cuotas soporta amortización francesa (cuota fija) y alemana (capital fijo), con operaciones exactas mediante `Decimal` (`ROUND_HALF_UP` a 2 decimales):
+### 1. Gestión de Carteras (Portfolios)
+- El **Administrador** ingresa a `/carteras` para dar de alta una nueva cartera, asignarle un cupo de capital en dólares (ej. `$2,500.00 USD`) y asignar al operador de cobranza responsable.
+- El **Operador** visualiza en la cabecera la cartera en la que se encuentra trabajando y puede conmutar instantáneamente entre sus diferentes carteras asignadas.
 
-- **Amortización francesa**:
-  ```
-  cuota = principal * i / (1 - (1 + i)^-n)
-  ```
-- **Amortización alemana**:
-  ```
-  capital_fijo = principal / n
-  cuota_k = capital_fijo + (saldo_{k-1} * i)
-  ```
+### 2. Alta de Crédito y Plan de Cobro
+1. Se registra el cliente con sus datos laborales, cuentas bancarias duales (desembolso y recaudo), 2 referencias y las 4 fotos del expediente.
+2. Desde la ficha del cliente, se selecciona **Nuevo Préstamo**:
+   - Se selecciona uno de los montos autorizados ($75, $100, $125, $150 USD) o se ingresa monto personalizado.
+   - Se selecciona modalidad: **Semanal** (cobro a 7 días) o **Quincenal** (Ciclos 5-20, 10-25, 15-30).
+   - El sistema calcula la cuota con la tasa fija configurada (20%) y genera el plan de pagos exigible.
 
-Reglas centralizadas en `app/services/financial.py`:
-- **Tasa periódica**: parametrizable globalmente (`tasa_interes_periodo`), aplicada de forma determinística por cuota.
-- **Orden de imputación transaccional**: configurable vía parámetro `orden_aplicacion_pago` entre **Interés primero** (`interes_primero`, estándar) y **Capital primero** (`capital_primero`).
-- En la última cuota se absorbe cualquier residuo por redondeo para liquidar exactamente el saldo.
+### 3. Recaudo y Aplicación de Pagos
+- Al registrar un pago en `/pagos/nuevo`:
+  - El monto recibido se imputa inmediatamente a saldar los intereses acumulados.
+  - El excedente reduce el saldo de capital del préstamo.
+  - Se genera un recibo digital oficial imprimible en PDF con código transaccional trazable (`PG-XXXXX`).
 
-## Estructura del proyecto
+### 4. Remisión y Asesoría
+- Desde el expediente del cliente (`/clientes/<id>`), si el cliente incurre en mora o requiere acompañamiento especial, el operador o administrador presiona **Enviar a Asesor**, seleccionando el motivo y registrando instrucciones operativas.
+- El asesor (`consultor_0`) recibe una notificación interna y visualiza al cliente en su panel de `/asesor/` con indicadores de scoring, mora y saldo insoluto para ejecutar la gestión de recuperación.
 
-```
-app/
-  routes/         # Controladores HTTP y Blueprints por módulo
-  services/       # Lógica pura de negocio (financiera, scoring, OCR, documentos)
-  models.py       # Entidades SQLAlchemy y relaciones del modelo
-  templates/      # Plantillas Jinja2 y componentes visuales
-  static/         # Hojas de estilo CSS, scripts JS y recursos
-  seed.py         # Datos iniciales (roles, permisos, usuario admin, parámetros)
-  config.py       # Configuración por entorno y variables
-run.py            # Punto de entrada para desarrollo
-wsgi.py           # Punto de entrada WSGI para servidores de producción
-requirements.txt  # Dependencias del proyecto
-render.yaml       # Configuración de despliegue con disco persistente en Render
-Procfile          # Comando de ejecución en plataformas PaaS
-docs/             # Documentación técnica exhaustiva
+---
+
+## 🧪 Pruebas y Control de Calidad
+
+El proyecto incluye una suite exhaustiva de pruebas unitarias y de integración que validan el 100% de la lógica de negocio:
+
+```powershell
+# Ejecutar todas las suites de pruebas unificadas
+.venv\Scripts\python -m unittest discover tests -v
+
+# Pruebas específicas del módulo de Carteras y Asesor
+.venv\Scripts\python -m unittest tests.test_carteras_and_advisor -v
+
+# Batería de auditoría integral end-to-end (84 comprobaciones)
+.venv\Scripts\python tests/test_audit_full.py
 ```
 
-## Documentación técnica
+---
 
-La documentación formal y detallada del sistema se encuentra en [`docs/`](docs/):
+## 📚 Documentación Técnica Especializada
 
-- [`docs/01-documento-tecnico.md`](docs/01-documento-tecnico.md) — Especificación funcional, arquitectura y módulos.
-- [`docs/02-modelo-de-datos.md`](docs/02-modelo-de-datos.md) — Entidades, relaciones, diccionario de datos y nomenclatura física.
-- [`docs/03-motor-financiero.md`](docs/03-motor-financiero.md) — Reglas de cálculo, amortización, aplicación de pagos y scoring.
-- [`docs/04-api-y-rutas.md`](docs/04-api-y-rutas.md) — Catálogo de endpoints HTTP por módulo y filtros de plantilla.
-- [`docs/05-seguridad-y-despliegue.md`](docs/05-seguridad-y-despliegue.md) — Seguridad RBAC, auditoría y puesta en producción.
-- [`docs/06-despliegue-render.md`](docs/06-despliegue-render.md) — Despliegue en Render con disco persistente y/o PostgreSQL.
-- [`docs/07-despliegue-pythonanywhere.md`](docs/07-despliegue-pythonanywhere.md) — Despliegue del demo en PythonAnywhere con SQLite persistente.
-- [`docs/08-manual-tecnico.md`](docs/08-manual-tecnico.md) — Manual técnico integral consolidado (referencia definitiva).
+Toda la documentación técnica se encuentra centralizada y estructurada en la carpeta [`docs/`](docs/):
 
-## Despliegue y notas de producción
+1. [**Arquitectura Técnica y Modelo de Datos** (`docs/ARQUITECTURA_TECNICA.md`)](docs/ARQUITECTURA_TECNICA.md):
+   - Diagrama entidad-relación (ER), modelos relacionales y estructura multi-cartera.
+   - Especificación matemática del motor financiero dolarizado y fórmulas de cascada de pagos.
+   - Seguridad, RBAC, matriz de permisos y pistas de auditoría inmutables.
+   - Motor de scoring crediticio (0-100) y procesamiento OCR (EasyOCR y PyMuPDF).
 
-- **Servidor WSGI**: Usar `gunicorn -w 2 -t 120 run:app` o `gunicorn wsgi:app`.
-- **Render**: `render.yaml` preconfigura un disco persistente montado en `/data` para persistir tanto la base de datos SQLite (`sqlite:////data/cartera.db`) como los documentos cargados (`/data/uploads`).
-- **Seguridad**:
-  - Define `SECRET_KEY` segura y no predeterminada.
-  - Desactiva el modo demo configurando `AUTH_DISABLED=false`.
-  - Cambia la contraseña del usuario `admin` inmediatamente tras el primer despliegue.
-  - Los archivos subidos se almacenan en `UPLOAD_FOLDER` de manera privada y solo se acceden mediante endpoints con control de permisos.
+2. [**Guía de Despliegue y Operaciones** (`docs/DESPLIEGUE_Y_OPERACIONES.md`)](docs/DESPLIEGUE_Y_OPERACIONES.md):
+   - Despliegue con Blueprint en **Render** (con disco persistente automático).
+   - Despliegue en **PythonAnywhere**, contenedores Docker y servidores dedicados.
+   - Variables de entorno de producción, gestión de copias de seguridad (ZIP/CSV) y mantenimiento.
