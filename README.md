@@ -91,6 +91,14 @@ Al iniciar por primera vez, el sistema autosembra la estructura de datos, carter
 - Desde el expediente del cliente (`/clientes/<id>`), si el cliente incurre en mora o requiere acompañamiento especial, el operador o administrador presiona **Enviar a Asesor**, seleccionando el motivo y registrando instrucciones operativas.
 - El asesor (`consultor_0`) recibe una notificación interna y visualiza al cliente en su panel de `/asesor/` con indicadores de scoring, mora y saldo insoluto para ejecutar la gestión de recuperación.
 
+### 5. Panel Principal (Dashboard) e Indicadores de Cartera
+Desde la pantalla de inicio (`/`), el sistema presenta los 4 indicadores financieros clave de la cartera activa:
+- **Saldo de Cartera**: Cupo total de capital asignado a la cartera en dólares (`assigned_capital_usd`).
+- **Cartera Vigente (Al día)**: Capital en curso sin mora que cumple su cronograma de pago.
+- **Cartera Vencida (En mora)**: Saldo insoluto vencido de cuotas cuya fecha límite ha expirado.
+- **Interés generado este mes**: Utilidad neta generada exclusivamente por créditos pagados (liquidados al 100%) en los últimos 30 días.
+- **Tablas de Monitoreo**: Listado de próximos vencimientos (con búsqueda textual por nombre o cédula), créditos en mora y últimos pagos registrados.
+
 ---
 
 ## 🧪 Pruebas y Control de Calidad
