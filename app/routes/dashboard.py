@@ -3,7 +3,17 @@ from datetime import datetime, timedelta
 from flask import Blueprint, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 
-from ..models import Client, CollectionManagement, Loan, Obligation, Parameter, Payment, Portfolio
+from ..extensions import db
+from ..models import (
+    Client,
+    CollectionManagement,
+    Loan,
+    Obligation,
+    Parameter,
+    Payment,
+    PaymentApplication,
+    Portfolio,
+)
 from ..services.decorators import permission_required
 
 bp = Blueprint("dashboard", __name__)
@@ -97,21 +107,21 @@ def index():
         Payment.payment_date.desc(), Payment.created_at.desc()
     ).limit(8).all()
 
-    # Interés generado: solo de créditos PAGADOS (liquidados) en el último mes
-    # Se suman los pagos que cubrieron interés en créditos que ya están pagados
+    # Interés generado: acumulación de los pagos de interés aplicados sobre créditos en los últimos 30 días
     last30 = today - timedelta(days=30)
-    paid_loan_ids = {l.id for l in loans if l.status == "pagado"}
     interes_mes = 0.0
-    if paid_loan_ids and loan_ids:
-        pagos_liquidados = Payment.query.filter(
-            Payment.loan_id.in_(paid_loan_ids),
-            Payment.payment_date >= last30
-        ).all()
-        # El interés de cada cuota = principal × tasa
-        for p in pagos_liquidados:
-            loan_ref = next((l for l in loans if l.id == p.loan_id), None)
-            if loan_ref:
-                interes_mes += float(loan_ref.principal) * float(loan_ref.annual_rate)
+    if loan_ids:
+        interes_query = (
+            db.session.query(db.func.coalesce(db.func.sum(PaymentApplication.interest_applied), 0.0))
+            .join(Payment, Payment.id == PaymentApplication.payment_id)
+            .filter(
+                Payment.loan_id.in_(loan_ids),
+                Payment.status == "aplicado",
+                Payment.payment_date >= last30,
+            )
+            .scalar()
+        )
+        interes_mes = float(interes_query or 0.0)
 
     collections_today = 0
     if loan_ids:

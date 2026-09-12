@@ -96,7 +96,7 @@ Desde la pantalla de inicio (`/`), el sistema presenta los 4 indicadores financi
 - **Saldo Disponible**: Capital asignado a la cartera menos el capital colocado activo (fondos disponibles para desembolsar).
 - **Cartera Vigente (Al día)**: Capital prestado al día sin intereses que cumple su cronograma de pago.
 - **Cartera Vencida (En mora)**: Capital prestado en mora sin intereses correspondiente a cuotas vencidas.
-- **Interés generado este mes**: Utilidad neta generada exclusivamente por créditos pagados (liquidados al 100%) en los últimos 30 días.
+- **Interés generado este mes**: Ganancia real acumulada por concepto de intereses efectivamente cobrados en los últimos 30 días en todos los pagos aplicados.
 - **Tablas de Monitoreo**: Listado de próximos vencimientos (con búsqueda textual por nombre o cédula), créditos en mora y últimos pagos registrados.
 
 ---
