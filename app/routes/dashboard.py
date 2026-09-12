@@ -74,10 +74,13 @@ def index():
         Payment.payment_date.desc(), Payment.created_at.desc()
     ).limit(8).all()
 
-    # Recaudo por periodo (últimos 30 días)
-    last30 = today - timedelta(days=30)
-    collected_30 = sum(
-        (float(p.amount) for p in payments_query.all() if p.payment_date >= last30), 0.0
+    # Interés generado por la cartera en el último mes
+    # = suma del interés quincenal (capital × tasa) de todos los préstamos activos
+    # Se toma el interés de la cuota vigente de cada préstamo activo/en mora
+    interes_mes = sum(
+        float(l.principal) * float(l.annual_rate)
+        for l in loans
+        if l.status in ("activo", "mora")
     )
 
     collections_today = 0
@@ -94,7 +97,7 @@ def index():
         "cartera_vencida": overdue_portfolio,
         "obligaciones_vencidas": len(overdue_obligations),
         "prestamos_activos": sum(1 for l in loans if l.status in ("activo", "mora")),
-        "recaudo_30d": collected_30,
+        "interes_mes": interes_mes,
         "clientes": clients_count,
     }
 
