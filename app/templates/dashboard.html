@@ -11,10 +11,7 @@
 
 <div class="grid grid-4">
   <div class="card stat">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span class="stat-label">Saldo en Cartera</span>
-      <span class="badge" title="Capital colocado actualmente: {{ indicators.capital_desembolsado|money }}">Colocado: {{ indicators.capital_desembolsado|money }}</span>
-    </div>
+    <span class="stat-label">Saldo de Cartera</span>
     <span class="stat-value">{{ indicators.cartera_total|money }}</span>
     <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Capital total asignado a la cartera</small>
   </div>
