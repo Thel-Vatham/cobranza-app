@@ -116,6 +116,31 @@
       </div>
     </div>
 
+    {# Estado del Préstamo tras el Pago y Próxima Quincena #}
+    {% if payment.loan.outstanding_balance > 0 and payment.loan.obligations|length > 0 %}
+    {% set next_ob = payment.loan.obligations[-1] %}
+    <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <span style="display: inline-block; font-size: 0.72rem; text-transform: uppercase; font-weight: 800; color: #166534; letter-spacing: 0.5px; background: #dcfce7; padding: 2px 8px; border-radius: 4px; margin-bottom: 4px;">
+          🗓️ Próxima Quincena Programada (Corte {{ next_ob.due_date|d }})
+        </span>
+        <strong style="display: block; font-size: 0.95rem; color: #0f172a;">Cuota #{{ next_ob.number }} para el siguiente ciclo</strong>
+        <small style="color: #475569; font-size: 0.8rem; display: block; margin-top: 2px;">
+          Saldo de capital restante: <strong>{{ next_ob.capital|money }}</strong> + Interés fijado (sobre el crédito total original): <strong>{{ next_ob.interest|money }}</strong>
+        </small>
+      </div>
+      <div style="text-align: right;">
+        <small style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #166534; font-weight: 700;">Total Próxima Quincena</small>
+        <strong style="font-size: 1.45rem; color: #166534; font-weight: 800;">{{ next_ob.scheduled_value|money }}</strong>
+      </div>
+    </div>
+    {% else %}
+    <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; text-align: center;">
+      <strong style="color: #166534; font-size: 1.05rem; display: block;">✅ CRÉDITO CANCELADO AL 100% · PAZ Y SALVO</strong>
+      <small style="color: #64748b; font-size: 0.82rem;">El cliente no presenta obligaciones pendientes por este crédito.</small>
+    </div>
+    {% endif %}
+
     {# Firmas y Declaración Legal #}
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px dashed #cbd5e1;">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 24px;">

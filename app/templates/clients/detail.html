@@ -86,19 +86,28 @@
     <span class="stat-value">{{ total_paid|money }}</span>
     <small class="muted">Recuperación de cartera</small>
   </div>
-  <div class="card stat" style="border-left: 4px solid {% if score.score is none %}#94a3b8{% elif score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
-    <span class="stat-label">Score de Comportamiento</span>
+  {% set b = score.behavior %}
+  <div class="card stat" style="border-left: 4px solid {{ b.color if b else '#94a3b8' }};">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+      <span class="stat-label">Comportamiento & Score</span>
+      {% if b %}
+      <span class="badge" style="background: {{ b.bg }}; color: {{ b.color }}; border: 1px solid {{ b.border }}; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+        <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: {{ b.dot }};"></span>
+        {{ b.label }}
+      </span>
+      {% endif %}
+    </div>
     <div style="display: flex; align-items: baseline; gap: 8px;">
-      <span class="stat-value" style="color: {% if score.score is none %}#64748b{% elif score.score >= 80 %}#10b981{% elif score.score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+      <span class="stat-value" style="color: {{ b.color if b else '#64748b' }};">
         {{ score.score if score.score is not none else 'N/A' }}
       </span>
       {% if score.band %}
-      <span class="badge" style="background: {% if score.score >= 80 %}rgba(16,185,129,0.15); color: #059669;{% elif score.score >= 50 %}rgba(245,158,11,0.15); color: #d97706;{% else %}rgba(239,68,68,0.15); color: #dc2626;{% endif %}">
+      <span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-size: 0.75rem;">
         {{ score.band }}
       </span>
       {% endif %}
     </div>
-    <small class="muted">Evaluación de riesgo crediticio</small>
+    <small class="muted">{{ b.description if b else 'Evaluación de riesgo crediticio' }}</small>
   </div>
 </div>
 

@@ -252,30 +252,32 @@
     <span class="badge badge-info">{{ loan.payments|length }} pago(s)</span>
   </div>
   {% if loan.payments %}
-  <table>
-    <thead>
-      <tr style="background: var(--bg);">
-        <th>Código</th>
-        <th>Fecha de Pago</th>
-        <th>Concepto</th>
-        <th style="text-align: right;">Monto Recibido</th>
-        <th style="text-align: center;">Estado</th>
-        <th style="text-align: center;">Acción</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in loan.payments %}
-      <tr class="clickable-row" onclick="window.location='{{ url_for('payments.receipt', payment_id=p.id) }}';" style="cursor: pointer;">
-        <td><strong>{{ p.code }}</strong></td>
-        <td>{{ p.payment_date|d }}</td>
-        <td>{{ p.concept }}</td>
-        <td style="text-align: right;"><strong style="color: #10b981;">{{ p.amount|money }}</strong></td>
-        <td style="text-align: center;"><span class="badge {{ 'badge-success' if p.status == 'aplicado' else 'badge-danger' }}">{{ p.status|upper }}</span></td>
-        <td style="text-align: center;"><a class="btn btn-sm btn-primary" href="{{ url_for('payments.receipt', payment_id=p.id) }}" onclick="event.stopPropagation();">Ver Recibo Oficial →</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap" style="border: none; box-shadow: none;">
+    <table class="responsive-table">
+      <thead>
+        <tr style="background: var(--bg);">
+          <th>Código</th>
+          <th>Fecha de Pago</th>
+          <th>Concepto</th>
+          <th style="text-align: right;">Monto Recibido</th>
+          <th style="text-align: center;">Estado</th>
+          <th style="text-align: center;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in loan.payments %}
+        <tr class="clickable-row" onclick="window.location='{{ url_for('payments.receipt', payment_id=p.id) }}';" style="cursor: pointer;">
+          <td data-label="Código"><strong>{{ p.code }}</strong></td>
+          <td data-label="Fecha">{{ p.payment_date|d }}</td>
+          <td data-label="Concepto">{{ p.concept }}</td>
+          <td data-label="Monto" style="text-align: right;"><strong style="color: #10b981;">{{ p.amount|money }}</strong></td>
+          <td data-label="Estado" style="text-align: center;"><span class="badge {{ 'badge-success' if p.status == 'aplicado' else 'badge-danger' }}">{{ p.status|upper }}</span></td>
+          <td data-label="Acción" class="full-width-cell" style="text-align: center;"><a class="btn btn-sm btn-primary" href="{{ url_for('payments.receipt', payment_id=p.id) }}" onclick="event.stopPropagation();">Ver Recibo Oficial →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <div style="text-align: center; padding: 24px 0; color: var(--muted);">
     <p style="margin: 0;">Aún no se han registrado abonos o pagos para este préstamo.</p>

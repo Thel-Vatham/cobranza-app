@@ -102,22 +102,32 @@ class NewBusinessModelTest(unittest.TestCase):
         self.assertEqual(suggest_biweekly_cycle(date(2026, 9, 29)), "15-30")
 
     def test_single_bullet_payment_waterfall(self):
-        """Verifica la lógica de pago de 1 cuota: 100 USD + 20% = 120 USD.
-        Prioridad 1: Interés 20 USD.
-        Prioridad 2: Capital remanente."""
+        """Verifica la lógica de abono y renovación quincenal:
+        Ejemplo del usuario:
+        Préstamo de 100 USD + 20% = 120 USD.
+        - Abono de 70 USD: cubre 20 USD de interés y 50 USD de capital.
+          Queda saldo de capital de 50 USD.
+          Para la siguiente quincena se suma el interés de los 100 USD (20 USD).
+          Queda pagando la siguiente quincena 70 USD (50 capital + 20 interés).
+        - Pago solo de interés (20 USD):
+          Cubre 20 USD de interés, queda saldo de capital de 100 USD.
+          Para la siguiente quincena se suma el interés de los 100 USD (20 USD) = 120 USD.
+        """
         cli = Client(code="CL-TEST-01", first_name="Carlos", last_name="Mora", identification_type="CC", identification_number="998877")
         db.session.add(cli)
         db.session.commit()
 
+        today = date.today()
         loan = Loan(
             code="PR-TEST-01",
             client_id=cli.id,
             principal=Decimal("100.00"),
             annual_rate=Decimal("0.20"),
             installments_count=1,
-            frequency_days=7,
-            frequency_type="semanal",
-            start_date=date(2026, 9, 1),
+            frequency_days=15,
+            frequency_type="quincenal",
+            biweekly_cycle="5-20",
+            start_date=today,
             status="activo",
         )
         db.session.add(loan)
@@ -128,18 +138,18 @@ class NewBusinessModelTest(unittest.TestCase):
         db.session.commit()
 
         self.assertEqual(len(loan.obligations), 1)
-        ob = loan.obligations[0]
-        self.assertEqual(ob.capital, Decimal("100.00"))
-        self.assertEqual(ob.interest, Decimal("20.00"))
-        self.assertEqual(ob.scheduled_value, Decimal("120.00"))
+        ob1 = loan.obligations[0]
+        self.assertEqual(ob1.capital, Decimal("100.00"))
+        self.assertEqual(ob1.interest, Decimal("20.00"))
+        self.assertEqual(ob1.scheduled_value, Decimal("120.00"))
 
-        # Caso A: Pago parcial de 50 USD
+        # Caso 1: Abono de 70 USD
         pay1 = Payment(
             code="PG-TEST-01",
             client_id=cli.id,
             loan_id=loan.id,
-            amount=Decimal("50.00"),
-            payment_date=date(2026, 9, 8),
+            amount=Decimal("70.00"),
+            payment_date=today,
             status="aplicado",
         )
         db.session.add(pay1)
@@ -147,20 +157,28 @@ class NewBusinessModelTest(unittest.TestCase):
         apps = apply_payment(pay1)
         db.session.commit()
 
-        # El interés de 20 USD se cubrió al 100%
-        self.assertEqual(ob.pending_interest, Decimal("0.00"))
-        # El excedente (30 USD) fue a capital: 100 - 30 = 70 USD
-        self.assertEqual(ob.pending_capital, Decimal("70.00"))
-        self.assertEqual(ob.status, "parcial")
+        # Cuota 1 queda pagada para este ciclo
+        self.assertEqual(ob1.status, "pagada")
+        self.assertEqual(apps[0]["interest"], 20.0)
+        self.assertEqual(apps[0]["capital"], 50.0)
+
+        # Se genera Cuota 2 para la siguiente quincena:
+        # Capital restante: 50 USD + Interés sobre los 100 USD originales (20 USD) = 70 USD
+        self.assertEqual(len(loan.obligations), 2)
+        ob2 = loan.obligations[1]
+        self.assertEqual(ob2.capital, Decimal("50.00"))
+        self.assertEqual(ob2.interest, Decimal("20.00"))
+        self.assertEqual(ob2.scheduled_value, Decimal("70.00"))
+        self.assertEqual(Decimal(str(loan.outstanding_balance)), Decimal("70.00"))
         self.assertEqual(loan.status, "activo")
 
-        # Caso B: Pago restante de 70 USD para liquidar capital insoluto
+        # Caso 2: Pago total de los 70 USD en la siguiente quincena
         pay2 = Payment(
             code="PG-TEST-02",
             client_id=cli.id,
             loan_id=loan.id,
             amount=Decimal("70.00"),
-            payment_date=date(2026, 9, 8),
+            payment_date=ob2.due_date,
             status="aplicado",
         )
         db.session.add(pay2)
@@ -168,8 +186,8 @@ class NewBusinessModelTest(unittest.TestCase):
         apply_payment(pay2)
         db.session.commit()
 
-        self.assertEqual(ob.pending_capital, Decimal("0.00"))
-        self.assertEqual(ob.status, "pagada")
+        self.assertEqual(ob2.status, "pagada")
+        self.assertEqual(loan.outstanding_balance, 0.0)
         self.assertEqual(loan.status, "pagado")
 
     def test_routes_filtering_loans_and_collections(self):

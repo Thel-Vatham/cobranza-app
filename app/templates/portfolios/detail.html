@@ -26,7 +26,7 @@
     </div>
 
     <div class="portfolio-page-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-      <a href="{{ url_for('portfolios.switch', portfolio_id=portfolio.id) }}" class="btn-touch" style="background: #2563eb; color: #ffffff; border: 1px solid #2563eb;">
+      <a href="{{ url_for('portfolios.switch', portfolio_id=portfolio.id) }}" class="btn-touch" style="background: var(--gold-gradient); color: #ffffff; border: 1px solid #9d751b; box-shadow: 0 2px 8px rgba(194,149,41,0.3);">
         {{ icon('refresh', 16) }} <span>Alternar Cartera</span>
       </a>
       {% if is_admin %}
@@ -40,15 +40,15 @@
 
 <!-- KPIs Financieros de la Cartera (Responsive 2x2 en móvil, 4 col en desktop) -->
 <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px;">
-  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #0284c7; background: #ffffff;">
+  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #64748b; background: #ffffff;">
     <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">Presupuesto (USD)</div>
     <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">${{ "%.2f"|format(portfolio.assigned_capital_usd|float) }}</div>
     <small class="muted" style="font-size: 0.72rem;">Fijado por Admin</small>
   </div>
 
-  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #2563eb; background: #ffffff;">
+  <div class="card stat-card" style="padding: 14px; border-radius: 12px; border-left: 4px solid #c29529; background: #ffffff;">
     <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 2px;">Capital Colocado</div>
-    <div style="font-size: 1.25rem; font-weight: 800; color: #2563eb;">${{ "%.2f"|format(portfolio.capital_colocado|float) }}</div>
+    <div style="font-size: 1.25rem; font-weight: 800; color: #c29529;">${{ "%.2f"|format(portfolio.capital_colocado|float) }}</div>
     <small class="muted" style="font-size: 0.72rem;">Préstamos emitidos</small>
   </div>
 

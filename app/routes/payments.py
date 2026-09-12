@@ -99,7 +99,16 @@ def create():
             f"{payment.code} valor {amount} aplicado a {len(applications)} cuota(s)",
         )
         db.session.commit()
-        flash("Pago registrado y aplicado correctamente.", "success")
+        if loan.outstanding_balance > 0 and len(loan.obligations) > 0:
+            next_ob = loan.obligations[-1]
+            flash(
+                f"Pago {payment.code} de ${amount:.2f} aplicado correctamente. "
+                f"Para la siguiente quincena ({next_ob.due_date.strftime('%d/%m/%Y')}) queda una cuota programada de "
+                f"${next_ob.scheduled_value:.2f} (Saldo Capital: ${next_ob.capital:.2f} + Interés sobre crédito original: ${next_ob.interest:.2f}).",
+                "success"
+            )
+        else:
+            flash(f"Pago {payment.code} de ${amount:.2f} aplicado. ¡Crédito cancelado en su totalidad (Paz y Salvo)!", "success")
         return redirect(url_for("payments.receipt", payment_id=payment.id))
 
     return render_template("payments/form.html", loans=loans, selected_loan=selected_loan)

@@ -100,6 +100,12 @@ def create():
     if request.method == "POST":
         client_id = request.form.get("client_id", type=int)
         principal = request.form.get("principal", type=float)
+
+        montos_permitidos = [float(m.strip()) for m in montos_disponibles]
+        if principal not in montos_permitidos:
+            flash(f"Monto no autorizado. Solo se permiten préstamos de: {', '.join(['$' + m for m in montos_disponibles])} USD.", "danger")
+            return render_template("loans/form.html", clients=clients, montos_disponibles=montos_disponibles, tasa_actual=tasa_actual)
+
         annual_rate = Parameter.get_float("tasa_interes_periodo", 20.0)
         installments_count = request.form.get("installments_count", type=int) or 1
         frequency_type = request.form.get("frequency_type") or "quincenal"

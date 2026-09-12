@@ -7,7 +7,7 @@ from ..services.decorators import permission_required
 from ..services.documents import allowed, create_document
 from ..services.financial import log_audit
 from ..services.ocr import extract_client_fields, extract_text
-from ..services.scoring import compute_score
+from ..services.scoring import compute_score, get_client_behavior_status
 
 bp = Blueprint("clients", __name__, url_prefix="/clientes")
 
@@ -48,6 +48,8 @@ def list_clients():
             | (Client.code.ilike(like))
         )
     clients = query.order_by(Client.created_at.desc()).all()
+    for c in clients:
+        c.behavior = get_client_behavior_status(c)
     return render_template("clients/list.html", clients=clients, q=q, is_admin=is_admin)
 
 

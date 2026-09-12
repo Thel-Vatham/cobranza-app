@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>{% block title %}Cartera · Gestión de Cartera y Cobranza{% endblock %}</title>
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <title>{% block title %}Soluciones Financieras · Gestión de Cartera y Cobranza{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260908_1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=20260912_logo">
 </head>
 <body>
   {% if current_user.is_authenticated %}
@@ -19,8 +19,11 @@
       {{ icon('menu', 24) }}
     </button>
     <a class="mobile-brand" href="{{ url_for('dashboard.index') }}">
-      {{ logo(28) }}
-      <span>Cartera</span>
+      {{ logo(32) }}
+      <div style="line-height: 1.1; margin-left: 2px;">
+        <span style="font-size: 0.95rem; font-weight: 800; letter-spacing: 0.02em; color: #f1f5f9;">SOLUCIONES</span>
+        <small style="display: block; font-size: 0.65rem; color: #d4af37; letter-spacing: 0.08em; text-transform: uppercase;">Financieras</small>
+      </div>
     </a>
     <div class="mobile-top-actions">
       {% if current_user.has_permission('payments.create') %}
@@ -41,10 +44,10 @@
     {# Sidebar / Off-canvas Drawer en móvil #}
     <aside class="sidebar" id="sidebarDrawer">
       <div class="brand">
-        <a class="brand-logo" href="{{ url_for('dashboard.index') }}">{{ logo(36) }}</a>
+        <a class="brand-logo" href="{{ url_for('dashboard.index') }}">{{ logo(40) }}</a>
         <div class="brand-text">
-          <strong>Cartera</strong>
-          <small>Gestión y Cobranza</small>
+          <strong style="letter-spacing: 0.03em; color: #f8fafc;">SOLUCIONES</strong>
+          <small style="color: #d4af37; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.72rem;">Financieras</small>
         </div>
         <button class="sidebar-toggle desktop-only" id="sidebarToggle" type="button" aria-label="Contraer menú" aria-expanded="true">{{ icon('panel', 18) }}</button>
         <button class="sidebar-close-btn mobile-only" id="sidebarCloseBtn" type="button" aria-label="Cerrar menú">{{ icon('x', 20) }}</button>
@@ -153,7 +156,7 @@
                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ active_portfolio.name }}</span>
                 <span style="color: #64748b; font-weight: 500; font-size: 0.8rem; white-space: nowrap;">(${{ "%.0f"|format(active_portfolio.assigned_capital_usd|float) }} USD)</span>
               {% elif current_user.role and current_user.role.name == "Administrador" %}
-                <span style="display: inline-block; width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; flex-shrink: 0;"></span>
+                <span style="display: inline-block; width: 8px; height: 8px; background: #c29529; border-radius: 50%; flex-shrink: 0;"></span>
                 <span>Vista Consolidada (Global)</span>
               {% else %}
                 <span style="display: inline-block; width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; flex-shrink: 0;"></span>

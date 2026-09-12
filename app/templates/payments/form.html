@@ -4,33 +4,158 @@
 <header class="page-head">
   <div>
     <h1>Registrar pago</h1>
-    <p class="muted">El valor se aplica automáticamente (interés primero, luego capital)</p>
+    <p class="muted">Abono quincenal: cubre interés y capital. Los saldos restantes generan el interés sobre el crédito total para la próxima quincena.</p>
   </div>
   <a class="btn" href="{{ url_for('payments.list_payments') }}">← Volver</a>
 </header>
 
-<form class="card form" method="post" enctype="multipart/form-data">
+<form class="card form" method="post" enctype="multipart/form-data" id="payment-form">
   <div class="grid grid-3">
-    <label class="span-3">Préstamo / Cliente *
-      <select name="loan_id" required>
+    
+    {# Selector / Buscador Avanzado de Préstamo por Nombre o Cédula #}
+    <div class="span-3" style="position: relative; margin-bottom: 6px;">
+      <label style="display: block; font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+        Buscar y Seleccionar Préstamo / Cliente *
+      </label>
+
+      {# Select original oculto para envío estándar del formulario #}
+      <select name="loan_id" id="loan_select" style="display: none;" required>
         <option value="">Seleccione un préstamo…</option>
         {% for l in loans %}
-        <option value="{{ l.id }}" {% if request.args.get('loan_id') == l.id|string %}selected{% endif %}>{{ l.code }} — {{ l.client.full_name }} (saldo {{ l.outstanding_balance|money }})</option>
+        {% set active_ob = (l.obligations|rejectattr("status", "equalto", "pagada")|list|first) %}
+        <option value="{{ l.id }}"
+                data-client-name="{{ l.client.full_name }}"
+                data-client-cc="{{ l.client.identification_number }}"
+                data-client-type="{{ l.client.identification_type }}"
+                data-loan-code="{{ l.code }}"
+                data-principal="{{ l.principal }}"
+                data-rate="{{ l.annual_rate }}"
+                data-cycle="{{ l.biweekly_cycle or 'General' }}"
+                data-pending-interest="{{ active_ob.pending_interest if active_ob else (l.principal * l.annual_rate) }}"
+                data-pending-capital="{{ active_ob.pending_capital if active_ob else l.principal }}"
+                data-total-due="{{ l.outstanding_balance }}"
+                {% if request.args.get('loan_id') == l.id|string %}selected{% endif %}>
+          {{ l.code }} — {{ l.client.full_name }} ({{ l.client.identification_number }})
+        </option>
         {% endfor %}
       </select>
-    </label>
+
+      {# Tarjeta de Préstamo Seleccionado #}
+      <div id="selected_loan_display" style="display: none; background: #f8fafc; border: 1.5px solid #3b82f6; border-radius: 8px; padding: 14px 18px; margin-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #dbeafe; color: #1d4ed8; font-weight: 800; font-size: 0.95rem;">👤</span>
+              <div>
+                <strong id="card_client_name" style="font-size: 1.05rem; color: #0f172a; display: block;">Nombre del Cliente</strong>
+                <small id="card_client_meta" style="color: #64748b; font-size: 0.8rem;">CC: 000000 · Crédito: CR-00000</small>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="text-align: right;">
+              <small style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 700;">Saldo Actual</small>
+              <strong id="card_client_balance" style="font-size: 1.15rem; color: #2563eb;">$0.00</strong>
+            </div>
+            <span id="card_client_cycle" class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 0.75rem;">Q: 5-20</span>
+            <button type="button" id="btn_change_loan" class="btn btn-sm" style="background: #ffffff; border: 1px solid #cbd5e1; color: #475569; font-size: 0.75rem; padding: 5px 10px;">
+              🔍 Cambiar / Buscar otro
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {# Campo de Búsqueda Activo #}
+      <div id="search_input_container" style="position: relative;">
+        <div style="position: relative; display: flex; align-items: center;">
+          <span style="position: absolute; left: 14px; color: #94a3b8; font-size: 1.05rem; pointer-events: none;">🔍</span>
+          <input type="text"
+                 id="loan_search_input"
+                 placeholder="Escribe el nombre del cliente, cédula (CC) o código de crédito..."
+                 autocomplete="off"
+                 style="padding-left: 42px; padding-right: 36px; height: 46px; font-size: 0.95rem; border-radius: 8px; border: 1.5px solid #cbd5e1; width: 100%; box-sizing: border-box; transition: all 0.2s ease;">
+          <button type="button" id="btn_clear_search" style="display: none; position: absolute; right: 12px; background: none; border: none; font-size: 1.1rem; color: #94a3b8; cursor: pointer; padding: 4px;">
+            ✕
+          </button>
+        </div>
+
+        {# Menú desplegable de resultados #}
+        <div id="search_results_dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); max-height: 310px; overflow-y: auto; z-index: 9999;">
+          <div id="search_results_list"></div>
+        </div>
+      </div>
+      <small style="color: #64748b; font-size: 0.78rem; display: block; margin-top: 4px;">
+        💡 Puedes escribir cualquier parte del nombre (ej: <em>Carlos</em>, <em>Morales</em>) o números de la cédula para filtrar al instante.
+      </small>
+    </div>
+
     <label>Valor recibido *
-      <input type="number" step="0.01" min="0.01" name="amount" required placeholder="0.00">
+      <input type="number" step="0.01" min="0.01" name="amount" id="amount_input" required placeholder="0.00">
     </label>
+
     <label>Fecha de recepción *
-      <input type="date" name="payment_date" required>
+      <input type="date" name="payment_date" id="payment_date" required>
     </label>
+
     <label>Concepto de aplicación
-      <input type="text" name="concept" placeholder="Abono a préstamo">
+      <input type="text" name="concept" id="concept_input" placeholder="Abono a préstamo">
     </label>
-    <label>Número de recibo
-      <input type="text" name="receipt_number" placeholder="Opcional">
+
+    {# Botones de Abono Rápido #}
+    <div class="span-3" id="quick-buttons" style="display: none; gap: 10px; align-items: center; margin-top: -6px;">
+      <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">Atajos:</span>
+      <button type="button" class="btn btn-sm" id="btn-pay-interest" style="background: #f0fdf4; border: 1px solid #86efac; color: #15803d; font-weight: 600; font-size: 0.78rem;">
+        ⚡ Pagar solo Interés ($<span id="quick-interest-val">0.00</span>)
+      </button>
+      <button type="button" class="btn btn-sm" id="btn-pay-total" style="background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; font-weight: 600; font-size: 0.78rem;">
+        ⚡ Cancelación Total ($<span id="quick-total-val">0.00</span>)
+      </button>
+    </div>
+
+    {# Simulación Dinámica de Abono y Próxima Quincena #}
+    <div class="span-3" id="simulation-box" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-top: 6px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+        <strong style="font-size: 0.9rem; color: #0f172a;">📊 Simulación de Liquidación Quincenal</strong>
+        <span class="badge" id="sim-badge" style="background: #e2e8f0; color: #334155; font-size: 0.75rem;">Abono</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.84rem;">
+        <div>
+          <span style="color: #64748b; display: block; font-size: 0.75rem; text-transform: uppercase;">Crédito Inicial</span>
+          <strong id="sim-principal" style="color: #0f172a;">$0.00</strong>
+        </div>
+        <div>
+          <span style="color: #64748b; display: block; font-size: 0.75rem; text-transform: uppercase;">Abono a Interés Actual</span>
+          <strong id="sim-applied-interest" style="color: #16a34a;">$0.00</strong>
+        </div>
+        <div>
+          <span style="color: #64748b; display: block; font-size: 0.75rem; text-transform: uppercase;">Abono a Capital</span>
+          <strong id="sim-applied-capital" style="color: #2563eb;">$0.00</strong>
+        </div>
+        <div>
+          <span style="color: #64748b; display: block; font-size: 0.75rem; text-transform: uppercase;">Saldo Capital Restante</span>
+          <strong id="sim-remaining-capital" style="color: #ea580c;">$0.00</strong>
+        </div>
+      </div>
+
+      <div id="sim-next-quincena-card" style="margin-top: 14px; background: #ffffff; border: 1px solid #94a3b8; border-radius: 6px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong style="font-size: 0.88rem; color: #0f172a; display: block;">🗓️ Próxima Quincena a Cobrar</strong>
+          <small id="sim-explanation" style="color: #475569; font-size: 0.78rem;">
+            Saldo capital restante ($0.00) + Interés pactado del crédito total ($0.00)
+          </small>
+        </div>
+        <div style="text-align: right;">
+          <small style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #64748b; font-weight: 700;">Total a pagar</small>
+          <strong id="sim-next-total" style="font-size: 1.25rem; color: #1e3a8a;">$0.00</strong>
+        </div>
+      </div>
+    </div>
+
+    <label class="span-3">Número de recibo de respaldo
+      <input type="text" name="receipt_number" placeholder="Opcional: Referencia o No. de Comprobante externo">
     </label>
+
     <div class="span-3" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-top: 4px;">
       <label style="display: block; font-size: 0.84rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">
         Comprobante o Soporte del Pago (Imagen, Screenshot o PDF)
@@ -48,13 +173,299 @@
         </button>
       </div>
       <small style="display: block; margin-top: 6px; font-size: 0.78rem; color: #64748b;">
-        En dispositivos móviles puede capturar el recibo físico directamente con la cámara o seleccionar capturas de pantalla de transferencias.
+        En dispositivos móviles puede capturar el recibo físico directamente con la cámara o adjuntar la captura de transferencia bancaria.
       </small>
     </div>
   </div>
+
   <div class="form-actions">
     <button type="submit" class="btn btn-primary">Aplicar pago</button>
     <a class="btn" href="{{ url_for('payments.list_payments') }}">Cancelar</a>
   </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const loanSelect = document.getElementById('loan_select');
+  const amountInput = document.getElementById('amount_input');
+  const paymentDateInput = document.getElementById('payment_date');
+  const quickButtons = document.getElementById('quick-buttons');
+  const btnPayInterest = document.getElementById('btn-pay-interest');
+  const btnPayTotal = document.getElementById('btn-pay-total');
+  const quickInterestVal = document.getElementById('quick-interest-val');
+  const quickTotalVal = document.getElementById('quick-total-val');
+  const conceptInput = document.getElementById('concept_input');
+
+  // Elementos del buscador combobox
+  const searchContainer = document.getElementById('search_input_container');
+  const searchInput = document.getElementById('loan_search_input');
+  const btnClearSearch = document.getElementById('btn_clear_search');
+  const dropdown = document.getElementById('search_results_dropdown');
+  const resultsList = document.getElementById('search_results_list');
+  const selectedDisplay = document.getElementById('selected_loan_display');
+  const btnChangeLoan = document.getElementById('btn_change_loan');
+  const cardClientName = document.getElementById('card_client_name');
+  const cardClientMeta = document.getElementById('card_client_meta');
+  const cardClientBalance = document.getElementById('card_client_balance');
+  const cardClientCycle = document.getElementById('card_client_cycle');
+
+  // Elementos de la simulación
+  const simBox = document.getElementById('simulation-box');
+  const simBadge = document.getElementById('sim-badge');
+  const simPrincipal = document.getElementById('sim-principal');
+  const simAppliedInterest = document.getElementById('sim-applied-interest');
+  const simAppliedCapital = document.getElementById('sim-applied-capital');
+  const simRemainingCapital = document.getElementById('sim-remaining-capital');
+  const simNextTotal = document.getElementById('sim-next-total');
+  const simExplanation = document.getElementById('sim-explanation');
+  const simNextCard = document.getElementById('sim-next-quincena-card');
+
+  // Establecer fecha de hoy por defecto si está vacío
+  if (!paymentDateInput.value) {
+    const today = new Date().toISOString().split('T')[0];
+    paymentDateInput.value = today;
+  }
+
+  // Extraer datos de todos los préstamos disponibles en el select
+  const loansData = Array.from(loanSelect.options).filter(o => o.value).map(opt => ({
+    id: opt.value,
+    name: opt.dataset.clientName || '',
+    cc: opt.dataset.clientCc || '',
+    type: opt.dataset.clientType || 'CC',
+    code: opt.dataset.loanCode || '',
+    principal: parseFloat(opt.dataset.principal || '0'),
+    rate: parseFloat(opt.dataset.rate || '0.20'),
+    pendingInt: parseFloat(opt.dataset.pendingInterest || '0'),
+    pendingCap: parseFloat(opt.dataset.pendingCapital || '0'),
+    totalDue: parseFloat(opt.dataset.totalDue || '0'),
+    cycle: opt.dataset.cycle || '5-20',
+    fullSearchText: (opt.dataset.clientName + ' ' + opt.dataset.clientCc + ' ' + opt.dataset.loanCode).toLowerCase()
+  }));
+
+  function renderSearchResults(term = '') {
+    const q = term.trim().toLowerCase();
+    const filtered = q ? loansData.filter(l => l.fullSearchText.includes(q)) : loansData;
+
+    if (filtered.length === 0) {
+      resultsList.innerHTML = `
+        <div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.88rem;">
+          No se encontró ningún cliente o crédito que coincida con "<strong>${escapeHtml(term)}</strong>".
+        </div>
+      `;
+      dropdown.style.display = 'block';
+      return;
+    }
+
+    let html = '';
+    filtered.forEach(item => {
+      html += `
+        <div class="loan-item-row" data-loan-id="${item.id}"
+             style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s ease;">
+          <div>
+            <strong style="color: #0f172a; font-size: 0.92rem; display: block;">${escapeHtml(item.name)}</strong>
+            <small style="color: #64748b; font-size: 0.78rem;">
+              ${item.type}: <strong>${escapeHtml(item.cc)}</strong> · Crédito: <code>${escapeHtml(item.code)}</code>
+            </small>
+          </div>
+          <div style="text-align: right;">
+            <strong style="color: #2563eb; font-size: 0.95rem; display: block;">$${item.totalDue.toFixed(2)}</strong>
+            <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;">
+              Q: ${escapeHtml(item.cycle)}
+            </span>
+          </div>
+        </div>
+      `;
+    });
+
+    resultsList.innerHTML = html;
+    dropdown.style.display = 'block';
+
+    // Manejar selección de item
+    resultsList.querySelectorAll('.loan-item-row').forEach(row => {
+      row.addEventListener('mouseenter', () => {
+        row.style.background = '#f0fdf4';
+      });
+      row.addEventListener('mouseleave', () => {
+        row.style.background = '#ffffff';
+      });
+      row.addEventListener('click', () => {
+        const id = row.getAttribute('data-loan-id');
+        selectLoanById(id);
+      });
+    });
+  }
+
+  function selectLoanById(id) {
+    const item = loansData.find(l => l.id === id);
+    if (!item) return;
+
+    loanSelect.value = id;
+
+    // Actualizar tarjeta de visualización
+    cardClientName.innerText = item.name;
+    cardClientMeta.innerText = `${item.type}: ${item.cc} · Crédito: ${item.code}`;
+    cardClientBalance.innerText = '$' + item.totalDue.toFixed(2);
+    cardClientCycle.innerText = 'Q: ' + item.cycle;
+
+    // Alternar visibilidad
+    searchContainer.style.display = 'none';
+    selectedDisplay.style.display = 'block';
+    dropdown.style.display = 'none';
+    searchInput.value = '';
+
+    // Disparar recálculo de simulaciones y atajos
+    updateSimulation();
+  }
+
+  function resetLoanSelection() {
+    loanSelect.value = '';
+    selectedDisplay.style.display = 'none';
+    searchContainer.style.display = 'block';
+    searchInput.value = '';
+    searchInput.focus();
+    renderSearchResults('');
+    updateSimulation();
+  }
+
+  // Eventos de búsqueda
+  searchInput.addEventListener('focus', () => {
+    renderSearchResults(searchInput.value);
+  });
+
+  searchInput.addEventListener('input', () => {
+    btnClearSearch.style.display = searchInput.value ? 'block' : 'none';
+    renderSearchResults(searchInput.value);
+  });
+
+  btnClearSearch.addEventListener('click', () => {
+    searchInput.value = '';
+    btnClearSearch.style.display = 'none';
+    searchInput.focus();
+    renderSearchResults('');
+  });
+
+  btnChangeLoan.addEventListener('click', () => {
+    resetLoanSelection();
+  });
+
+  // Cerrar dropdown al hacer click fuera
+  document.addEventListener('click', (e) => {
+    if (!searchContainer.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[m]);
+  }
+
+  function getSelectedLoanData() {
+    const opt = loanSelect.selectedOptions[0];
+    if (!opt || !opt.value) return null;
+    const principal = parseFloat(opt.dataset.principal || '0');
+    const rate = parseFloat(opt.dataset.rate || '0.20');
+    const pendingInt = parseFloat(opt.dataset.pendingInterest || '0');
+    const pendingCap = parseFloat(opt.dataset.pendingCapital || '0');
+    const totalDue = parseFloat(opt.dataset.totalDue || '0');
+    const cycle = opt.dataset.cycle || '5-20';
+    return { principal, rate, pendingInt, pendingCap, totalDue, cycle };
+  }
+
+  function updateSimulation() {
+    const data = getSelectedLoanData();
+    if (!data) {
+      quickButtons.style.display = 'none';
+      simBox.style.display = 'none';
+      return;
+    }
+
+    quickButtons.style.display = 'flex';
+    quickInterestVal.innerText = data.pendingInt.toFixed(2);
+    quickTotalVal.innerText = data.totalDue.toFixed(2);
+
+    const amount = parseFloat(amountInput.value || '0');
+    if (amount <= 0) {
+      simBox.style.display = 'none';
+      return;
+    }
+
+    simBox.style.display = 'block';
+    simPrincipal.innerText = '$' + data.principal.toFixed(2);
+
+    // 1. Interés
+    const appliedInt = Math.min(data.pendingInt, amount);
+    let rem = amount - appliedInt;
+
+    // 2. Capital
+    const appliedCap = Math.min(data.pendingCap, rem);
+    const remCapital = Math.max(0, data.pendingCap - appliedCap);
+
+    simAppliedInterest.innerText = '$' + appliedInt.toFixed(2);
+    simAppliedCapital.innerText = '$' + appliedCap.toFixed(2);
+    simRemainingCapital.innerText = '$' + remCapital.toFixed(2);
+
+    // Si salda el 100%
+    if (remCapital <= 0 && appliedInt >= data.pendingInt) {
+      simBadge.innerText = 'Paz y Salvo (100% Pagado)';
+      simBadge.style.background = '#dcfce7';
+      simBadge.style.color = '#166534';
+      simNextCard.style.background = '#f0fdf4';
+      simNextCard.style.borderColor = '#86efac';
+      simExplanation.innerText = 'El crédito queda completamente liquidado sin deuda futura.';
+      simNextTotal.innerText = '$0.00';
+    } else {
+      // Interés fijo sobre el total del crédito original
+      const fixedInterest = data.principal * data.rate;
+      const nextTotal = remCapital + fixedInterest;
+
+      if (appliedCap === 0 && appliedInt > 0) {
+        simBadge.innerText = 'Abono solo a Interés';
+        simBadge.style.background = '#fef3c7';
+        simBadge.style.color = '#92400e';
+      } else {
+        simBadge.innerText = 'Abono Capital + Interés';
+        simBadge.style.background = '#e0f2fe';
+        simBadge.style.color = '#0369a1';
+      }
+
+      simNextCard.style.background = '#ffffff';
+      simNextCard.style.borderColor = '#94a3b8';
+      simExplanation.innerText = `Saldo capital restante ($${remCapital.toFixed(2)}) + Interés del crédito total ($${fixedInterest.toFixed(2)})`;
+      simNextTotal.innerText = '$' + nextTotal.toFixed(2);
+    }
+  }
+
+  amountInput.addEventListener('input', () => {
+    updateSimulation();
+  });
+
+  btnPayInterest.addEventListener('click', () => {
+    const data = getSelectedLoanData();
+    if (data) {
+      amountInput.value = data.pendingInt.toFixed(2);
+      conceptInput.value = 'Abono únicamente a Interés';
+      updateSimulation();
+    }
+  });
+
+  btnPayTotal.addEventListener('click', () => {
+    const data = getSelectedLoanData();
+    if (data) {
+      amountInput.value = data.totalDue.toFixed(2);
+      conceptInput.value = 'Cancelación total del crédito';
+      updateSimulation();
+    }
+  });
+
+  // Si venía un préstamo preseleccionado (ej. por URL ?loan_id=...)
+  if (loanSelect.value) {
+    selectLoanById(loanSelect.value);
+  } else {
+    searchContainer.style.display = 'block';
+    selectedDisplay.style.display = 'none';
+  }
+});
+</script>
 {% endblock %}

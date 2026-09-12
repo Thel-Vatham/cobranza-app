@@ -57,66 +57,68 @@
   </div>
 </div>
 
-<div class="card" style="border: 1px solid #e2e8f0;">
-  <table id="loans-table">
-    <thead>
-      <tr>
-        <th>Código</th>
-        <th>Cliente Titular</th>
-        <th>Fecha Inicio</th>
-        <th>Capital Prestado</th>
-        <th>Modalidad & Ciclo</th>
-        <th>Tasa</th>
-        <th>Cuotas</th>
-        <th>Saldo Pendiente</th>
-        <th>Estado</th>
-      </tr>
-    </thead>
-    <tbody id="loans-tbody">
-      {% for l in loans %}
-      <tr class="clickable-row loan-row"
-          data-status="{{ l.status }}"
-          data-freq="{{ l.frequency_type or ('semanal' if l.frequency_days == 7 else 'quincenal') }}"
-          data-cycle="{{ l.biweekly_cycle or '' }}"
-          data-amount="{{ l.principal|int }}"
-          onclick="window.location='{{ url_for('loans.detail', loan_id=l.id) }}';"
-          style="cursor: pointer;">
-        <td><strong>{{ l.code }}</strong></td>
-        <td>
-          <div style="font-weight: 600; color: #1e293b;">{{ l.client.full_name }}</div>
-          <small class="muted">{{ l.client.identification_type }}: {{ l.client.identification_number }}</small>
-        </td>
-        <td>{{ l.start_date|d }}</td>
-        <td><strong>{{ l.principal|money }}</strong></td>
-        <td>
-          {% if l.frequency_type == 'semanal' or l.frequency_days == 7 %}
-          <span class="badge" style="background: #eef2ff; color: #3730a3; font-weight: 600; border: 1px solid #c7d2fe;">
-            Semanal (7 días)
-          </span>
-          {% else %}
-          <span class="badge" style="background: #f0fdf4; color: #166534; font-weight: 600; border: 1px solid #bbf7d0;">
-            Q: {{ l.biweekly_cycle or 'Estándar' }}
-          </span>
-          {% endif %}
-        </td>
-        <td>{{ (l.annual_rate * 100)|round(1) }}%</td>
-        <td>{{ l.installments_count }}</td>
-        <td>
-          <strong style="color: {% if l.outstanding_balance > 0 %}#2563eb{% else %}#10b981{% endif %}; font-size: 0.95rem;">
-            {{ l.outstanding_balance|money }}
-          </strong>
-        </td>
-        <td>
-          <span class="badge {% if l.status == 'pagado' %}badge-success{% elif l.status == 'mora' %}badge-danger{% else %}badge-info{% endif %}">
-            {{ l.status|capitalize }}
-          </span>
-        </td>
-      </tr>
-      {% else %}
-      <tr id="empty-row"><td colspan="9" class="muted center" style="padding: 30px 0;">No hay créditos registrados.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="card" style="padding: 0; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+  <div class="table-wrap" style="border: none; box-shadow: none; border-radius: 0;">
+    <table id="loans-table" class="responsive-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Cliente Titular</th>
+          <th>Fecha Inicio</th>
+          <th>Capital Prestado</th>
+          <th>Modalidad & Ciclo</th>
+          <th>Tasa</th>
+          <th>Cuotas</th>
+          <th>Saldo Pendiente</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="loans-tbody">
+        {% for l in loans %}
+        <tr class="clickable-row loan-row"
+            data-status="{{ l.status }}"
+            data-freq="{{ l.frequency_type or ('semanal' if l.frequency_days == 7 else 'quincenal') }}"
+            data-cycle="{{ l.biweekly_cycle or '' }}"
+            data-amount="{{ l.principal|int }}"
+            onclick="window.location='{{ url_for('loans.detail', loan_id=l.id) }}';"
+            style="cursor: pointer;">
+          <td data-label="Código"><strong>{{ l.code }}</strong></td>
+          <td data-label="Cliente Titular">
+            <div style="font-weight: 600; color: #1e293b;">{{ l.client.full_name }}</div>
+            <small class="muted">{{ l.client.identification_type }}: {{ l.client.identification_number }}</small>
+          </td>
+          <td data-label="Fecha Inicio">{{ l.start_date|d }}</td>
+          <td data-label="Capital Prestado"><strong>{{ l.principal|money }}</strong></td>
+          <td data-label="Modalidad & Ciclo">
+            {% if l.frequency_type == 'semanal' or l.frequency_days == 7 %}
+            <span class="badge" style="background: #eef2ff; color: #3730a3; font-weight: 600; border: 1px solid #c7d2fe;">
+              Semanal (7 días)
+            </span>
+            {% else %}
+            <span class="badge" style="background: #f0fdf4; color: #166534; font-weight: 600; border: 1px solid #bbf7d0;">
+              Q: {{ l.biweekly_cycle or 'Estándar' }}
+            </span>
+            {% endif %}
+          </td>
+          <td data-label="Tasa">{{ (l.annual_rate * 100)|round(1) }}%</td>
+          <td data-label="Cuotas">{{ l.installments_count }}</td>
+          <td data-label="Saldo Pendiente">
+            <strong style="color: {% if l.outstanding_balance > 0 %}#2563eb{% else %}#10b981{% endif %}; font-size: 0.95rem;">
+              {{ l.outstanding_balance|money }}
+            </strong>
+          </td>
+          <td data-label="Estado">
+            <span class="badge {% if l.status == 'pagado' %}badge-success{% elif l.status == 'mora' %}badge-danger{% else %}badge-info{% endif %}">
+              {{ l.status|capitalize }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr id="empty-row"><td colspan="9" class="muted center" style="padding: 30px 0;">No hay créditos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <script>

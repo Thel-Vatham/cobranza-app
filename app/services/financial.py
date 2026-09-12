@@ -172,11 +172,20 @@ def generate_obligations(loan: Loan) -> list[Obligation]:
     return obligations
 
 def apply_payment(payment) -> list[dict]:
-    """Aplica un pago a las obligaciones pendientes según orden_aplicacion_pago.
+    """Aplica un pago a las obligaciones según las reglas de negocio de la cartera:
 
-    Orden configurable:
-    - 'interes_primero' (Estándar): Intereses pendientes primero, luego capital.
-    - 'capital_primero': Capital pendiente primero (reduce saldo rápido), luego intereses.
+    Reglas:
+    1. El pago cubre primero el interés pendiente de la obligación activa.
+    2. El excedente se abona al capital.
+    3. Si el pago liquida el 100% de la deuda (saldo = 0):
+       - La obligación se marca como 'pagada' y el crédito como 'pagado' (Paz y Salvo).
+    4. Si queda saldo pendiente (abono parcial a capital o pago solo de interés):
+       - La obligación del ciclo actual se cierra/satisface con los montos aplicados.
+       - Se programa automáticamente la cuota para la siguiente quincena:
+         * Capital = saldo remanente de capital.
+         * Interés = interés pactado sobre el crédito total original (loan.principal * loan.annual_rate).
+         * Valor cuota próxima quincena = Capital remanente + Interés sobre crédito total.
+         * Fecha de vencimiento = siguiente corte quincenal del ciclo (5-20, 10-25, 15-30).
     """
     loan = payment.loan
     remaining = money(payment.amount)
@@ -187,54 +196,86 @@ def apply_payment(payment) -> list[dict]:
         key=lambda o: (o.due_date, o.number),
     )
 
-    order = Parameter.get("orden_aplicacion_pago", "interes_primero")
+    if not obligations:
+        return applications
 
-    for obligation in obligations:
-        if remaining <= 0:
-            break
+    obligation = obligations[0]
 
-        if order == "capital_primero":
-            # 1. Capital primero
-            capital_to_apply = min(money(obligation.pending_capital), remaining)
-            remaining = (remaining - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
-            # 2. Interés después
-            interest_to_apply = min(money(obligation.pending_interest), remaining)
-            remaining = (remaining - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
-        else:
-            # interes_primero (Estándar recomendado)
-            # 1. Interés primero
-            interest_to_apply = min(money(obligation.pending_interest), remaining)
-            remaining = (remaining - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
-            # 2. Capital después
-            capital_to_apply = min(money(obligation.pending_capital), remaining)
-            remaining = (remaining - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
+    # 1. Interés primero
+    interest_to_apply = min(money(obligation.pending_interest), remaining)
+    remaining = (remaining - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
 
-        if interest_to_apply > 0 or capital_to_apply > 0:
-            obligation.pending_interest = (money(obligation.pending_interest) - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
-            obligation.pending_capital = (money(obligation.pending_capital) - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
-            obligation.status = "pagada" if obligation.pending_balance <= 0 else "parcial"
-            if obligation.status == "pagada":
-                obligation.paid_date = payment.payment_date
+    # 2. Capital después
+    capital_to_apply = min(money(obligation.pending_capital), remaining)
+    remaining = (remaining - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
 
-            application = PaymentApplication(
-                payment_id=payment.id,
-                obligation_id=obligation.id,
-                capital_applied=capital_to_apply,
-                interest_applied=interest_to_apply,
-            )
-            applications.append({
-                "obligation": obligation.number,
-                "capital": float(capital_to_apply),
-                "interest": float(interest_to_apply),
-            })
-            db.session.add(application)
+    # Actualizar saldos de la obligación actual
+    obligation.pending_interest = (money(obligation.pending_interest) - interest_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
+    obligation.pending_capital = (money(obligation.pending_capital) - capital_to_apply).quantize(CENTS, rounding=ROUND_HALF_UP)
 
-    # Estado del préstamo
-    if loan.outstanding_balance <= 0:
+    # Registrar la aplicación del pago
+    application = PaymentApplication(
+        payment_id=payment.id,
+        obligation_id=obligation.id,
+        capital_applied=capital_to_apply,
+        interest_applied=interest_to_apply,
+    )
+    db.session.add(application)
+    applications.append({
+        "obligation": obligation.number,
+        "capital": float(capital_to_apply),
+        "interest": float(interest_to_apply),
+    })
+
+    rem_capital = money(obligation.pending_capital)
+    rem_interest = money(obligation.pending_interest)
+    total_unpaid = rem_capital + rem_interest
+
+    if total_unpaid <= 0:
+        # Liquidación total del crédito (Paz y Salvo)
+        obligation.status = "pagada"
+        obligation.paid_date = payment.payment_date
         loan.status = "pagado"
-    elif any(o.days_late > 0 for o in loan.obligations if o.status != "pagada"):
-        loan.status = "mora"
     else:
+        # Abono parcial o pago solo de interés:
+        # La obligación actual queda cumplida para este período
+        obligation.status = "pagada"
+        obligation.paid_date = payment.payment_date
+        obligation.pending_capital = Decimal("0.00")
+        obligation.pending_interest = Decimal("0.00")
+
+        # Calcular fecha del próximo corte quincenal
+        base_ref = max(obligation.due_date, payment.payment_date)
+        if loan.frequency_type == "semanal" or loan.frequency_days == 7:
+            next_due = base_ref + timedelta(days=7)
+        else:
+            cycle = loan.biweekly_cycle or "15-30"
+            next_dates = get_next_biweekly_dates(base_ref, cycle, 1)
+            next_due = next_dates[0] if next_dates else (base_ref + timedelta(days=15))
+
+        # Interés de la nueva quincena: SIEMPRE sobre el crédito total original
+        rate = Decimal(str(loan.annual_rate if loan.annual_rate is not None else 0.20))
+        fixed_interest = (money(loan.principal) * rate).quantize(CENTS, rounding=ROUND_HALF_UP)
+
+        # Si quedó algún remanente de interés no cubierto, se acumula
+        new_interest = (rem_interest + fixed_interest).quantize(CENTS, rounding=ROUND_HALF_UP)
+        new_capital = rem_capital
+        new_scheduled_value = (new_capital + new_interest).quantize(CENTS, rounding=ROUND_HALF_UP)
+
+        next_number = len(loan.obligations) + 1
+        new_obligation = Obligation(
+            loan_id=loan.id,
+            number=next_number,
+            due_date=next_due,
+            scheduled_value=new_scheduled_value,
+            capital=new_capital,
+            interest=new_interest,
+            pending_capital=new_capital,
+            pending_interest=new_interest,
+            status="pendiente",
+        )
+        db.session.add(new_obligation)
+        loan.installments_count = next_number
         loan.status = "activo"
 
     return applications

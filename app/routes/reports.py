@@ -61,8 +61,12 @@ def scoring():
         results.append({"client": client, "score": s})
     results.sort(key=lambda r: (r["score"].get("score") is None, -(r["score"].get("score") or 0)))
 
-    # Precalculo robusto de resumen estadístico para evitar comparaciones con None en Jinja
+    # Precalculo de resumen estadístico por Semáforo de Comportamiento y Score
     summary = {
+        "blanco": sum(1 for r in results if r["score"].get("behavior", {}).get("key") == "blanco"),
+        "verde": sum(1 for r in results if r["score"].get("behavior", {}).get("key") == "verde"),
+        "naranja": sum(1 for r in results if r["score"].get("behavior", {}).get("key") == "naranja"),
+        "rojo": sum(1 for r in results if r["score"].get("behavior", {}).get("key") == "rojo"),
         "bajo_riesgo": sum(1 for r in results if r["score"].get("score") is not None and r["score"]["score"] >= 80),
         "medio_riesgo": sum(1 for r in results if r["score"].get("score") is not None and 50 <= r["score"]["score"] < 80),
         "alto_riesgo": sum(1 for r in results if r["score"].get("score") is not None and r["score"]["score"] < 50),

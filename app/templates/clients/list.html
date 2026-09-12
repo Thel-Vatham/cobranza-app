@@ -37,6 +37,11 @@
           <td data-label="Código"><strong>{{ c.code }}</strong></td>
           <td data-label="Nombre">
             <strong style="color: var(--text);">{{ c.full_name }}</strong>
+            {% if c.behavior %}
+            <span class="badge" style="background: {{ c.behavior.bg }}; color: {{ c.behavior.color }}; border: 1px solid {{ c.behavior.border }}; font-size: 0.72rem; font-weight: 700; margin-left: 4px;">
+              ● {{ c.behavior.label }}
+            </span>
+            {% endif %}
             {% if c.portfolio %}
             <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 0.7rem; border: 1px solid #e2e8f0; margin-left: 4px;">
               📁 {{ c.portfolio.name }}

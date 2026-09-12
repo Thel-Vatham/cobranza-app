@@ -79,17 +79,5 @@
 {%- endmacro %}
 
 {% macro logo(size=38) -%}
-<svg class="logo" width="{{ size }}" height="{{ size }}" viewBox="0 0 48 48" aria-hidden="true">
-  <defs>
-    <linearGradient id="cartera-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1d4ed8"/>
-      <stop offset="1" stop-color="#0e7490"/>
-    </linearGradient>
-  </defs>
-  <rect width="48" height="48" rx="11" fill="url(#cartera-grad)"/>
-  <g transform="translate(9 7) scale(1.25)" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="12" y1="2" x2="12" y2="22"/>
-    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-  </g>
-</svg>
+<img class="app-logo-img" src="{{ url_for('static', filename='img/logo.png') }}" alt="Soluciones Financieras" width="{{ size }}" height="{{ size }}" style="width: {{ size }}px; height: {{ size }}px; object-fit: cover; border-radius: 8px; display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 1px solid rgba(212, 175, 55, 0.3);">
 {%- endmacro %}

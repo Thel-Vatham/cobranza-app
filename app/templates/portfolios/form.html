@@ -54,7 +54,7 @@
     </div>
     <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.03);">
       <span style="display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">Capital Colocado</span>
-      <span style="font-size: 1.15rem; font-weight: 800; color: #2563eb; margin-top: 2px; display: block;">${{ "%.2f"|format(portfolio.capital_colocado|float) }} <span style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">USD</span></span>
+      <span style="font-size: 1.15rem; font-weight: 800; color: #c29529; margin-top: 2px; display: block;">${{ "%.2f"|format(portfolio.capital_colocado|float) }} <span style="font-size: 0.75rem; font-weight: 600; color: #94a3b8;">USD</span></span>
     </div>
     <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.03);">
       <span style="display: block; font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">Disponible</span>
@@ -220,7 +220,7 @@
       
       <button type="submit" 
               class="btn-touch"
-              style="background: #2563eb; color: #ffffff; border: 1px solid #2563eb; box-shadow: 0 2px 6px rgba(37,99,235,0.25);">
+              style="background: var(--gold-gradient); color: #ffffff; border: 1px solid #9d751b; box-shadow: 0 2px 8px rgba(194,149,41,0.35);">
         {{ icon('check', 16) }}
         <span>{% if portfolio %}Guardar Cambios{% else %}Crear Cartera{% endif %}</span>
       </button>
