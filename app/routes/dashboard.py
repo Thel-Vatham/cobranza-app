@@ -42,7 +42,16 @@ def index():
     loan_ids = [l.id for l in loans]
     obligations = Obligation.query.filter(Obligation.loan_id.in_(loan_ids)).all() if loan_ids else []
 
-    # Capital original total desembolsado y saldos actuales
+    # Capital asignado total de la cartera (disponible total asignado)
+    if active_portfolio_id:
+        portfolio_obj = Portfolio.query.get(active_portfolio_id)
+        assigned_capital = float(portfolio_obj.assigned_capital_usd) if portfolio_obj else 0.0
+    elif is_admin:
+        # Suma de todas las carteras
+        assigned_capital = sum(float(p.assigned_capital_usd or 0) for p in Portfolio.query.all())
+    else:
+        assigned_capital = 0.0
+
     capital_disbursed = sum((float(l.principal) for l in loans), 0.0)
     total_portfolio = sum((float(l.outstanding_balance) for l in loans), 0.0)
 
@@ -74,14 +83,21 @@ def index():
         Payment.payment_date.desc(), Payment.created_at.desc()
     ).limit(8).all()
 
-    # Interés generado por la cartera en el último mes
-    # = suma del interés quincenal (capital × tasa) de todos los préstamos activos
-    # Se toma el interés de la cuota vigente de cada préstamo activo/en mora
-    interes_mes = sum(
-        float(l.principal) * float(l.annual_rate)
-        for l in loans
-        if l.status in ("activo", "mora")
-    )
+    # Interés generado: solo de créditos PAGADOS (liquidados) en el último mes
+    # Se suman los pagos que cubrieron interés en créditos que ya están pagados
+    last30 = today - timedelta(days=30)
+    paid_loan_ids = {l.id for l in loans if l.status == "pagado"}
+    interes_mes = 0.0
+    if paid_loan_ids and loan_ids:
+        pagos_liquidados = Payment.query.filter(
+            Payment.loan_id.in_(paid_loan_ids),
+            Payment.payment_date >= last30
+        ).all()
+        # El interés de cada cuota = principal × tasa
+        for p in pagos_liquidados:
+            loan_ref = next((l for l in loans if l.id == p.loan_id), None)
+            if loan_ref:
+                interes_mes += float(loan_ref.principal) * float(loan_ref.annual_rate)
 
     collections_today = 0
     if loan_ids:
@@ -92,7 +108,7 @@ def index():
 
     indicators = {
         "capital_desembolsado": capital_disbursed,
-        "cartera_total": total_portfolio,
+        "cartera_total": assigned_capital,
         "cartera_vigente": active_portfolio_val,
         "cartera_vencida": overdue_portfolio,
         "obligaciones_vencidas": len(overdue_obligations),

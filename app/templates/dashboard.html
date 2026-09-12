@@ -12,11 +12,11 @@
 <div class="grid grid-4">
   <div class="card stat">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span class="stat-label">Saldo Cartera Total</span>
-      <span class="badge" title="Capital inicial colocado: {{ indicators.capital_desembolsado|money }}">Base: {{ indicators.capital_desembolsado|money }}</span>
+      <span class="stat-label">Saldo en Cartera</span>
+      <span class="badge" title="Capital colocado actualmente: {{ indicators.capital_desembolsado|money }}">Colocado: {{ indicators.capital_desembolsado|money }}</span>
     </div>
     <span class="stat-value">{{ indicators.cartera_total|money }}</span>
-    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Capital activo pendiente de cobro</small>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Capital total asignado a la cartera</small>
   </div>
   <div class="card stat">
     <span class="stat-label">Cartera Vigente (Al día)</span>
@@ -31,7 +31,7 @@
   <div class="card stat stat-success">
     <span class="stat-label">Interés generado este mes</span>
     <span class="stat-value" style="color: #8b5cf6;">{{ indicators.interes_mes|money }}</span>
-    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Basado en los créditos activos y en mora</small>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Solo créditos liquidados (pagados) en los últimos 30 días</small>
   </div>
 </div>
 
