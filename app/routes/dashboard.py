@@ -61,8 +61,22 @@ def index():
         if o.status != "pagada" and float(o.pending_balance) > 0 and o.due_date < today
     ]
     overdue_obligations.sort(key=lambda o: o.due_date)
-    overdue_portfolio = sum((float(o.pending_balance) for o in overdue_obligations), 0.0)
-    active_portfolio_val = max(0.0, total_portfolio - overdue_portfolio)
+    # Capital en mora sin interés
+    overdue_portfolio = sum((float(o.pending_capital or 0) for o in overdue_obligations), 0.0)
+
+    # Obligaciones vigentes al día (no vencidas, con saldo pendiente > 0)
+    vigente_obligations = [
+        o for o in obligations
+        if o.status != "pagada" and float(o.pending_balance) > 0 and o.due_date >= today
+    ]
+    # Capital vigente al día sin interés
+    active_portfolio_val = sum((float(o.pending_capital or 0) for o in vigente_obligations), 0.0)
+
+    # Capital colocado activo total (sin interés) = vigente + mora
+    capital_colocado_activo = active_portfolio_val + overdue_portfolio
+
+    # Saldo disponible de la cartera = Asignado menos capital prestado activo
+    saldo_disponible = max(0.0, assigned_capital - capital_colocado_activo)
 
     # Próximas obligaciones: solo la SIGUIENTE cuota por cada préstamo dentro del horizonte
     upcoming_by_loan = {}
@@ -108,7 +122,9 @@ def index():
 
     indicators = {
         "capital_desembolsado": capital_disbursed,
-        "cartera_total": assigned_capital,
+        "cartera_total": saldo_disponible,
+        "saldo_disponible": saldo_disponible,
+        "capital_asignado": assigned_capital,
         "cartera_vigente": active_portfolio_val,
         "cartera_vencida": overdue_portfolio,
         "obligaciones_vencidas": len(overdue_obligations),

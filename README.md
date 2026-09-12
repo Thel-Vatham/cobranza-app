@@ -93,9 +93,9 @@ Al iniciar por primera vez, el sistema autosembra la estructura de datos, carter
 
 ### 5. Panel Principal (Dashboard) e Indicadores de Cartera
 Desde la pantalla de inicio (`/`), el sistema presenta los 4 indicadores financieros clave de la cartera activa:
-- **Saldo de Cartera**: Cupo total de capital asignado a la cartera en dólares (`assigned_capital_usd`).
-- **Cartera Vigente (Al día)**: Capital en curso sin mora que cumple su cronograma de pago.
-- **Cartera Vencida (En mora)**: Saldo insoluto vencido de cuotas cuya fecha límite ha expirado.
+- **Saldo Disponible**: Capital asignado a la cartera menos el capital colocado activo (fondos disponibles para desembolsar).
+- **Cartera Vigente (Al día)**: Capital prestado al día sin intereses que cumple su cronograma de pago.
+- **Cartera Vencida (En mora)**: Capital prestado en mora sin intereses correspondiente a cuotas vencidas.
 - **Interés generado este mes**: Utilidad neta generada exclusivamente por créditos pagados (liquidados al 100%) en los últimos 30 días.
 - **Tablas de Monitoreo**: Listado de próximos vencimientos (con búsqueda textual por nombre o cédula), créditos en mora y últimos pagos registrados.
 

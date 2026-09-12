@@ -248,10 +248,10 @@ El Panel Principal (`/`) centraliza el estado operativo, contable y de riesgo de
 
 | Indicador | Variable Interna | Ubicación en Código | Regla de Negocio / Fórmula de Cálculo |
 |---|---|---|---|
-| **Saldo de Cartera** | `indicators.cartera_total` | `dashboard.py`: L46-54 | **Capital total asignado a la cartera (`Portfolio.assigned_capital_usd`)**. Refleja el cupo total financiero en dólares asignado a la cartera activa por el Administrador. Si el usuario es Administrador y no tiene una cartera filtrada en sesión, totaliza el capital asignado de todas las carteras registradas. |
-| **Cartera Vigente (Al día)** | `indicators.cartera_vigente` | `dashboard.py`: L65 | **Capital en curso sin mora**: $\max(0.0, \text{Saldo Insoluto Total} - \text{Saldo Vencido})$. Es el saldo pendiente de créditos activos cuyas obligaciones no han superado su fecha límite de pago. |
-| **Cartera Vencida (En mora)** | `indicators.cartera_vencida` | `dashboard.py`: L59-64 | **Saldo vencido exigible**: $\sum \text{pending\_balance}$ de todas las cuotas (`Obligation`) cuyo estado sea diferente de `"pagada"`, saldo $> 0$ y `due_date < today`. Incluye además el conteo de cuotas vencidas (`obligaciones_vencidas`). |
-| **Interés generado este mes** | `indicators.interes_mes` | `dashboard.py`: L86-101 | **Rendimiento financiero efectivamente liquidado**: Se contabiliza exclusivamente el interés de **créditos con estatus `"pagado"`** que hayan registrado pagos en los últimos 30 días (`today - 30 días`). Excluye créditos vigentes no liquidados y créditos en mora para garantizar que solo se reconozca ingreso realizado/cobrado. |
+| **Saldo Disponible** | `indicators.saldo_disponible` | `dashboard.py`: L75 | **Capital disponible de la cartera**: $\max(0.0, \text{Capital Asignado} - \text{Capital Colocado Activo})$. Representa los fondos líquidos disponibles para colocar nuevos créditos en la cartera. |
+| **Cartera Vigente (Al día)** | `indicators.cartera_vigente` | `dashboard.py`: L72 | **Capital prestado al día (sin intereses)**: $\sum \text{pending\_capital}$ de cuotas activas que no están vencidas (`due_date \ge today`) y no pagadas. |
+| **Cartera Vencida (En mora)** | `indicators.cartera_vencida` | `dashboard.py`: L65 | **Capital en mora (sin intereses)**: $\sum \text{pending\_capital}$ de cuotas vencidas (`due_date < today`) y no pagadas. Incluye además el conteo numérico de cuotas en mora (`obligaciones_vencidas`). |
+| **Interés generado este mes** | `indicators.interes_mes` | `dashboard.py`: L100-115 | **Rendimiento financiero efectivamente liquidado**: Se contabiliza exclusivamente el interés de **créditos con estatus `"pagado"`** que hayan registrado pagos en los últimos 30 días (`today - 30 días`). Excluye créditos vigentes no liquidados y créditos en mora para garantizar que solo se reconozca ingreso realizado/cobrado. |
 
 ### 9.2. Métricas Secundarias
 

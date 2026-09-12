@@ -11,14 +11,14 @@
 
 <div class="grid grid-4">
   <div class="card stat">
-    <span class="stat-label">Saldo de Cartera</span>
-    <span class="stat-value">{{ indicators.cartera_total|money }}</span>
-    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Capital total asignado a la cartera</small>
+    <span class="stat-label">Saldo Disponible</span>
+    <span class="stat-value">{{ indicators.saldo_disponible|money }}</span>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Capital disponible para colocación</small>
   </div>
   <div class="card stat">
     <span class="stat-label">Cartera Vigente (Al día)</span>
     <span class="stat-value" style="color: #10b981;">{{ indicators.cartera_vigente|money }}</span>
-    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Sin cuotas vencidas</small>
+    <small class="muted" style="margin-top: 4px; font-size: 0.78rem;">Capital colocado al día (sin intereses)</small>
   </div>
   <div class="card stat stat-danger">
     <span class="stat-label">Cartera Vencida (En mora)</span>
